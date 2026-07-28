@@ -210,7 +210,11 @@ class GifEncoderTest {
 
                 if (previous != null) {
                     dictionary.add(previous + entry[0])
-                    if (dictionary.size > (1 shl codeSize) - 1 && codeSize < 12) codeSize++
+                    // The decoder's dictionary lags the encoder's by exactly one entry: the
+                    // encoder defines a code as it emits, the decoder only once it sees the
+                    // *next* code. So `size == encoderNextCode - 1`, and the width has to
+                    // grow one step earlier here than it does over there.
+                    if (dictionary.size >= (1 shl codeSize) - 1 && codeSize < 12) codeSize++
                 }
                 previous = entry
             }
