@@ -40,6 +40,22 @@ class PresetStore(context: Context) {
         runCatching { file.writeText(json.encodeToString(presets)) }
     }
 
+    fun exportJson(): String = json.encodeToString(load())
+
+    /**
+     * Merges an exported file into the stored presets, matched by name — importing an
+     * edited export updates those presets instead of producing duplicates. Returns null
+     * when the text isn't a preset export at all.
+     */
+    fun importJson(text: String): List<Preset>? {
+        val imported = runCatching { json.decodeFromString<List<Preset>>(text) }.getOrNull()
+            ?: return null
+        val names = imported.map { it.name.lowercase() }.toSet()
+        val merged = load().filterNot { it.name.lowercase() in names } + imported
+        save(merged)
+        return merged
+    }
+
     fun upsert(name: String, params: AsciiParams): List<Preset> {
         val trimmed = name.trim().ifEmpty { "untitled" }
         val updated = load().filterNot { it.name.equals(trimmed, ignoreCase = true) } + Preset(trimmed, params)

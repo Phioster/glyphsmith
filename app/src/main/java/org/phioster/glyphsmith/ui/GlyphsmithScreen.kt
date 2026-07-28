@@ -42,12 +42,12 @@ import org.phioster.glyphsmith.ui.panels.ColorPanel
 import org.phioster.glyphsmith.ui.panels.EffectsPanel
 import org.phioster.glyphsmith.ui.panels.OutputPanel
 import org.phioster.glyphsmith.ui.panels.PresetPanel
-import org.phioster.glyphsmith.ui.panels.TonePanel
+import org.phioster.glyphsmith.ui.panels.MappingPanel
 import org.phioster.glyphsmith.ui.theme.Term
 
 private enum class Tab(val label: String) {
     ASCII("SET"),
-    TONE("TONE"),
+    MAPPING("MAP"),
     COLOR("COLOUR"),
     EFFECTS("FX"),
     OUTPUT("OUT"),
@@ -68,6 +68,10 @@ fun GlyphsmithScreen(
     onApplyPreset: (Preset) -> Unit,
     onSavePreset: (String) -> Unit,
     onDeletePreset: (String) -> Unit,
+    onExportPresets: () -> Unit,
+    onImportPresets: (android.net.Uri) -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -81,6 +85,10 @@ fun GlyphsmithScreen(
             .padding(horizontal = 12.dp),
     ) {
         Header(
+            canUndo = state.canUndo,
+            canRedo = state.canRedo,
+            onUndo = onUndo,
+            onRedo = onRedo,
             onLoad = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
         )
 
@@ -103,7 +111,7 @@ fun GlyphsmithScreen(
                     fontLabel = state.fontLabel,
                     missingGlyphs = state.missingGlyphs,
                 )
-                Tab.TONE -> TonePanel(state.params, onParamsChange)
+                Tab.MAPPING -> MappingPanel(state.params, onParamsChange)
                 Tab.COLOR -> ColorPanel(state.params, onParamsChange)
                 Tab.EFFECTS -> EffectsPanel(state.params, onParamsChange)
                 Tab.OUTPUT -> OutputPanel(
@@ -122,6 +130,8 @@ fun GlyphsmithScreen(
                     onApply = onApplyPreset,
                     onSave = onSavePreset,
                     onDelete = onDeletePreset,
+                    onExport = onExportPresets,
+                    onImport = onImportPresets,
                 )
             }
         }
@@ -129,17 +139,25 @@ fun GlyphsmithScreen(
 }
 
 @Composable
-private fun Header(onLoad: () -> Unit) {
+private fun Header(
+    canUndo: Boolean,
+    canRedo: Boolean,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onLoad: () -> Unit,
+) {
     Row(
         Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column {
+        Column(Modifier.weight(1f)) {
             Text("GLYPHSMITH", color = Term.Ink, style = MaterialTheme.typography.titleLarge)
             Text("ascii forge", color = Term.InkFaint, style = MaterialTheme.typography.labelSmall)
         }
-        TerminalButton(label = "load image", onClick = onLoad)
+        TerminalButton(label = "↶", onClick = onUndo, enabled = canUndo)
+        TerminalButton(label = "↷", onClick = onRedo, enabled = canRedo)
+        TerminalButton(label = "load", onClick = onLoad)
     }
 }
 

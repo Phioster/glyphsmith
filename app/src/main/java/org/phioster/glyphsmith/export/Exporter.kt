@@ -16,11 +16,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Saving and sharing. Two distinct outputs, both of which matter:
- * the rendered PNG, and the *true character grid* as .txt — the grid is the thing you can
- * paste into a terminal, a README or a text editor, and it can't be recovered from a PNG.
- */
 /** Image formats offered next to the export button, mirroring the original's format picker. */
 enum class ImageFormat(val extension: String, val mimeType: String) {
     PNG("png", "image/png"),
@@ -32,6 +27,11 @@ enum class ImageFormat(val extension: String, val mimeType: String) {
     val supportsTransparency: Boolean get() = this != JPG
 }
 
+/**
+ * Saving and sharing. Three distinct outputs, all of which matter: the rendered image, the
+ * *true character grid* as .txt — the thing you can paste into a terminal or a README, and
+ * which can't be recovered from a PNG — and presets as .json.
+ */
 object Exporter {
 
     private const val ALBUM = "Glyphsmith"
@@ -107,10 +107,17 @@ object Exporter {
 
     /** Writes the character grid as a .txt into Downloads. Returns null when the write failed. */
     fun saveText(context: Context, text: String, name: String = timestampedName("txt")): Uri? =
+        saveDocument(context, text, name, "text/plain")
+
+    /** Presets go to the same folder as the .txt exports, as application/json. */
+    fun saveJson(context: Context, text: String, name: String = timestampedName("json")): Uri? =
+        saveDocument(context, text, name, "application/json")
+
+    private fun saveDocument(context: Context, text: String, name: String, mimeType: String): Uri? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, name)
-                put(MediaStore.Downloads.MIME_TYPE, "text/plain")
+                put(MediaStore.Downloads.MIME_TYPE, mimeType)
                 put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$ALBUM")
             }
             val resolver = context.contentResolver

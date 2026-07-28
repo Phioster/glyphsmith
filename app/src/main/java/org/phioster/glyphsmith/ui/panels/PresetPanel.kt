@@ -1,5 +1,8 @@
 package org.phioster.glyphsmith.ui.panels
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,9 +36,16 @@ fun PresetPanel(
     onApply: (Preset) -> Unit,
     onSave: (String) -> Unit,
     onDelete: (String) -> Unit,
+    onExport: () -> Unit,
+    onImport: (Uri) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var name by remember { mutableStateOf("") }
+    // Exports are plain JSON, but pickers and file managers label them inconsistently, so
+    // text/* and */* are accepted too rather than hiding the file the user just exported.
+    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(onImport)
+    }
 
     Column(modifier.fillMaxWidth()) {
         SectionHeader("presets")
@@ -102,5 +112,29 @@ fun PresetPanel(
                 },
             )
         }
+
+        SectionHeader("transfer")
+
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            TerminalButton(
+                label = "export all",
+                onClick = onExport,
+                modifier = Modifier.weight(1f),
+            )
+            TerminalButton(
+                label = "import",
+                onClick = { importer.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Text(
+            "exports land in Download/Glyphsmith; importing merges by name",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 6.dp),
+        )
     }
 }

@@ -86,6 +86,64 @@ class AsciiEngineTest {
         assertEquals(1f, AsciiEngine.luminance(255, 255, 255), 1e-4f)
     }
 
+    /** Left-to-right linear grey ramp — varies only in x, so every row is identical. */
+    private fun gradient(width: Int, height: Int) = IntArray(width * height) { i ->
+        val value = (i % width) * 255 / (width - 1)
+        (0xFF shl 24) or (value shl 16) or (value shl 8) or value
+    }
+
+    private val twoLevel = AsciiParams(charSetId = "ascii-standard-10", depth = 2, cellSize = 1)
+
+    @Test
+    fun `without dithering a gradient collapses into one repeated row`() {
+        val art = AsciiEngine.convert(gradient(64, 64), 64, 64, twoLevel, cellAspect = 1f)
+        // Two glyphs, hard threshold: the image becomes two flat bands and every row is
+        // the same. This is the banding dithering exists to break.
+        assertEquals(1, art.toText().lines().toSet().size)
+    }
+
+    @Test
+    fun `floyd steinberg breaks the banding without shifting the average`() {
+        val dithered = twoLevel.copy(ditherMode = DitherMode.FLOYD_STEINBERG)
+        val art = AsciiEngine.convert(gradient(64, 64), 64, 64, dithered, cellAspect = 1f)
+
+        assertTrue(
+            "error diffusion produced identical rows",
+            art.toText().lines().toSet().size > 1,
+        )
+        // A linear ramp averages to mid grey, so about half the cells should be the dense
+        // glyph — diffusion redistributes error, it must not brighten or darken the image.
+        val dense = art.glyphs.count { it == '@' }.toFloat() / art.glyphs.size
+        assertEquals(0.5f, dense, 0.08f)
+    }
+
+    @Test
+    fun `ordered dithering also breaks the banding`() {
+        val bayer = twoLevel.copy(ditherMode = DitherMode.BAYER_4)
+        val art = AsciiEngine.convert(gradient(64, 64), 64, 64, bayer, cellAspect = 1f)
+        assertTrue(art.toText().lines().toSet().size > 1)
+    }
+
+    @Test
+    fun `zero dither strength is the same as no dithering`() {
+        val off = AsciiEngine.convert(gradient(64, 64), 64, 64, twoLevel, cellAspect = 1f)
+        val neutral = twoLevel.copy(ditherMode = DitherMode.JARVIS, ditherStrength = 0)
+        val art = AsciiEngine.convert(gradient(64, 64), 64, 64, neutral, cellAspect = 1f)
+        assertEquals(off.toText(), art.toText())
+    }
+
+    @Test
+    fun `edges only blanks the flat areas`() {
+        val params = twoLevel.copy(edgeEnabled = true, edgeOnly = true, edgeThreshold = 50)
+        // Half black, half white: only the seam should carry a glyph.
+        val split = IntArray(32 * 32) { if (it % 32 < 16) BLACK else WHITE }
+        val art = AsciiEngine.convert(split, 32, 32, params, cellAspect = 1f)
+
+        assertEquals(' ', art.glyphAt(2, 5))
+        assertEquals(' ', art.glyphAt(29, 5))
+        assertEquals('|', art.glyphAt(15, 5))
+    }
+
     private companion object {
         const val BLACK = 0xFF000000.toInt()
         const val WHITE = 0xFFFFFFFF.toInt()

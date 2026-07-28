@@ -43,6 +43,10 @@ class MainActivity : ComponentActivity() {
                         onApplyPreset = viewModel::applyPreset,
                         onSavePreset = viewModel::savePreset,
                         onDeletePreset = viewModel::deletePreset,
+                        onExportPresets = viewModel::exportPresets,
+                        onImportPresets = viewModel::importPresets,
+                        onUndo = viewModel::undo,
+                        onRedo = viewModel::redo,
                     )
                 }
             }

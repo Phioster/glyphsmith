@@ -37,6 +37,8 @@ data class UiState(
     val working: Boolean = false,
     val exportFormat: ImageFormat = ImageFormat.PNG,
     /** Which face the current ramp actually got, and what it can't draw. */
+    val canUndo: Boolean = false,
+    val canRedo: Boolean = false,
     val fontLabel: String = "",
     val missingGlyphs: String = "",
     val presets: List<Preset> = emptyList(),
@@ -54,6 +56,14 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     private val paramsFlow = MutableStateFlow(AsciiParams())
 
+    // History is captured at the debounce point rather than in updateParams(): one slider
+    // drag emits dozens of values but only ever settles once, so this turns a drag into a
+    // single undo step without any gesture tracking.
+    private val undoStack = ArrayDeque<AsciiParams>()
+    private val redoStack = ArrayDeque<AsciiParams>()
+    private var lastCommitted = AsciiParams()
+    private var suppressHistory = false
+
     private var sourcePixels: IntArray? = null
     private var sourceWidth = 0
     private var sourceHeight = 0
@@ -65,6 +75,14 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 // Coalesce slider spam: collectLatest cancels the previous pass, so a drag
                 // only ever renders the value the finger came to rest on.
                 delay(DEBOUNCE_MS)
+                if (!suppressHistory && params != lastCommitted) {
+                    undoStack.addLast(lastCommitted)
+                    if (undoStack.size > MAX_HISTORY) undoStack.removeFirst()
+                    redoStack.clear()
+                }
+                suppressHistory = false
+                lastCommitted = params
+                publishHistory()
                 rebuild(params)
             }
         }
@@ -73,6 +91,53 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     fun updateParams(params: AsciiParams) {
         _state.value = _state.value.copy(params = params)
         paramsFlow.value = params
+    }
+
+    fun undo() {
+        val previous = undoStack.removeLastOrNull() ?: return
+        redoStack.addLast(lastCommitted)
+        restore(previous)
+    }
+
+    fun redo() {
+        val next = redoStack.removeLastOrNull() ?: return
+        undoStack.addLast(lastCommitted)
+        restore(next)
+    }
+
+    private fun restore(params: AsciiParams) {
+        suppressHistory = true
+        lastCommitted = params
+        _state.value = _state.value.copy(params = params)
+        paramsFlow.value = params
+        publishHistory()
+    }
+
+    private fun publishHistory() {
+        _state.value = _state.value.copy(
+            canUndo = undoStack.isNotEmpty(),
+            canRedo = redoStack.isNotEmpty(),
+        )
+    }
+
+    fun exportPresets() = runExport("presets") {
+        val json = presetStore.exportJson()
+        val uri = withContext(Dispatchers.IO) {
+            Exporter.saveJson(context, json, "glyphsmith-presets.json")
+        }
+        if (uri != null) "presets saved to Download/Glyphsmith" else "export failed"
+    }
+
+    fun importPresets(uri: Uri) = runExport("import") {
+        val text = withContext(Dispatchers.IO) {
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+            }.getOrNull()
+        } ?: return@runExport "could not read that file"
+        val merged = presetStore.importJson(text)
+            ?: return@runExport "that file isn't a preset export"
+        _state.value = _state.value.copy(presets = merged)
+        "${merged.size} presets after import"
     }
 
     fun loadImage(uri: Uri) {
@@ -227,6 +292,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val DEBOUNCE_MS = 90L
+        const val MAX_HISTORY = 50
         const val PREVIEW_MAX_SIDE = 1600
         const val REFERENCE_FONT_SIZE = 32
     }

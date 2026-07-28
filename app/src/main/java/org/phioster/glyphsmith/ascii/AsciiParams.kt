@@ -38,6 +38,19 @@ data class AsciiParams(
     val contrast: Float = 1f,
     /** 0.2..3, gamma applied before mapping. */
     val gamma: Float = 1f,
+    /** How the quantisation error is handled when a cell picks its glyph. */
+    val ditherMode: DitherMode = DitherMode.NONE,
+    /** 0..100 — how much of the error is actually propagated. */
+    val ditherStrength: Int = 100,
+    /** Alternate scan direction per row; suppresses the diagonal worm pattern. */
+    val serpentine: Boolean = true,
+    /** Let strong edges pick a directional glyph instead of a brightness-matched one. */
+    val edgeEnabled: Boolean = false,
+    /** 0..100 — gradient magnitude a cell needs before it counts as an edge. */
+    val edgeThreshold: Int = 25,
+    val edgeSetId: String = "ascii",
+    /** Draw only the edges and leave flat areas blank — line art instead of tone. */
+    val edgeOnly: Boolean = false,
     val colorMode: ColorMode = ColorMode.SINGLE,
     val inkColor: Int = DEFAULT_INK,
     val paletteId: String = "phosphor",
