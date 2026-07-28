@@ -2,6 +2,7 @@ package org.phioster.glyphsmith.data
 
 import android.content.Context
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.ColorMode

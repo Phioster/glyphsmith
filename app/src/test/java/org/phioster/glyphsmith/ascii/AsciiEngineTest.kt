@@ -53,7 +53,7 @@ class AsciiEngineTest {
     fun `source colour mode averages the cell`() {
         val art = AsciiEngine.convert(solid(RED, 16, 32), 16, 32, params.copy(colorMode = ColorMode.SOURCE))
         assertNotNull(art.colors)
-        assertEquals(RED, art.colorAt(0, 0))
+        assertTrue(RED == art.colorAt(0, 0))
     }
 
     @Test

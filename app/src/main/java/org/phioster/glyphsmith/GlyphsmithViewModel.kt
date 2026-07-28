@@ -1,6 +1,7 @@
 package org.phioster.glyphsmith
 
 import android.app.Application
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
@@ -22,6 +23,7 @@ import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
 import org.phioster.glyphsmith.effects.EpsilonGlow
 import org.phioster.glyphsmith.export.Exporter
+import org.phioster.glyphsmith.export.ImageFormat
 
 data class UiState(
     val params: AsciiParams = AsciiParams(),
@@ -32,11 +34,14 @@ data class UiState(
     val outputWidth: Int = 0,
     val outputHeight: Int = 0,
     val working: Boolean = false,
+    val exportFormat: ImageFormat = ImageFormat.PNG,
     val presets: List<Preset> = emptyList(),
     val status: String = "no image loaded",
 )
 
 class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
+
+    private val context: Context get() = getApplication<Application>()
 
     private val presetStore = PresetStore(app)
 
@@ -69,7 +74,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     fun loadImage(uri: Uri) {
         viewModelScope.launch {
             _state.value = _state.value.copy(working = true, status = "decoding…")
-            val loaded = withContext(Dispatchers.IO) { ImageLoader.load(getApplication(), uri) }
+            val loaded = withContext(Dispatchers.IO) { ImageLoader.load(context, uri) }
             if (loaded == null) {
                 _state.value = _state.value.copy(working = false, status = "could not decode that image")
                 return@launch
@@ -131,35 +136,40 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun exportPng() = runExport("png") {
+    fun setExportFormat(format: ImageFormat) {
+        _state.value = _state.value.copy(exportFormat = format)
+    }
+
+    fun exportImage() = runExport("image") {
+        val format = _state.value.exportFormat
         val bitmap = renderFullSize() ?: return@runExport "nothing to export"
-        val uri = withContext(Dispatchers.IO) { Exporter.savePng(getApplication(), bitmap) }
+        val uri = withContext(Dispatchers.IO) { Exporter.saveImage(context, bitmap, format) }
         bitmap.recycle()
-        if (uri != null) "saved to Pictures/Glyphsmith" else "save failed"
+        if (uri != null) "saved ${format.extension} to Pictures/Glyphsmith" else "save failed"
     }
 
     fun exportText() = runExport("txt") {
         val text = art?.toText() ?: return@runExport "nothing to export"
-        val uri = withContext(Dispatchers.IO) { Exporter.saveText(getApplication(), text) }
+        val uri = withContext(Dispatchers.IO) { Exporter.saveText(context, text) }
         if (uri != null) "saved to Download/Glyphsmith" else "save failed"
     }
 
     fun copyText() = runExport("copy") {
         val text = art?.toText() ?: return@runExport "nothing to copy"
-        Exporter.copyToClipboard(getApplication(), text)
+        Exporter.copyToClipboard(context, text)
         "${text.length} chars copied"
     }
 
     fun shareImage() = runExport("share") {
         val bitmap = renderFullSize() ?: return@runExport "nothing to share"
-        withContext(Dispatchers.IO) { Exporter.shareImage(getApplication(), bitmap) }
+        withContext(Dispatchers.IO) { Exporter.shareImage(context, bitmap, _state.value.exportFormat) }
         bitmap.recycle()
         "shared"
     }
 
     fun shareText() = runExport("share") {
         val text = art?.toText() ?: return@runExport "nothing to share"
-        withContext(Dispatchers.IO) { Exporter.shareText(getApplication(), text) }
+        withContext(Dispatchers.IO) { Exporter.shareText(context, text) }
         "shared"
     }
 

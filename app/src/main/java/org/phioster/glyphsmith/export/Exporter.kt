@@ -21,35 +21,68 @@ import java.util.Locale
  * the rendered PNG, and the *true character grid* as .txt — the grid is the thing you can
  * paste into a terminal, a README or a text editor, and it can't be recovered from a PNG.
  */
+/** Image formats offered next to the export button, mirroring the original's format picker. */
+enum class ImageFormat(val extension: String, val mimeType: String) {
+    PNG("png", "image/png"),
+    JPG("jpg", "image/jpeg"),
+    WEBP("webp", "image/webp"),
+    ;
+
+    /** JPEG has no alpha, so a transparent background silently turns black without a warning. */
+    val supportsTransparency: Boolean get() = this != JPG
+}
+
 object Exporter {
 
     private const val ALBUM = "Glyphsmith"
     private const val AUTHORITY_SUFFIX = ".fileprovider"
+    private const val QUALITY = 95
 
     fun timestampedName(extension: String): String {
         val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
         return "glyphsmith-$stamp.$extension"
     }
 
-    /** Writes the PNG into the gallery. Returns null when the write failed. */
-    fun savePng(context: Context, bitmap: Bitmap, name: String = timestampedName("png")): Uri? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            savePngViaMediaStore(context, bitmap, name)
+    private fun compressFormat(format: ImageFormat): Bitmap.CompressFormat = when (format) {
+        ImageFormat.PNG -> Bitmap.CompressFormat.PNG
+        ImageFormat.JPG -> Bitmap.CompressFormat.JPEG
+        ImageFormat.WEBP -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Bitmap.CompressFormat.WEBP_LOSSLESS
         } else {
-            savePngLegacy(context, bitmap, name)
+            @Suppress("DEPRECATION")
+            Bitmap.CompressFormat.WEBP
+        }
+    }
+
+    /** Writes the image into the gallery. Returns null when the write failed. */
+    fun saveImage(
+        context: Context,
+        bitmap: Bitmap,
+        format: ImageFormat = ImageFormat.PNG,
+        name: String = timestampedName(format.extension),
+    ): Uri? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            saveImageViaMediaStore(context, bitmap, format, name)
+        } else {
+            saveImageLegacy(context, bitmap, format, name)
         }
 
-    private fun savePngViaMediaStore(context: Context, bitmap: Bitmap, name: String): Uri? {
+    private fun saveImageViaMediaStore(
+        context: Context,
+        bitmap: Bitmap,
+        format: ImageFormat,
+        name: String,
+    ): Uri? {
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, name)
-            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            put(MediaStore.Images.Media.MIME_TYPE, format.mimeType)
             put(MediaStore.Images.Media.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/$ALBUM")
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
         val resolver = context.contentResolver
         val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return null
         return runCatching {
-            resolver.openOutputStream(uri)?.use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            resolver.openOutputStream(uri)?.use { bitmap.compress(compressFormat(format), QUALITY, it) }
             resolver.update(uri, ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) }, null, null)
             uri
         }.getOrElse {
@@ -58,12 +91,17 @@ object Exporter {
         }
     }
 
-    private fun savePngLegacy(context: Context, bitmap: Bitmap, name: String): Uri? = runCatching {
+    private fun saveImageLegacy(
+        context: Context,
+        bitmap: Bitmap,
+        format: ImageFormat,
+        name: String,
+    ): Uri? = runCatching {
         @Suppress("DEPRECATION")
         val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), ALBUM)
         dir.mkdirs()
         val file = File(dir, name)
-        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        file.outputStream().use { bitmap.compress(compressFormat(format), QUALITY, it) }
         shareUriFor(context, file)
     }.getOrNull()
 
@@ -98,10 +136,10 @@ object Exporter {
         clipboard.setPrimaryClip(ClipData.newPlainText("ASCII", text))
     }
 
-    fun shareImage(context: Context, bitmap: Bitmap) {
-        val file = File(cacheDir(context), timestampedName("png"))
-        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        startShare(context, shareUriFor(context, file), "image/png")
+    fun shareImage(context: Context, bitmap: Bitmap, format: ImageFormat = ImageFormat.PNG) {
+        val file = File(cacheDir(context), timestampedName(format.extension))
+        file.outputStream().use { bitmap.compress(compressFormat(format), QUALITY, it) }
+        startShare(context, shareUriFor(context, file), format.mimeType)
     }
 
     fun shareText(context: Context, text: String) {

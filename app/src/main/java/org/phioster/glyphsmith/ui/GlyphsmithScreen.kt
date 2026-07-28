@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RectangleShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.data.Preset
+import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.ui.panels.AsciiPanel
 import org.phioster.glyphsmith.ui.panels.ColorPanel
 import org.phioster.glyphsmith.ui.panels.GlowPanel
@@ -58,6 +59,7 @@ fun GlyphsmithScreen(
     state: UiState,
     onParamsChange: (AsciiParams) -> Unit,
     onPickImage: (android.net.Uri) -> Unit,
+    onFormatChange: (ImageFormat) -> Unit,
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
     onCopy: () -> Unit,
@@ -102,6 +104,7 @@ fun GlyphsmithScreen(
                 Tab.OUTPUT -> OutputPanel(
                     state = state,
                     onChange = onParamsChange,
+                    onFormatChange = onFormatChange,
                     onExportPng = onExportPng,
                     onExportTxt = onExportTxt,
                     onCopy = onCopy,

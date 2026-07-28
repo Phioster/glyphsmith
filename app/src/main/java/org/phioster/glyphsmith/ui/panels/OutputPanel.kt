@@ -12,7 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.ui.SectionHeader
+import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton
 import org.phioster.glyphsmith.ui.TerminalSlider
 import org.phioster.glyphsmith.ui.theme.Term
@@ -25,6 +27,7 @@ import org.phioster.glyphsmith.ui.theme.Term
 fun OutputPanel(
     state: UiState,
     onChange: (AsciiParams) -> Unit,
+    onFormatChange: (ImageFormat) -> Unit,
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
     onCopy: () -> Unit,
@@ -60,9 +63,26 @@ fun OutputPanel(
 
         SectionHeader("export")
 
+        StepperDropdown(
+            label = "image format",
+            items = ImageFormat.entries.toList(),
+            selectedIndex = ImageFormat.entries.indexOf(state.exportFormat),
+            onSelect = { onFormatChange(ImageFormat.entries[it]) },
+            itemLabel = { it.name },
+        )
+
+        if (params.transparentBackground && !state.exportFormat.supportsTransparency) {
+            Text(
+                "${state.exportFormat.name} has no alpha — the transparent background will export black",
+                color = Term.Amber,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
+        }
+
         val enabled = state.hasImage && !state.working
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TerminalButton("save png", onExportPng, Modifier.weight(1f), enabled)
+            TerminalButton("save image", onExportPng, Modifier.weight(1f), enabled)
             TerminalButton("save txt", onExportTxt, Modifier.weight(1f), enabled)
         }
         Row(
