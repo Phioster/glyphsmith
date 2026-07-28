@@ -1,0 +1,221 @@
+package org.phioster.glyphsmith.ui
+
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RectangleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import org.phioster.glyphsmith.UiState
+import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.data.Preset
+import org.phioster.glyphsmith.ui.panels.AsciiPanel
+import org.phioster.glyphsmith.ui.panels.ColorPanel
+import org.phioster.glyphsmith.ui.panels.GlowPanel
+import org.phioster.glyphsmith.ui.panels.OutputPanel
+import org.phioster.glyphsmith.ui.panels.PresetPanel
+import org.phioster.glyphsmith.ui.panels.TonePanel
+import org.phioster.glyphsmith.ui.theme.Term
+
+private enum class Tab(val label: String) {
+    ASCII("SET"),
+    TONE("TONE"),
+    COLOR("COLOUR"),
+    GLOW("GLOW"),
+    OUTPUT("OUT"),
+    PRESETS("PRE"),
+}
+
+@Composable
+fun GlyphsmithScreen(
+    state: UiState,
+    onParamsChange: (AsciiParams) -> Unit,
+    onPickImage: (android.net.Uri) -> Unit,
+    onExportPng: () -> Unit,
+    onExportTxt: () -> Unit,
+    onCopy: () -> Unit,
+    onShareImage: () -> Unit,
+    onShareText: () -> Unit,
+    onApplyPreset: (Preset) -> Unit,
+    onSavePreset: (String) -> Unit,
+    onDeletePreset: (String) -> Unit,
+) {
+    var tab by remember { mutableStateOf(Tab.ASCII) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let(onPickImage)
+    }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(Term.Background)
+            .padding(horizontal = 12.dp),
+    ) {
+        Header(
+            onLoad = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+        )
+
+        Preview(state, Modifier.weight(1f))
+
+        StatusLine(state)
+
+        TabRow(tab) { tab = it }
+
+        Column(
+            Modifier
+                .weight(1.15f)
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 16.dp),
+        ) {
+            when (tab) {
+                Tab.ASCII -> AsciiPanel(state.params, onParamsChange)
+                Tab.TONE -> TonePanel(state.params, onParamsChange)
+                Tab.COLOR -> ColorPanel(state.params, onParamsChange)
+                Tab.GLOW -> GlowPanel(state.params, onParamsChange)
+                Tab.OUTPUT -> OutputPanel(
+                    state = state,
+                    onChange = onParamsChange,
+                    onExportPng = onExportPng,
+                    onExportTxt = onExportTxt,
+                    onCopy = onCopy,
+                    onShareImage = onShareImage,
+                    onShareText = onShareText,
+                )
+
+                Tab.PRESETS -> PresetPanel(
+                    presets = state.presets,
+                    onApply = onApplyPreset,
+                    onSave = onSavePreset,
+                    onDelete = onDeletePreset,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun Header(onLoad: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column {
+            Text("GLYPHSMITH", color = Term.Ink, style = MaterialTheme.typography.titleLarge)
+            Text("ascii forge", color = Term.InkFaint, style = MaterialTheme.typography.labelSmall)
+        }
+        TerminalButton(label = "load image", onClick = onLoad)
+    }
+}
+
+/**
+ * Pinch to zoom, drag to pan. ASCII lives or dies on per-glyph detail, and a fit-to-screen
+ * preview of a 200-column grid shows none of it.
+ */
+@Composable
+private fun Preview(state: UiState, modifier: Modifier = Modifier) {
+    var scale by remember { mutableFloatStateOf(1f) }
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+    val transform = rememberTransformableState { zoomChange, panChange, _ ->
+        scale = (scale * zoomChange).coerceIn(1f, 12f)
+        offsetX += panChange.x
+        offsetY += panChange.y
+    }
+
+    Box(
+        modifier
+            .fillMaxWidth()
+            .heightIn(min = 180.dp)
+            .border(1.dp, Term.InkFaint, RectangleShape)
+            .background(Term.Surface),
+        contentAlignment = Alignment.Center,
+    ) {
+        val preview = state.preview
+        if (preview == null) {
+            Text(
+                if (state.hasImage) "rendering…" else "no image — press [LOAD IMAGE]",
+                color = Term.InkDim,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        } else {
+            Image(
+                bitmap = preview.asImageBitmap(),
+                contentDescription = "ASCII preview",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .transformable(transform)
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offsetX,
+                        translationY = offsetY,
+                    ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatusLine(state: UiState) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            "> ${state.status}",
+            color = if (state.working) Term.Amber else Term.InkDim,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Text(
+            if (state.working) "busy" else "idle",
+            color = if (state.working) Term.Amber else Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
+}
+
+@Composable
+private fun TabRow(selected: Tab, onSelect: (Tab) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Tab.entries.forEach { tab ->
+            TerminalChip(
+                label = tab.label,
+                selected = tab == selected,
+                onClick = { onSelect(tab) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}

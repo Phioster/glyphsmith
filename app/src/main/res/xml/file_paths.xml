@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Share targets are written to cache/share; the external paths cover the pre-Q
+         save-to-gallery fallback, which hands back a FileProvider uri. -->
+    <cache-path name="share" path="share/" />
+    <external-path name="pictures" path="Pictures/" />
+    <external-path name="downloads" path="Download/" />
+</paths>

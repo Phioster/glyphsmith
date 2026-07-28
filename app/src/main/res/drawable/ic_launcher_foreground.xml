@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A 3×3 density ramp: squares grow with "ink coverage", which is exactly what the app
+     does to an image. Kept inside the 72dp adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path android:fillColor="#1C7A3C" android:pathData="M31,31 h4 v4 h-4 z" />
+    <path android:fillColor="#1C7A3C" android:pathData="M47,29 h8 v8 h-8 z" />
+    <path android:fillColor="#33FF66" android:pathData="M63,27 h12 v12 h-12 z" />
+
+    <path android:fillColor="#1C7A3C" android:pathData="M29,47 h8 v8 h-8 z" />
+    <path android:fillColor="#33FF66" android:pathData="M45,45 h12 v12 h-12 z" />
+    <path android:fillColor="#33FF66" android:pathData="M61,43 h16 v16 h-16 z" />
+
+    <path android:fillColor="#33FF66" android:pathData="M27,63 h12 v12 h-12 z" />
+    <path android:fillColor="#33FF66" android:pathData="M43,61 h16 v16 h-16 z" />
+    <path android:fillColor="#B6FFCE" android:pathData="M61,61 h16 v16 h-16 z" />
+</vector>

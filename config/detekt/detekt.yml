@@ -1,0 +1,21 @@
+# Curated detekt config for Glyphsmith.
+#
+# buildUponDefaultConfig = true, so anything not mentioned here keeps detekt's default.
+# The *style/opinion* rule sets are silenced and the *correctness / bug-prone* ones stay
+# active, so the report is high-signal instead of a wall of formatting nits.
+
+config:
+  validation: false
+
+# --- kept ACTIVE at defaults (bug-prone): potential-bugs, exceptions, coroutines,
+#     empty-blocks, performance ---
+
+# --- silenced (style / opinion, not bugs) ---
+comments:
+  active: false
+complexity:
+  active: false
+naming:
+  active: false
+style:
+  active: false
