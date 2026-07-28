@@ -166,7 +166,7 @@ fun AsciiPanel(
                         transparentBackground = params.transparentBackground,
                         backgroundColor = params.backgroundColor,
                         fontSizePx = params.fontSizePx,
-                        glow = params.glow,
+                        effects = params.effects,
                     ),
                 )
             },

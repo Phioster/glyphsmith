@@ -39,7 +39,7 @@ import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.ui.panels.AsciiPanel
 import org.phioster.glyphsmith.ui.panels.ColorPanel
-import org.phioster.glyphsmith.ui.panels.GlowPanel
+import org.phioster.glyphsmith.ui.panels.EffectsPanel
 import org.phioster.glyphsmith.ui.panels.OutputPanel
 import org.phioster.glyphsmith.ui.panels.PresetPanel
 import org.phioster.glyphsmith.ui.panels.TonePanel
@@ -49,7 +49,7 @@ private enum class Tab(val label: String) {
     ASCII("SET"),
     TONE("TONE"),
     COLOR("COLOUR"),
-    GLOW("GLOW"),
+    EFFECTS("FX"),
     OUTPUT("OUT"),
     PRESETS("PRE"),
 }
@@ -105,7 +105,7 @@ fun GlyphsmithScreen(
                 )
                 Tab.TONE -> TonePanel(state.params, onParamsChange)
                 Tab.COLOR -> ColorPanel(state.params, onParamsChange)
-                Tab.GLOW -> GlowPanel(state.params, onParamsChange)
+                Tab.EFFECTS -> EffectsPanel(state.params, onParamsChange)
                 Tab.OUTPUT -> OutputPanel(
                     state = state,
                     onChange = onParamsChange,

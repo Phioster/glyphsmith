@@ -6,6 +6,11 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.ColorMode
+import org.phioster.glyphsmith.effects.ChromaticParams
+import org.phioster.glyphsmith.effects.EffectStack
+import org.phioster.glyphsmith.effects.GlowParams
+import org.phioster.glyphsmith.effects.JpegGlitchParams
+import org.phioster.glyphsmith.effects.PostProcessingParams
 import java.io.File
 
 @Serializable
@@ -96,6 +101,44 @@ class PresetStore(context: Context) {
             Preset(
                 "glitch",
                 AsciiParams(charSetId = "block-quadrant", cellSize = 5, offset = 4, contrast = 1.6f),
+            ),
+            Preset(
+                "databend",
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 5,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        chromatic = ChromaticParams(
+                            enabled = true,
+                            offset = 9,
+                            waveAmplitude = 14,
+                            waveFrequency = 20,
+                            waveNoise = 35,
+                        ),
+                        jpegGlitch = JpegGlitchParams(enabled = true, quality = 18, corruption = 90),
+                    ),
+                ),
+            ),
+            Preset(
+                "crt",
+                AsciiParams(
+                    charSetId = "ascii-standard-70",
+                    cellSize = 5,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "phosphor",
+                    contrast = 1.25f,
+                    effects = EffectStack(
+                        postProcessing = PostProcessingParams(
+                            enabled = true,
+                            scanlines = 45,
+                            scanlineSpacing = 3,
+                            vignette = 35,
+                            grain = 8,
+                        ),
+                        glow = GlowParams(enabled = true, intensity = 420, radius = 90),
+                    ),
+                ),
             ),
         )
     }

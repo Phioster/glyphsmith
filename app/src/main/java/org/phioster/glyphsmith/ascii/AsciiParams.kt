@@ -1,7 +1,7 @@
 package org.phioster.glyphsmith.ascii
 
 import kotlinx.serialization.Serializable
-import org.phioster.glyphsmith.effects.GlowParams
+import org.phioster.glyphsmith.effects.EffectStack
 
 enum class ColorMode { SINGLE, SOURCE, PALETTE }
 
@@ -54,8 +54,8 @@ data class AsciiParams(
     val canvasEnabled: Boolean = false,
     val canvasWidth: Int = 1080,
     val canvasHeight: Int = 1440,
-    /** Post-effect applied to the rendered glyphs, not to the source image. */
-    val glow: GlowParams = GlowParams(),
+    /** Post-effects applied to the rendered glyphs, not to the source image. */
+    val effects: EffectStack = EffectStack(),
 ) {
     val charSet: CharacterSet get() = CharacterSets.byId(charSetId)
 

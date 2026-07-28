@@ -22,7 +22,7 @@ import org.phioster.glyphsmith.ascii.FontChoice
 import org.phioster.glyphsmith.data.ImageLoader
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
-import org.phioster.glyphsmith.effects.EpsilonGlow
+import org.phioster.glyphsmith.effects.EffectPipeline
 import org.phioster.glyphsmith.export.Exporter
 import org.phioster.glyphsmith.export.ImageFormat
 
@@ -115,9 +115,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             } else {
                 1f
             }
-            val bitmap = EpsilonGlow.apply(
+            val bitmap = EffectPipeline.apply(
                 AsciiRenderer.render(grid, params, previewFont, previewScale),
-                params.glow,
+                params.effects,
             )
             val output = if (params.canvasEnabled) {
                 params.canvasWidth to params.canvasHeight
@@ -154,7 +154,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val grid = art ?: return null
         val params = _state.value.params
         return withContext(Dispatchers.Default) {
-            EpsilonGlow.apply(AsciiRenderer.render(grid, params, params.fontSizePx), params.glow)
+            EffectPipeline.apply(AsciiRenderer.render(grid, params, params.fontSizePx), params.effects)
         }
     }
 
