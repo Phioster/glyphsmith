@@ -146,7 +146,15 @@ object AsciiEngine {
 
         val mode = params.ditherMode
         val strength = (params.ditherStrength / 100f).coerceIn(0f, 1f)
-        val ordered = Dither.isOrdered(mode)
+        val ordered = Dither.isThresholdBased(mode)
+        val pattern = PatternOptions(
+            scale = params.ditherScale,
+            period = params.modScale,
+            angle = params.modAngle,
+            phase = params.modPhase / 100f,
+            centerX = cols / 2f,
+            centerY = rows / 2f,
+        )
         val kernel = Dither.diffusionKernel(mode)
         val depth = Dither.kernelDepth(mode)
         // Only the rows a kernel can still reach are kept, not a full-grid error buffer.
@@ -168,7 +176,7 @@ object AsciiEngine {
                 val base = lumaGrid[cell]
 
                 val target = when {
-                    ordered -> base + (Dither.orderedThreshold(mode, col, row) - 0.5f) *
+                    ordered -> base + (Dither.threshold(mode, col, row, pattern) - 0.5f) *
                         strength / max(1, levels - 1)
 
                     kernel.isNotEmpty() -> base + currentError[col]

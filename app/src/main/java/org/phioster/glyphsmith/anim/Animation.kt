@@ -12,6 +12,8 @@ enum class AnimTarget(val label: String, val min: Int, val max: Int) {
     DEPTH("Depth", 1, AsciiParams.MAX_DEPTH),
     CHARACTER_OFFSET("Character Offset", 0, 64),
     DITHER_STRENGTH("Dither Strength", 0, 100),
+    /** A full sweep of a modulation period, so a sawtooth over 0..100 travels seamlessly. */
+    MOD_PHASE("Modulation Phase", 0, 100),
     EDGE_THRESHOLD("Edge Threshold", 0, 100),
     GLITCH_SEED("Glitch Seed", 1, 9999),
     CHROMATIC_OFFSET("Chromatic Offset", 0, 50),
@@ -121,6 +123,9 @@ object Animator {
             // The offset wraps anyway, so it is never clamped to the ramp length here.
             AnimTarget.CHARACTER_OFFSET -> params.copy(offset = value)
             AnimTarget.DITHER_STRENGTH -> params.copy(ditherStrength = value.coerceIn(0, 100))
+            // Left unclamped: the phase wraps inside the pattern, so a track that runs past
+            // 100 simply keeps travelling instead of stalling at the end of its range.
+            AnimTarget.MOD_PHASE -> params.copy(modPhase = value)
             AnimTarget.EDGE_THRESHOLD -> params.copy(edgeThreshold = value.coerceIn(0, 100))
             AnimTarget.GLITCH_SEED -> params.copy(
                 effects = params.effects.copy(

@@ -73,6 +73,7 @@ fun MappingPanel(
             itemDetail = {
                 when {
                     it == DitherMode.NONE -> "nearest glyph, error discarded"
+                    Dither.isModulation(it) -> "modulation — a pattern drives the threshold"
                     Dither.isOrdered(it) -> "ordered matrix — regular, repeating texture"
                     else -> "error diffusion — noisy, photographic"
                 }
@@ -87,16 +88,65 @@ fun MappingPanel(
                 valueText = "${params.ditherStrength}/100",
                 onValueChange = { onChange(params.copy(ditherStrength = it.toInt())) },
             )
-            if (!Dither.isOrdered(params.ditherMode)) {
+            if (!Dither.isThresholdBased(params.ditherMode)) {
                 TerminalToggle(
                     label = "serpentine scan",
                     checked = params.serpentine,
                     onCheckedChange = { onChange(params.copy(serpentine = it)) },
                 )
+                Text(
+                    "spreads the rounding error onto neighbouring cells — this is what makes " +
+                        "a short ramp read as a gradient instead of bands",
+                    color = Term.InkFaint,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
             }
+        }
+
+        if (Dither.isThresholdBased(params.ditherMode)) {
+            TerminalSlider(
+                label = "pattern scale",
+                value = params.ditherScale.toFloat(),
+                range = AsciiParams.DITHER_SCALE_RANGE.first.toFloat()..
+                    AsciiParams.DITHER_SCALE_RANGE.last.toFloat(),
+                valueText = "${params.ditherScale}%",
+                onValueChange = { onChange(params.copy(ditherScale = it.toInt())) },
+            )
             Text(
-                "spreads the rounding error onto neighbouring cells — this is what makes a " +
-                    "short ramp read as a gradient instead of bands",
+                "sizes the pattern without touching the cell size — pull the two apart far " +
+                    "enough and the algorithm breaks down, which is the point",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+
+        if (Dither.isModulation(params.ditherMode)) {
+            TerminalSlider(
+                label = "period",
+                value = params.modScale.toFloat(),
+                range = AsciiParams.MOD_SCALE_RANGE.first.toFloat()..
+                    AsciiParams.MOD_SCALE_RANGE.last.toFloat(),
+                valueText = "${params.modScale} cells",
+                onValueChange = { onChange(params.copy(modScale = it.toInt())) },
+            )
+            TerminalSlider(
+                label = "angle",
+                value = params.modAngle.toFloat(),
+                range = 0f..AsciiParams.MOD_ANGLE_RANGE.last.toFloat(),
+                valueText = "${params.modAngle}°",
+                onValueChange = { onChange(params.copy(modAngle = it.toInt())) },
+            )
+            TerminalSlider(
+                label = "phase",
+                value = params.modPhase.toFloat(),
+                range = 0f..100f,
+                valueText = "${params.modPhase}%",
+                onValueChange = { onChange(params.copy(modPhase = it.toInt())) },
+            )
+            Text(
+                "animate the phase in ANIM to make the pattern travel",
                 color = Term.InkFaint,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 4.dp),
@@ -153,6 +203,10 @@ fun MappingPanel(
                         ditherMode = DitherMode.NONE,
                         ditherStrength = 100,
                         serpentine = true,
+                        ditherScale = 100,
+                        modScale = 8,
+                        modAngle = 0,
+                        modPhase = 0,
                         edgeEnabled = false,
                         edgeThreshold = 25,
                         edgeOnly = false,

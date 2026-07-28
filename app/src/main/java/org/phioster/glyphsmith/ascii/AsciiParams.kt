@@ -45,6 +45,18 @@ data class AsciiParams(
     val ditherStrength: Int = 100,
     /** Alternate scan direction per row; suppresses the diagonal worm pattern. */
     val serpentine: Boolean = true,
+    /**
+     * Pattern size as a percentage, for every threshold-based mode. Independent of
+     * [cellSize] on purpose — driving the two apart is what makes these algorithms break
+     * down in the interesting way rather than simply getting coarser.
+     */
+    val ditherScale: Int = 100,
+    /** Cells per period of a modulation pattern. */
+    val modScale: Int = 8,
+    /** Rotation of the modulation pattern in degrees. */
+    val modAngle: Int = 0,
+    /** 0..100 % of a period; animate it and the pattern travels. */
+    val modPhase: Int = 0,
     /** Let strong edges pick a directional glyph instead of a brightness-matched one. */
     val edgeEnabled: Boolean = false,
     /** 0..100 — gradient magnitude a cell needs before it counts as an edge. */
@@ -119,5 +131,8 @@ data class AsciiParams(
         val CELL_SIZE_RANGE = 2..48
         val FONT_SIZE_RANGE = 6..48
         val CANVAS_SIZE_RANGE = 64..8192
+        val DITHER_SCALE_RANGE = 25..400
+        val MOD_SCALE_RANGE = 2..64
+        val MOD_ANGLE_RANGE = 0..359
     }
 }

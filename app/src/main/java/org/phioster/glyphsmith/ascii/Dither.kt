@@ -1,5 +1,11 @@
 package org.phioster.glyphsmith.ascii
 
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.floor
+import kotlin.math.hypot
+import kotlin.math.sin
+
 /** How the quantisation error is dealt with when a cell picks its glyph. */
 enum class DitherMode {
     NONE,
@@ -10,6 +16,11 @@ enum class DitherMode {
     BAYER_2,
     BAYER_4,
     BAYER_8,
+    MOD_LINES,
+    MOD_WAVE,
+    MOD_RINGS,
+    MOD_ORB,
+    BEEHIVE,
     ;
 
     val label: String
@@ -22,8 +33,33 @@ enum class DitherMode {
             BAYER_2 -> "Bayer 2×2"
             BAYER_4 -> "Bayer 4×4"
             BAYER_8 -> "Bayer 8×8"
+            MOD_LINES -> "Modulation Lines"
+            MOD_WAVE -> "Modulation Wave"
+            MOD_RINGS -> "Modulation Rings"
+            MOD_ORB -> "Orb"
+            BEEHIVE -> "Beehive"
         }
 }
+
+/**
+ * Everything the position-dependent modes need beyond a cell's coordinates.
+ *
+ * [scale] is a percentage that stretches the *pattern* without touching the cell size. The
+ * two being separate is the point: shrinking cells until the pattern no longer resolves is
+ * a documented way to make these algorithms fail on purpose, and it only works if the
+ * pattern doesn't shrink along with them.
+ */
+data class PatternOptions(
+    val scale: Int = 100,
+    /** Cells per period of a modulation pattern. */
+    val period: Int = 8,
+    val angle: Int = 0,
+    /** 0..1 of a period; animating this makes the pattern travel. */
+    val phase: Float = 0f,
+    /** Grid centre in cells — only [DitherMode.MOD_RINGS] cares. */
+    val centerX: Float = 0f,
+    val centerY: Float = 0f,
+)
 
 /** One neighbour that receives a share of a cell's quantisation error. */
 data class DiffusionTap(val dx: Int, val dy: Int, val weight: Float)
@@ -35,10 +71,27 @@ data class DiffusionTap(val dx: Int, val dy: Int, val weight: Float)
  */
 object Dither {
 
+    /** Matrix-driven modes: the threshold comes from a fixed tile. */
     fun isOrdered(mode: DitherMode): Boolean = when (mode) {
         DitherMode.BAYER_2, DitherMode.BAYER_4, DitherMode.BAYER_8 -> true
         else -> false
     }
+
+    /** Modes whose threshold is a continuous function of position rather than a tile. */
+    fun isModulation(mode: DitherMode): Boolean = when (mode) {
+        DitherMode.MOD_LINES, DitherMode.MOD_WAVE, DitherMode.MOD_RINGS,
+        DitherMode.MOD_ORB, DitherMode.BEEHIVE,
+        -> true
+
+        else -> false
+    }
+
+    /**
+     * Every mode that picks its glyph from a threshold at ([x], [y]) instead of by passing
+     * an error on to its neighbours. Bayer and the modulation family differ only in where
+     * that threshold comes from, so the engine treats them the same way.
+     */
+    fun isThresholdBased(mode: DitherMode): Boolean = isOrdered(mode) || isModulation(mode)
 
     private val BAYER_2X2 = arrayOf(
         intArrayOf(0, 2),
@@ -77,6 +130,91 @@ object Dither {
         val n = m.size
         val value = m[Math.floorMod(y, n)][Math.floorMod(x, n)]
         return (value + 0.5f) / (n * n)
+    }
+
+    private const val TAU = 2.0 * PI
+
+    /** Fractional part, always in 0..1 — `x % 1` would go negative on the left half. */
+    private fun frac(x: Float): Float = x - floor(x)
+
+    /**
+     * Threshold in 0..1 for any threshold-based mode, with [options] applied.
+     *
+     * Both families go through here so that [PatternOptions.scale] — the pattern-size
+     * control that is deliberately independent of the cell size — reaches Bayer too.
+     */
+    fun threshold(mode: DitherMode, x: Int, y: Int, options: PatternOptions): Float {
+        val factor = (options.scale / 100f).coerceAtLeast(0.01f)
+        if (isOrdered(mode)) {
+            // Floored rather than rounded: rounding would make the tile stutter by a cell
+            // every time the scaled coordinate crosses a half-step.
+            return orderedThreshold(mode, floor(x / factor).toInt(), floor(y / factor).toInt())
+        }
+        if (!isModulation(mode)) return 0.5f
+        // The centre is given in unscaled cells, so it has to travel with the coordinates —
+        // otherwise the rings would crawl away from the image centre as the scale changes.
+        return modulatedThreshold(
+            mode,
+            x / factor,
+            y / factor,
+            options.copy(centerX = options.centerX / factor, centerY = options.centerY / factor),
+        )
+    }
+
+    /**
+     * The modulation family: a threshold surface sampled at a scaled cell coordinate.
+     *
+     * Studio AAA publishes neither the maths nor the names behind Dither Boy's modulation
+     * category — only that "Modulation Lines", "Waveform" and "Beehive" exist. These five
+     * are this app's own reading of that category, not a reconstruction of theirs.
+     */
+    fun modulatedThreshold(mode: DitherMode, x: Float, y: Float, options: PatternOptions): Float {
+        val period = options.period.coerceAtLeast(1).toFloat()
+        val radians = options.angle * PI / 180.0
+        val c = cos(radians).toFloat()
+        val s = sin(radians).toFloat()
+        // Rotate into the pattern's own frame, then measure in periods rather than cells.
+        val u = (x * c + y * s) / period
+        val v = (-x * s + y * c) / period
+        val phase = options.phase
+
+        return when (mode) {
+            DitherMode.MOD_LINES -> frac(u + phase)
+
+            // A sine band whose phase is dragged along the perpendicular axis — straight
+            // stripes would be MOD_LINES with a softer edge, which is not worth a mode.
+            DitherMode.MOD_WAVE -> {
+                val warp = 0.25f * sin(TAU * (v * 0.5f + phase)).toFloat()
+                0.5f + 0.5f * sin(TAU * (u + warp + phase)).toFloat()
+            }
+
+            DitherMode.MOD_RINGS -> {
+                val r = hypot(x - options.centerX, y - options.centerY) / period
+                0.5f + 0.5f * sin(TAU * (r + phase)).toFloat()
+            }
+
+            DitherMode.MOD_ORB -> orbThreshold(u + phase, v)
+
+            // Offsetting every other row by half a cell is what turns a square grid of orbs
+            // into a honeycomb — the cells pack against each other instead of lining up.
+            DitherMode.BEEHIVE -> {
+                val shift = if (Math.floorMod(floor(v).toInt(), 2) == 0) 0f else 0.5f
+                orbThreshold(u + phase + shift, v)
+            }
+
+            else -> 0.5f
+        }
+    }
+
+    /**
+     * Distance from the centre of the cell containing ([u], [v]), normalised so the corner
+     * reaches 1. Low in the middle, high at the edges — dark glyphs therefore clump into
+     * dots, which is the halftone look.
+     */
+    private fun orbThreshold(u: Float, v: Float): Float {
+        val dx = frac(u) - 0.5f
+        val dy = frac(v) - 0.5f
+        return (hypot(dx, dy) / 0.70710678f).coerceIn(0f, 1f)
     }
 
     /**
