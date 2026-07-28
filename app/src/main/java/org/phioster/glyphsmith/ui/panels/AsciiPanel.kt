@@ -44,12 +44,16 @@ fun AsciiPanel(
     modifier: Modifier = Modifier,
 ) {
     val categories = remember { listOf(CATEGORY_ALL) + CharacterSets.categories }
-    var category by remember(params.charSetId) {
-        mutableStateOf(CharacterSets.byId(params.charSetId).category)
-    }
-    val sets = remember(category) {
+    // Deliberately *not* keyed on the selected set: deriving the category from the set would
+    // throw you out of "All" the moment you picked anything, and `>` would then only step
+    // within that one category instead of all 48 sets.
+    var category by remember { mutableStateOf(CATEGORY_ALL) }
+    val filtered = remember(category) {
         if (category == CATEGORY_ALL) CharacterSets.all else CharacterSets.inCategory(category)
     }
+    // A preset can select a set from outside the current filter; fall back to the full list
+    // so the dropdown still shows what is actually in use.
+    val sets = if (filtered.any { it.id == params.charSetId }) filtered else CharacterSets.all
     val setIndex = sets.indexOfFirst { it.id == params.charSetId }.coerceAtLeast(0)
 
     Column(modifier.fillMaxWidth()) {
