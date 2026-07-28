@@ -28,25 +28,19 @@ object AsciiRenderer {
     /** Hard ceiling on either output dimension — beyond this a bitmap allocation fails. */
     const val MAX_OUTPUT_SIDE = 8192
 
-    private fun typefaceFor(style: FontStyle): Typeface = Typeface.create(
-        Typeface.MONOSPACE,
-        when (style) {
-            FontStyle.REGULAR -> Typeface.NORMAL
-            FontStyle.BOLD -> Typeface.BOLD
-            FontStyle.ITALIC -> Typeface.ITALIC
-            FontStyle.BOLD_ITALIC -> Typeface.BOLD_ITALIC
-        },
-    )
+    /** The face this ramp will actually be drawn with — see [Fonts.resolve]. */
+    fun faceFor(params: AsciiParams, ramp: String): FontChoice =
+        Fonts.resolve(params.glyphFont, params.fontStyle, ramp)
 
-    private fun paintFor(fontSizePx: Float, style: FontStyle) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        typeface = typefaceFor(style)
+    private fun paintFor(fontSizePx: Float, face: Typeface) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        typeface = face
         textSize = fontSizePx
         textAlign = Paint.Align.LEFT
         isSubpixelText = true
     }
 
-    fun metrics(fontSizePx: Int, ramp: String, style: FontStyle = FontStyle.REGULAR): CellMetrics {
-        val paint = paintFor(fontSizePx.toFloat(), style)
+    fun metrics(fontSizePx: Int, ramp: String, face: Typeface): CellMetrics {
+        val paint = paintFor(fontSizePx.toFloat(), face)
         val widths = FloatArray(1)
         var widest = 0f
         for (glyph in ramp.toSet()) {
@@ -71,11 +65,11 @@ object AsciiRenderer {
         ramp: String,
         requested: Int,
         maxSide: Int,
-        style: FontStyle = FontStyle.REGULAR,
+        face: Typeface,
     ): Int {
         var size = requested.coerceIn(AsciiParams.FONT_SIZE_RANGE)
         while (size > AsciiParams.FONT_SIZE_RANGE.first) {
-            val cell = metrics(size, ramp, style)
+            val cell = metrics(size, ramp, face)
             if (cols * cell.width <= maxSide && rows * cell.height <= maxSide) return size
             size--
         }
@@ -84,8 +78,9 @@ object AsciiRenderer {
 
     fun render(art: AsciiArt, params: AsciiParams, fontSizePx: Int): Bitmap {
         val ramp = params.effectiveRamp().ifEmpty { " " }
-        val size = fitFontSize(art.cols, art.rows, ramp, fontSizePx, MAX_OUTPUT_SIDE, params.fontStyle)
-        val cell = metrics(size, ramp, params.fontStyle)
+        val face = faceFor(params, ramp).typeface
+        val size = fitFontSize(art.cols, art.rows, ramp, fontSizePx, MAX_OUTPUT_SIDE, face)
+        val cell = metrics(size, ramp, face)
         val width = (art.cols * cell.width).coerceIn(1, MAX_OUTPUT_SIDE)
         val height = (art.rows * cell.height).coerceIn(1, MAX_OUTPUT_SIDE)
 
@@ -95,7 +90,7 @@ object AsciiRenderer {
             if (params.transparentBackground) Color.TRANSPARENT else params.backgroundColor,
         )
 
-        val paint = paintFor(size.toFloat(), params.fontStyle)
+        val paint = paintFor(size.toFloat(), face)
         // measureText per cell would dominate the render; the ramp is small, so cache it.
         val widthCache = HashMap<Char, Float>(ramp.length * 2)
         val single = CharArray(1)

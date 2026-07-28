@@ -31,6 +31,7 @@ data class AsciiParams(
     val injection: String = "",
     val invert: Boolean = false,
     val fontStyle: FontStyle = FontStyle.REGULAR,
+    val glyphFont: GlyphFont = GlyphFont.AUTO,
     /** -1..1, added to normalised luminance. */
     val brightness: Float = 0f,
     /** 0.2..3, applied around mid grey. */

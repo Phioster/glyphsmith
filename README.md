@@ -26,6 +26,14 @@ the engine will use it.
 | Cell size | 2–48 px | source pixels per glyph cell — sets the grid resolution |
 | Invert ramp | | reverses light and dark |
 
+**Typefaces** — two subsetted faces ship with the app, because the device monospace font
+silently falls back to a *proportional* face for braille, kana, runic and friends, which
+makes those sets sit unevenly in their cells. DejaVu Sans Mono covers 36 of the 48 sets in
+four real styles; GNU Unifont covers all 48 in one. `AUTO` picks the first face that can
+draw every glyph in the current ramp and says which one it used — and falls back to the
+system face for anything typed into Inject Characters, since the subsets don't contain it.
+Both together are under 170 KB. See `app/src/main/assets/fonts/NOTICE.md`.
+
 **Tone** — gamma → contrast → brightness, applied to each cell's luminance before it picks a
 glyph. Without it a flat photo only ever reaches the middle third of the ramp.
 

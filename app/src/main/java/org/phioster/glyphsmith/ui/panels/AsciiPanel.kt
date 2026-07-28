@@ -23,6 +23,7 @@ import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.CharacterSet
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.FontStyle
+import org.phioster.glyphsmith.ascii.GlyphFont
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton
@@ -41,6 +42,8 @@ private const val CATEGORY_ALL = "All"
 fun AsciiPanel(
     params: AsciiParams,
     onChange: (AsciiParams) -> Unit,
+    fontLabel: String,
+    missingGlyphs: String,
     modifier: Modifier = Modifier,
 ) {
     val categories = remember { listOf(CATEGORY_ALL) + CharacterSets.categories }
@@ -92,7 +95,7 @@ fun AsciiPanel(
             itemDetail = { it.glyphs.take(28) },
         )
 
-        GlyphPreview(sets.getOrNull(setIndex) ?: CharacterSets.default, params)
+        GlyphPreview(sets.getOrNull(setIndex) ?: CharacterSets.default, params, fontLabel, missingGlyphs)
 
         InjectField(
             value = params.injection,
@@ -114,6 +117,22 @@ fun AsciiPanel(
             selectedIndex = FontStyle.entries.indexOf(params.fontStyle),
             onSelect = { onChange(params.copy(fontStyle = FontStyle.entries[it])) },
             itemLabel = { it.name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercase) },
+        )
+
+        StepperDropdown(
+            label = "typeface",
+            items = GlyphFont.entries.toList(),
+            selectedIndex = GlyphFont.entries.indexOf(params.glyphFont),
+            onSelect = { onChange(params.copy(glyphFont = GlyphFont.entries[it])) },
+            itemLabel = { it.name.lowercase().replaceFirstChar(Char::uppercase) },
+            itemDetail = {
+                when (it) {
+                    GlyphFont.AUTO -> "first bundled face that covers the whole ramp"
+                    GlyphFont.DEJAVU -> "DejaVu Sans Mono — four real styles, 36 of 48 sets"
+                    GlyphFont.UNIFONT -> "GNU Unifont — pixel outlines, covers every built-in set"
+                    GlyphFont.SYSTEM -> "device monospace — falls back for exotic glyphs"
+                }
+            },
         )
 
         SectionHeader("grid")
@@ -158,7 +177,12 @@ fun AsciiPanel(
 
 /** Live glyph preview — the ramp exactly as the engine will use it, injection included. */
 @Composable
-private fun GlyphPreview(set: CharacterSet, params: AsciiParams) {
+private fun GlyphPreview(
+    set: CharacterSet,
+    params: AsciiParams,
+    fontLabel: String,
+    missingGlyphs: String,
+) {
     val ramp = params.effectiveRamp()
     Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
         Row(Modifier.fillMaxWidth()) {
@@ -182,6 +206,20 @@ private fun GlyphPreview(set: CharacterSet, params: AsciiParams) {
                 .background(Term.SurfaceHigh)
                 .padding(6.dp),
         )
+        if (fontLabel.isNotEmpty()) {
+            Text(
+                if (missingGlyphs.isEmpty()) {
+                    "font: $fontLabel · all glyphs covered"
+                } else {
+                    "font: $fontLabel · ${missingGlyphs.length} glyph(s) missing: $missingGlyphs"
+                },
+                color = if (missingGlyphs.isEmpty()) Term.InkFaint else Term.Amber,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
     }
 }
 

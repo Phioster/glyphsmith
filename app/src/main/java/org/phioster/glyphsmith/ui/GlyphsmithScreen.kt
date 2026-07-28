@@ -97,7 +97,12 @@ fun GlyphsmithScreen(
                 .padding(bottom = 16.dp),
         ) {
             when (tab) {
-                Tab.ASCII -> AsciiPanel(state.params, onParamsChange)
+                Tab.ASCII -> AsciiPanel(
+                    params = state.params,
+                    onChange = onParamsChange,
+                    fontLabel = state.fontLabel,
+                    missingGlyphs = state.missingGlyphs,
+                )
                 Tab.TONE -> TonePanel(state.params, onParamsChange)
                 Tab.COLOR -> ColorPanel(state.params, onParamsChange)
                 Tab.GLOW -> GlowPanel(state.params, onParamsChange)

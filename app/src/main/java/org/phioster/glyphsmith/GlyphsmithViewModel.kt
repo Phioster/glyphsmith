@@ -18,6 +18,7 @@ import org.phioster.glyphsmith.ascii.AsciiArt
 import org.phioster.glyphsmith.ascii.AsciiEngine
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.AsciiRenderer
+import org.phioster.glyphsmith.ascii.FontChoice
 import org.phioster.glyphsmith.data.ImageLoader
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
@@ -35,6 +36,9 @@ data class UiState(
     val outputHeight: Int = 0,
     val working: Boolean = false,
     val exportFormat: ImageFormat = ImageFormat.PNG,
+    /** Which face the current ramp actually got, and what it can't draw. */
+    val fontLabel: String = "",
+    val missingGlyphs: String = "",
     val presets: List<Preset> = emptyList(),
     val status: String = "no image loaded",
 )
@@ -96,35 +100,38 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(working = true)
         val result = withContext(Dispatchers.Default) {
             val ramp = params.effectiveRamp().ifEmpty { " " }
+            val face = AsciiRenderer.faceFor(params, ramp)
             // Aspect is measured at a fixed reference size so the grid stays identical
             // between the preview and the full-size export — only the glyphs get bigger.
-            val aspect = AsciiRenderer.metrics(REFERENCE_FONT_SIZE, ramp, params.fontStyle).aspect
+            val aspect = AsciiRenderer.metrics(REFERENCE_FONT_SIZE, ramp, face.typeface).aspect
             val grid = AsciiEngine.convert(pixels, sourceWidth, sourceHeight, params, aspect)
             val previewFont = AsciiRenderer.fitFontSize(
-                grid.cols, grid.rows, ramp, params.fontSizePx, PREVIEW_MAX_SIDE, params.fontStyle,
+                grid.cols, grid.rows, ramp, params.fontSizePx, PREVIEW_MAX_SIDE, face.typeface,
             )
             val bitmap = EpsilonGlow.apply(AsciiRenderer.render(grid, params, previewFont), params.glow)
             val exportCell = AsciiRenderer.metrics(
                 AsciiRenderer.fitFontSize(
                     grid.cols, grid.rows, ramp, params.fontSizePx,
-                    AsciiRenderer.MAX_OUTPUT_SIDE, params.fontStyle,
+                    AsciiRenderer.MAX_OUTPUT_SIDE, face.typeface,
                 ),
                 ramp,
-                params.fontStyle,
+                face.typeface,
             )
-            Triple(grid, bitmap, exportCell)
+            Rebuilt(grid, bitmap, exportCell, face)
         }
-        art = result.first
+        art = result.grid
         // The old preview is deliberately not recycled: Compose may still be drawing it
         // this frame, and a recycled bitmap under the canvas is an instant crash.
         _state.value = _state.value.copy(
-            preview = result.second,
-            cols = result.first.cols,
-            rows = result.first.rows,
-            outputWidth = result.first.cols * result.third.width,
-            outputHeight = result.first.rows * result.third.height,
+            preview = result.preview,
+            cols = result.grid.cols,
+            rows = result.grid.rows,
+            outputWidth = result.grid.cols * result.cell.width,
+            outputHeight = result.grid.rows * result.cell.height,
+            fontLabel = result.face.label,
+            missingGlyphs = result.face.missing,
             working = false,
-            status = "${result.first.cols}×${result.first.rows} cells",
+            status = "${result.grid.cols}×${result.grid.rows} cells",
         )
     }
 
@@ -194,6 +201,13 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         updateParams(preset.params)
         _state.value = _state.value.copy(status = "preset ${preset.name}")
     }
+
+    private class Rebuilt(
+        val grid: AsciiArt,
+        val preview: Bitmap,
+        val cell: org.phioster.glyphsmith.ascii.CellMetrics,
+        val face: FontChoice,
+    )
 
     private companion object {
         const val DEBOUNCE_MS = 90L
