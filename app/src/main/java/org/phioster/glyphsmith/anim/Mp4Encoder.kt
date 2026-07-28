@@ -134,10 +134,24 @@ object Mp4Encoder {
 
     private fun imageSize(width: Int, height: Int) = width * height * 3 / 2
 
+    /**
+     * Reads a width×height region into a tightly packed array.
+     *
+     * The stride is the *destination* stride, not the bitmap's. Passing the bitmap's width
+     * overruns the final row whenever the frame was cropped to an even size — a 647px frame
+     * becomes 646 here, and getPixels then writes past the end of the array. Both encoder
+     * paths go through this one function so there is only one place to get it wrong.
+     */
+    private fun readPixels(bitmap: Bitmap, width: Int, height: Int): IntArray {
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        return pixels
+    }
+
+
     /** Fallback path: tightly packed I420 straight into the codec's input buffer. */
     private fun fillPlanarI420(buffer: ByteBuffer, bitmap: Bitmap, width: Int, height: Int) {
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, width, height)
+        val pixels = readPixels(bitmap, width, height)
         buffer.clear()
 
         for (i in 0 until width * height) {
@@ -163,8 +177,7 @@ object Mp4Encoder {
 
     /** BT.601 ARGB → planar YUV, written through the plane strides the codec reports. */
     private fun fillYuv(planes: Array<android.media.Image.Plane>, bitmap: Bitmap, width: Int, height: Int) {
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, width, height)
+        val pixels = readPixels(bitmap, width, height)
 
         writeLuma(planes[0], pixels, width, height)
         writeChroma(planes[1], planes[2], pixels, width, height)
