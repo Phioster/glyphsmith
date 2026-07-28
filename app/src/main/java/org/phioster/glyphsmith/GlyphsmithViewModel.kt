@@ -363,13 +363,13 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val params = _state.value.params
         val animation = params.animation
         val file = java.io.File(context.cacheDir, "glyphsmith-anim.mp4")
-        val ok = withContext(Dispatchers.Default) {
+        val failure = withContext(Dispatchers.Default) {
             val frames = renderFrames(pixels, params, animation, ANIM_EXPORT_MAX_SIDE)
-            val encoded = Mp4Encoder.encode(frames, animation.fps.coerceAtLeast(1), file)
+            val result = Mp4Encoder.encode(frames, animation.fps.coerceAtLeast(1), file)
             frames.forEach { it.recycle() }
-            encoded
+            result
         }
-        if (!ok) return@runExport "the encoder rejected these frames"
+        if (failure != null) return@runExport "mp4: $failure"
         val uri = withContext(Dispatchers.IO) {
             Exporter.saveBytes(context, file.readBytes(), Exporter.timestampedName("mp4"), "video/mp4")
         }

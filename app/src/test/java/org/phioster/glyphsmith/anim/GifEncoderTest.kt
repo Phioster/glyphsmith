@@ -77,6 +77,27 @@ class GifEncoderTest {
         assertArrayEquals(frame, decoded)
     }
 
+    /**
+     * The case that shipped broken: a full 256-colour palette pushes the minimum code size
+     * to 8 and fills the dictionary repeatedly, so both the code-width growth and the
+     * mid-stream dictionary reset get exercised. Every earlier test used two or three
+     * colours and reached neither.
+     */
+    @Test
+    fun `a 256 colour frame with dictionary resets survives the round trip`() {
+        val width = 220
+        val height = 220
+        val colors = IntArray(256) { 0xFF000000.toInt() or (it shl 16) or (it shl 8) or it }
+        var seed = 12345
+        val frame = IntArray(width * height) {
+            // Deterministic noise: compresses badly, so the dictionary fills and resets.
+            seed = seed * 1103515245 + 12345
+            colors[(seed ushr 16) and 0xFF]
+        }
+        val decoded = decodeFirstFrame(encode(listOf(frame), width, height))
+        assertArrayEquals(frame, decoded)
+    }
+
     @Test
     fun `every frame is written`() {
         val frames = listOf(IntArray(16) { red }, IntArray(16) { green }, IntArray(16) { blue })
@@ -210,11 +231,12 @@ class GifEncoderTest {
 
                 if (previous != null) {
                     dictionary.add(previous + entry[0])
-                    // The decoder's dictionary lags the encoder's by exactly one entry: the
-                    // encoder defines a code as it emits, the decoder only once it sees the
-                    // *next* code. So `size == encoderNextCode - 1`, and the width has to
-                    // grow one step earlier here than it does over there.
-                    if (dictionary.size >= (1 shl codeSize) - 1 && codeSize < 12) codeSize++
+                    // The rule every real GIF decoder uses. It is written this way on
+                    // purpose: bending it to match the encoder would let a stream that no
+                    // other decoder can read pass this test — which is exactly what
+                    // happened before, a 256-colour export was unreadable everywhere while
+                    // these tests stayed green.
+                    if (dictionary.size == (1 shl codeSize) && codeSize < 12) codeSize++
                 }
                 previous = entry
             }

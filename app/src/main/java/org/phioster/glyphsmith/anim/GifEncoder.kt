@@ -158,8 +158,12 @@ object GifEncoder {
             if (nextCode <= MAX_CODE) {
                 dictionary[key] = nextCode
                 nextCode++
-                // Grow once the next code no longer fits in the current width.
-                if (nextCode > (1 shl codeSize) - 1 && codeSize < 12) codeSize++
+                // A decoder only learns a code once it sees the *following* one, so its
+                // table is always one entry behind ours. The width therefore has to grow
+                // one step later than "the next code no longer fits" would suggest —
+                // growing at `> (1 shl codeSize) - 1` desynchronises every real decoder
+                // the moment the first widening happens.
+                if (nextCode > (1 shl codeSize) && codeSize < 12) codeSize++
             } else {
                 emit(clearCode, codeSize)
                 dictionary = HashMap()

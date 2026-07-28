@@ -5,6 +5,7 @@ import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import android.util.Log
 import java.io.File
 import java.nio.ByteBuffer
 
@@ -24,11 +25,14 @@ object Mp4Encoder {
     /** H.264 needs even dimensions; odd ones are cropped by a pixel rather than padded. */
     fun evenSize(value: Int): Int = value - (value % 2)
 
-    fun encode(frames: List<Bitmap>, fps: Int, output: File): Boolean {
-        if (frames.isEmpty()) return false
+    private const val TAG = "Mp4Encoder"
+
+    /** Returns null on success, or a short reason to show the user. */
+    fun encode(frames: List<Bitmap>, fps: Int, output: File): String? {
+        if (frames.isEmpty()) return "no frames"
         val width = evenSize(frames.first().width)
         val height = evenSize(frames.first().height)
-        if (width <= 0 || height <= 0) return false
+        if (width <= 0 || height <= 0) return "frame is too small"
 
         var codec: MediaCodec? = null
         var muxer: MediaMuxer? = null
@@ -90,6 +94,12 @@ object Mp4Encoder {
                     val image = codec.getInputImage(inputIndex)
                     if (image != null) {
                         fillYuv(image.planes, frames[frameIndex], width, height)
+                    } else {
+                        // Some encoders hand back a plain buffer instead of an Image; write
+                        // planar I420 by hand rather than dropping the frame silently.
+                        val buffer = codec.getInputBuffer(inputIndex)
+                            ?: return "no input buffer from the encoder"
+                        fillPlanarI420(buffer, frames[frameIndex], width, height)
                     }
                     val presentationTimeUs = frameIndex * 1_000_000L / fps
                     codec.queueInputBuffer(inputIndex, 0, imageSize(width, height), presentationTimeUs, 0)
@@ -107,10 +117,13 @@ object Mp4Encoder {
                 )
             }
             drain(true)
-            true
+            if (!muxerStarted) "the encoder produced no output" else null
         } catch (e: Exception) {
+            // Without this the only symptom was "nothing happened" — MediaCodec failures
+            // are device-specific, so the message is worth surfacing rather than swallowing.
+            Log.e(TAG, "encode failed at ${width}x$height", e)
             output.delete()
-            false
+            e.message?.take(90) ?: e.javaClass.simpleName
         } finally {
             runCatching { codec?.stop() }
             runCatching { codec?.release() }
@@ -120,6 +133,33 @@ object Mp4Encoder {
     }
 
     private fun imageSize(width: Int, height: Int) = width * height * 3 / 2
+
+    /** Fallback path: tightly packed I420 straight into the codec's input buffer. */
+    private fun fillPlanarI420(buffer: ByteBuffer, bitmap: Bitmap, width: Int, height: Int) {
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, width, height)
+        buffer.clear()
+
+        for (i in 0 until width * height) {
+            val pixel = pixels[i]
+            val r = (pixel shr 16) and 0xFF
+            val g = (pixel shr 8) and 0xFF
+            val b = pixel and 0xFF
+            buffer.put((((66 * r + 129 * g + 25 * b + 128) shr 8) + 16).coerceIn(16, 235).toByte())
+        }
+        val chroma = ArrayList<Byte>(width * height / 4)
+        for (y in 0 until height / 2) {
+            for (x in 0 until width / 2) {
+                val pixel = pixels[(y * 2) * width + x * 2]
+                val r = (pixel shr 16) and 0xFF
+                val g = (pixel shr 8) and 0xFF
+                val b = pixel and 0xFF
+                buffer.put((((-38 * r - 74 * g + 112 * b + 128) shr 8) + 128).coerceIn(16, 240).toByte())
+                chroma.add((((112 * r - 94 * g - 18 * b + 128) shr 8) + 128).coerceIn(16, 240).toByte())
+            }
+        }
+        chroma.forEach { buffer.put(it) }
+    }
 
     /** BT.601 ARGB → planar YUV, written through the plane strides the codec reports. */
     private fun fillYuv(planes: Array<android.media.Image.Plane>, bitmap: Bitmap, width: Int, height: Int) {
