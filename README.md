@@ -3,9 +3,29 @@
 An Android ASCII-art forge: load an image, map it onto a character grid, export the render
 as a PNG or the grid itself as a `.txt`.
 
-It's a rebuild of the feature set of **Script Slayer** (the ASCII module inside Studio AAA's
-Dither Boy) for the phone — same controls, same vocabulary, independent implementation.
-Nothing here is derived from Dither Boy's code or assets.
+It rebuilds the feature set of **Script Slayer** — the ASCII module inside Studio AAA's
+Dither Boy — for the phone: the same controls, the same vocabulary, an entirely separate
+implementation.
+
+## Relationship to Dither Boy
+
+This project is **not affiliated with, endorsed by, or connected to Studio AAA** in any way.
+Dither Boy and Script Slayer are their products, and the names are used here only to say
+truthfully what this app is modelled on.
+
+Everything here was written from the publicly published feature list and from screenshots of
+the interface. No code, assets, fonts or resources from Dither Boy were used, examined or
+decompiled, and the app has never been run against it. Where behaviour could not be observed
+from the outside — how the glow kernel is actually computed, where injected characters land
+in the ramp — this app makes its own choice and says so in the source.
+
+## Licence
+
+None. All rights reserved — deliberately, not by oversight. The source is public so the
+builds can run; no permission to use, modify or redistribute it is granted.
+
+The two bundled typefaces are a separate matter and keep their own terms; see
+`app/src/main/assets/fonts/NOTICE.md`.
 
 ## What it does
 
