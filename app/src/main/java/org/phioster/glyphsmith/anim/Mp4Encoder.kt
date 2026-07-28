@@ -50,8 +50,10 @@ object Mp4Encoder {
                     (width * height * fps * BITS_PER_PIXEL_PER_FRAME).toInt().coerceAtLeast(1_000_000),
                 )
                 setInteger(MediaFormat.KEY_FRAME_RATE, fps)
-                // Every frame a keyframe: these clips are short and loop, and seeking to an
-                // arbitrary frame should never depend on decoding the whole thing.
+                // A hint, not a guarantee: asking for one keyframe per second still left a
+                // measured clip with 5 of 60 frames as keyframes, because the encoder picks
+                // its own GOP. Fine for playback — worth knowing before trusting it for
+                // frame-accurate seeking.
                 setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
             }
 
