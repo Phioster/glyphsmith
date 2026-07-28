@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.verticalScroll
@@ -37,6 +38,7 @@ import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.export.ImageFormat
+import org.phioster.glyphsmith.ui.panels.AnimPanel
 import org.phioster.glyphsmith.ui.panels.AsciiPanel
 import org.phioster.glyphsmith.ui.panels.ColorPanel
 import org.phioster.glyphsmith.ui.panels.EffectsPanel
@@ -50,6 +52,7 @@ private enum class Tab(val label: String) {
     MAPPING("MAP"),
     COLOR("COLOUR"),
     EFFECTS("FX"),
+    ANIM("ANIM"),
     OUTPUT("OUT"),
     PRESETS("PRE"),
 }
@@ -72,6 +75,10 @@ fun GlyphsmithScreen(
     onImportPresets: (android.net.Uri) -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
+    onPlayAnimation: () -> Unit,
+    onStopAnimation: () -> Unit,
+    onExportGif: () -> Unit,
+    onExportMp4: () -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -114,6 +121,15 @@ fun GlyphsmithScreen(
                 Tab.MAPPING -> MappingPanel(state.params, onParamsChange)
                 Tab.COLOR -> ColorPanel(state.params, onParamsChange)
                 Tab.EFFECTS -> EffectsPanel(state.params, onParamsChange)
+                Tab.ANIM -> AnimPanel(
+                    state = state,
+                    onChange = onParamsChange,
+                    onPlay = onPlayAnimation,
+                    onStop = onStopAnimation,
+                    onExportGif = onExportGif,
+                    onExportMp4 = onExportMp4,
+                )
+
                 Tab.OUTPUT -> OutputPanel(
                     state = state,
                     onChange = onParamsChange,
@@ -232,7 +248,10 @@ private fun StatusLine(state: UiState) {
 @Composable
 private fun TabRow(selected: Tab, onSelect: (Tab) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 4.dp),
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(bottom = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Tab.entries.forEach { tab ->
@@ -240,7 +259,6 @@ private fun TabRow(selected: Tab, onSelect: (Tab) -> Unit) {
                 label = tab.label,
                 selected = tab == selected,
                 onClick = { onSelect(tab) },
-                modifier = Modifier.weight(1f),
             )
         }
     }

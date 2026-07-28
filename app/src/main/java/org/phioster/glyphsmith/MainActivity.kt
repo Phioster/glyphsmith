@@ -47,6 +47,10 @@ class MainActivity : ComponentActivity() {
                         onImportPresets = viewModel::importPresets,
                         onUndo = viewModel::undo,
                         onRedo = viewModel::redo,
+                        onPlayAnimation = viewModel::playAnimation,
+                        onStopAnimation = viewModel::stopAnimation,
+                        onExportGif = viewModel::exportGif,
+                        onExportMp4 = viewModel::exportMp4,
                     )
                 }
             }

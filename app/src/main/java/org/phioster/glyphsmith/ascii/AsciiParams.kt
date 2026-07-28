@@ -1,6 +1,7 @@
 package org.phioster.glyphsmith.ascii
 
 import kotlinx.serialization.Serializable
+import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.effects.EffectStack
 
 enum class ColorMode { SINGLE, SOURCE, PALETTE }
@@ -69,6 +70,8 @@ data class AsciiParams(
     val canvasHeight: Int = 1440,
     /** Post-effects applied to the rendered glyphs, not to the source image. */
     val effects: EffectStack = EffectStack(),
+    /** Drives selected parameters over time to animate a still image. */
+    val animation: AnimationParams = AnimationParams(),
 ) {
     val charSet: CharacterSet get() = CharacterSets.byId(charSetId)
 

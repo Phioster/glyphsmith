@@ -113,7 +113,23 @@ object Exporter {
     fun saveJson(context: Context, text: String, name: String = timestampedName("json")): Uri? =
         saveDocument(context, text, name, "application/json")
 
+    /** Animations are binary, so they go through the same folder but as raw bytes. */
+    fun saveBytes(context: Context, bytes: ByteArray, name: String, mimeType: String): Uri? =
+        saveDownload(context, name, mimeType) { it.write(bytes) }
+
     private fun saveDocument(context: Context, text: String, name: String, mimeType: String): Uri? =
+        saveDownload(context, name, mimeType) { it.write(text.toByteArray()) }
+
+    /**
+     * Writes into `Download/Glyphsmith` through MediaStore on Android 10+, or straight to
+     * external storage below it. Returns null when the write failed.
+     */
+    private fun saveDownload(
+        context: Context,
+        name: String,
+        mimeType: String,
+        write: (java.io.OutputStream) -> Unit,
+    ): Uri? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, name)
@@ -124,7 +140,7 @@ object Exporter {
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
             uri?.also { target ->
                 runCatching {
-                    resolver.openOutputStream(target)?.use { it.write(text.toByteArray()) }
+                    resolver.openOutputStream(target)?.use(write)
                 }.onFailure { resolver.delete(target, null, null) }
             }
         } else {
@@ -133,7 +149,7 @@ object Exporter {
                 val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), ALBUM)
                 dir.mkdirs()
                 val file = File(dir, name)
-                file.writeText(text)
+                file.outputStream().use(write)
                 shareUriFor(context, file)
             }.getOrNull()
         }

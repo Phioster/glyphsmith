@@ -7,22 +7,27 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.phioster.glyphsmith.ascii.AsciiArt
-import org.phioster.glyphsmith.ascii.AsciiEngine
 import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.anim.AnimationParams
+import org.phioster.glyphsmith.anim.Animator
+import org.phioster.glyphsmith.anim.GifEncoder
+import org.phioster.glyphsmith.anim.Mp4Encoder
 import org.phioster.glyphsmith.ascii.AsciiRenderer
+import org.phioster.glyphsmith.ascii.Pipeline
 import org.phioster.glyphsmith.ascii.FontChoice
 import org.phioster.glyphsmith.data.ImageLoader
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
-import org.phioster.glyphsmith.effects.EffectPipeline
 import org.phioster.glyphsmith.export.Exporter
 import org.phioster.glyphsmith.export.ImageFormat
 
@@ -37,6 +42,8 @@ data class UiState(
     val working: Boolean = false,
     val exportFormat: ImageFormat = ImageFormat.PNG,
     /** Which face the current ramp actually got, and what it can't draw. */
+    val animPlaying: Boolean = false,
+    val animFrames: Int = 0,
     val canUndo: Boolean = false,
     val canRedo: Boolean = false,
     val fontLabel: String = "",
@@ -164,62 +171,29 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val pixels = sourcePixels ?: return
         _state.value = _state.value.copy(working = true)
         val result = withContext(Dispatchers.Default) {
-            val ramp = params.effectiveRamp().ifEmpty { " " }
-            val face = AsciiRenderer.faceFor(params, ramp)
-            // Aspect is measured at a fixed reference size so the grid stays identical
-            // between the preview and the full-size export — only the glyphs get bigger.
-            val aspect = AsciiRenderer.metrics(REFERENCE_FONT_SIZE, ramp, face.typeface).aspect
-            val grid = AsciiEngine.convert(pixels, sourceWidth, sourceHeight, params, aspect)
-            val previewFont = AsciiRenderer.fitFontSize(
-                grid.cols, grid.rows, ramp, params.fontSizePx, PREVIEW_MAX_SIDE, face.typeface,
-            )
-            // In canvas mode the preview is the canvas itself, shrunk to preview size — so
-            // what you see is the framing you will export, letterboxing included.
-            val previewScale = if (params.canvasEnabled) {
-                minOf(1f, PREVIEW_MAX_SIDE.toFloat() / maxOf(params.canvasWidth, params.canvasHeight))
-            } else {
-                1f
-            }
-            val bitmap = EffectPipeline.apply(
-                AsciiRenderer.render(grid, params, previewFont, previewScale),
-                params.effects,
-            )
-            val output = if (params.canvasEnabled) {
-                params.canvasWidth to params.canvasHeight
-            } else {
-                val cell = AsciiRenderer.metrics(
-                    AsciiRenderer.fitFontSize(
-                        grid.cols, grid.rows, ramp, params.fontSizePx,
-                        AsciiRenderer.MAX_OUTPUT_SIDE, face.typeface,
-                    ),
-                    ramp,
-                    face.typeface,
-                )
-                (grid.cols * cell.width) to (grid.rows * cell.height)
-            }
-            Rebuilt(grid, bitmap, output.first, output.second, face)
+            Pipeline.run(pixels, sourceWidth, sourceHeight, params, PREVIEW_MAX_SIDE)
         }
-        art = result.grid
+        art = result.art
         // The old preview is deliberately not recycled: Compose may still be drawing it
         // this frame, and a recycled bitmap under the canvas is an instant crash.
         _state.value = _state.value.copy(
-            preview = result.preview,
-            cols = result.grid.cols,
-            rows = result.grid.rows,
+            preview = result.bitmap,
+            cols = result.art.cols,
+            rows = result.art.rows,
             outputWidth = result.outputWidth,
             outputHeight = result.outputHeight,
             fontLabel = result.face.label,
             missingGlyphs = result.face.missing,
             working = false,
-            status = "${result.grid.cols}×${result.grid.rows} cells",
+            status = "${result.art.cols}×${result.art.rows} cells",
         )
     }
 
     private suspend fun renderFullSize(): Bitmap? {
-        val grid = art ?: return null
+        val pixels = sourcePixels ?: return null
         val params = _state.value.params
         return withContext(Dispatchers.Default) {
-            EffectPipeline.apply(AsciiRenderer.render(grid, params, params.fontSizePx), params.effects)
+            Pipeline.run(pixels, sourceWidth, sourceHeight, params, AsciiRenderer.MAX_OUTPUT_SIDE).bitmap
         }
     }
 
@@ -268,6 +242,141 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // --- animation ---------------------------------------------------------------
+
+    private var animFrames: List<Bitmap> = emptyList()
+    private var playbackJob: Job? = null
+
+    /**
+     * Renders every frame once and then loops the cached bitmaps. Re-rendering per tick
+     * would never hold the frame rate — a single frame is the whole pipeline.
+     */
+    fun playAnimation() {
+        val pixels = sourcePixels ?: return
+        viewModelScope.launch {
+            cancelPlayback()
+            val params = _state.value.params
+            val animation = params.animation
+            _state.value = _state.value.copy(working = true, status = "rendering ${animation.frames} frames…")
+
+            val frames = withContext(Dispatchers.Default) {
+                renderFrames(pixels, params, animation, ANIM_PREVIEW_MAX_SIDE)
+            }
+            animFrames = frames
+            _state.value = _state.value.copy(
+                working = false,
+                animPlaying = true,
+                animFrames = frames.size,
+                status = "${frames.size} frames · ${"%.1f".format(animation.durationSeconds)}s loop",
+            )
+
+            val frameDelay = 1000L / animation.fps.coerceAtLeast(1)
+            playbackJob = viewModelScope.launch {
+                var index = 0
+                while (isActive && animFrames.isNotEmpty()) {
+                    _state.value = _state.value.copy(preview = animFrames[index % animFrames.size])
+                    index++
+                    delay(frameDelay)
+                }
+            }
+        }
+    }
+
+    fun stopAnimation() {
+        viewModelScope.launch {
+            cancelPlayback()
+            _state.value = _state.value.copy(status = "stopped")
+            rebuild(_state.value.params)
+        }
+    }
+
+    private fun cancelPlayback() {
+        playbackJob?.cancel()
+        playbackJob = null
+        animFrames = emptyList()
+        _state.value = _state.value.copy(animPlaying = false, animFrames = 0)
+    }
+
+    /**
+     * Frames are forced to a common size: animating Depth changes the ramp length, which
+     * changes the glyph cell, which would otherwise make each frame a slightly different
+     * bitmap — and neither GIF nor MP4 accepts that.
+     */
+    private fun renderFrames(
+        pixels: IntArray,
+        base: AsciiParams,
+        animation: AnimationParams,
+        maxSide: Int,
+    ): List<Bitmap> {
+        val budgetSide = frameBudget(animation.frames, maxSide)
+        var width = 0
+        var height = 0
+        return (0 until animation.frames).map { frame ->
+            val frameParams = Animator.paramsAt(base, animation, frame)
+            val rendered = Pipeline.run(pixels, sourceWidth, sourceHeight, frameParams, budgetSide).bitmap
+            if (frame == 0) {
+                width = rendered.width
+                height = rendered.height
+                rendered
+            } else if (rendered.width != width || rendered.height != height) {
+                val scaled = Bitmap.createScaledBitmap(rendered, width, height, true)
+                if (scaled != rendered) rendered.recycle()
+                scaled
+            } else {
+                rendered
+            }
+        }
+    }
+
+    /** Keeps the whole frame set inside a fixed memory budget. */
+    private fun frameBudget(frames: Int, maxSide: Int): Int {
+        val perFrame = MEMORY_BUDGET_BYTES / frames.coerceAtLeast(1) / 4
+        val side = kotlin.math.sqrt(perFrame.toDouble()).toInt()
+        return side.coerceIn(120, maxSide)
+    }
+
+    fun exportGif() = runExport("gif") {
+        val pixels = sourcePixels ?: return@runExport "no image"
+        val params = _state.value.params
+        val animation = params.animation
+        val bytes = withContext(Dispatchers.Default) {
+            val frames = renderFrames(pixels, params, animation, ANIM_EXPORT_MAX_SIDE)
+            val width = frames.first().width
+            val height = frames.first().height
+            val buffers = frames.map { bitmap ->
+                IntArray(width * height).also { bitmap.getPixels(it, 0, width, 0, 0, width, height) }
+            }
+            frames.forEach { it.recycle() }
+            java.io.ByteArrayOutputStream().use { out ->
+                GifEncoder.encode(buffers, width, height, 100 / animation.fps.coerceAtLeast(1), out)
+                out.toByteArray()
+            }
+        }
+        val uri = withContext(Dispatchers.IO) {
+            Exporter.saveBytes(context, bytes, Exporter.timestampedName("gif"), "image/gif")
+        }
+        if (uri != null) "gif saved to Download/Glyphsmith" else "save failed"
+    }
+
+    fun exportMp4() = runExport("mp4") {
+        val pixels = sourcePixels ?: return@runExport "no image"
+        val params = _state.value.params
+        val animation = params.animation
+        val file = java.io.File(context.cacheDir, "glyphsmith-anim.mp4")
+        val ok = withContext(Dispatchers.Default) {
+            val frames = renderFrames(pixels, params, animation, ANIM_EXPORT_MAX_SIDE)
+            val encoded = Mp4Encoder.encode(frames, animation.fps.coerceAtLeast(1), file)
+            frames.forEach { it.recycle() }
+            encoded
+        }
+        if (!ok) return@runExport "the encoder rejected these frames"
+        val uri = withContext(Dispatchers.IO) {
+            Exporter.saveBytes(context, file.readBytes(), Exporter.timestampedName("mp4"), "video/mp4")
+        }
+        file.delete()
+        if (uri != null) "mp4 saved to Download/Glyphsmith" else "save failed"
+    }
+
     fun savePreset(name: String) {
         val presets = presetStore.upsert(name, _state.value.params)
         _state.value = _state.value.copy(presets = presets, status = "preset saved")
@@ -294,6 +403,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         const val DEBOUNCE_MS = 90L
         const val MAX_HISTORY = 50
         const val PREVIEW_MAX_SIDE = 1600
+        const val ANIM_PREVIEW_MAX_SIDE = 640
+        const val ANIM_EXPORT_MAX_SIDE = 1080
+        const val MEMORY_BUDGET_BYTES = 96L * 1024 * 1024
         const val REFERENCE_FONT_SIZE = 32
     }
 }
