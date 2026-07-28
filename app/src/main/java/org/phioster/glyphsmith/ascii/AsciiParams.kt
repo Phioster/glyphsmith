@@ -45,8 +45,15 @@ data class AsciiParams(
     val paletteOverride: List<Int> = emptyList(),
     val transparentBackground: Boolean = false,
     val backgroundColor: Int = DEFAULT_BACKGROUND,
-    /** Glyph size in output pixels; the exported image is grid × this. */
+    /** Glyph size in output pixels; the exported image is grid × this. Ignored in canvas mode. */
     val fontSizePx: Int = 14,
+    /**
+     * Fixed output size. Off: the grid decides how big the image is. On: the image is
+     * exactly [canvasWidth]×[canvasHeight] and the glyphs are sized to fill it.
+     */
+    val canvasEnabled: Boolean = false,
+    val canvasWidth: Int = 1080,
+    val canvasHeight: Int = 1440,
     /** Post-effect applied to the rendered glyphs, not to the source image. */
     val glow: GlowParams = GlowParams(),
 ) {
@@ -95,5 +102,6 @@ data class AsciiParams(
         const val DEFAULT_BACKGROUND = 0xFF060A07.toInt()
         val CELL_SIZE_RANGE = 2..48
         val FONT_SIZE_RANGE = 6..48
+        val CANVAS_SIZE_RANGE = 64..8192
     }
 }

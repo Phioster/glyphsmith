@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.ui.theme.Term
@@ -136,6 +137,58 @@ private fun StepButton(glyph: String, enabled: Boolean, onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Text(glyph, color = if (enabled) Term.Ink else Term.InkFaint, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+/**
+ * Numeric field with a unit suffix, as in the original's Canvas Width/Height rows.
+ *
+ * The typed text is kept as-is while editing — clamping on every keystroke would fight the
+ * user the moment they clear the field or type a leading digit below the minimum.
+ */
+@Composable
+fun NumberField(
+    label: String,
+    value: Int,
+    range: IntRange,
+    onValueChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    suffix: String = "px",
+) {
+    var text by remember(value) { mutableStateOf(value.toString()) }
+
+    Column(modifier.padding(vertical = 4.dp)) {
+        Text(label.uppercase(), color = Term.InkDim, style = MaterialTheme.typography.bodySmall)
+        Row(
+            Modifier.padding(top = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier
+                    .weight(1f)
+                    .border(1.dp, Term.InkDim, RectangleShape)
+                    .background(Term.SurfaceHigh)
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+            ) {
+                BasicTextField(
+                    value = text,
+                    onValueChange = { raw ->
+                        text = raw.filter(Char::isDigit).take(5)
+                        text.toIntOrNull()?.let { if (it in range) onValueChange(it) }
+                    },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = Term.Ink),
+                    cursorBrush = SolidColor(Term.Ink),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Text(
+                "  $suffix",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
     }
 }
 

@@ -108,16 +108,31 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             val previewFont = AsciiRenderer.fitFontSize(
                 grid.cols, grid.rows, ramp, params.fontSizePx, PREVIEW_MAX_SIDE, face.typeface,
             )
-            val bitmap = EpsilonGlow.apply(AsciiRenderer.render(grid, params, previewFont), params.glow)
-            val exportCell = AsciiRenderer.metrics(
-                AsciiRenderer.fitFontSize(
-                    grid.cols, grid.rows, ramp, params.fontSizePx,
-                    AsciiRenderer.MAX_OUTPUT_SIDE, face.typeface,
-                ),
-                ramp,
-                face.typeface,
+            // In canvas mode the preview is the canvas itself, shrunk to preview size — so
+            // what you see is the framing you will export, letterboxing included.
+            val previewScale = if (params.canvasEnabled) {
+                minOf(1f, PREVIEW_MAX_SIDE.toFloat() / maxOf(params.canvasWidth, params.canvasHeight))
+            } else {
+                1f
+            }
+            val bitmap = EpsilonGlow.apply(
+                AsciiRenderer.render(grid, params, previewFont, previewScale),
+                params.glow,
             )
-            Rebuilt(grid, bitmap, exportCell, face)
+            val output = if (params.canvasEnabled) {
+                params.canvasWidth to params.canvasHeight
+            } else {
+                val cell = AsciiRenderer.metrics(
+                    AsciiRenderer.fitFontSize(
+                        grid.cols, grid.rows, ramp, params.fontSizePx,
+                        AsciiRenderer.MAX_OUTPUT_SIDE, face.typeface,
+                    ),
+                    ramp,
+                    face.typeface,
+                )
+                (grid.cols * cell.width) to (grid.rows * cell.height)
+            }
+            Rebuilt(grid, bitmap, output.first, output.second, face)
         }
         art = result.grid
         // The old preview is deliberately not recycled: Compose may still be drawing it
@@ -126,8 +141,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             preview = result.preview,
             cols = result.grid.cols,
             rows = result.grid.rows,
-            outputWidth = result.grid.cols * result.cell.width,
-            outputHeight = result.grid.rows * result.cell.height,
+            outputWidth = result.outputWidth,
+            outputHeight = result.outputHeight,
             fontLabel = result.face.label,
             missingGlyphs = result.face.missing,
             working = false,
@@ -205,7 +220,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private class Rebuilt(
         val grid: AsciiArt,
         val preview: Bitmap,
-        val cell: org.phioster.glyphsmith.ascii.CellMetrics,
+        val outputWidth: Int,
+        val outputHeight: Int,
         val face: FontChoice,
     )
 

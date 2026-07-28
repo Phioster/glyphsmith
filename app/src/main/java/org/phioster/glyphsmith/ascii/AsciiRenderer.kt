@@ -28,6 +28,9 @@ object AsciiRenderer {
     /** Hard ceiling on either output dimension — beyond this a bitmap allocation fails. */
     const val MAX_OUTPUT_SIDE = 8192
 
+    /** Upper bound for the canvas-mode glyph-size search. */
+    private const val MAX_CANVAS_FONT_SIZE = 400
+
     /** The face this ramp will actually be drawn with — see [Fonts.resolve]. */
     fun faceFor(params: AsciiParams, ramp: String): FontChoice =
         Fonts.resolve(params.glyphFont, params.fontStyle, ramp)
@@ -76,13 +79,63 @@ object AsciiRenderer {
         return AsciiParams.FONT_SIZE_RANGE.first
     }
 
-    fun render(art: AsciiArt, params: AsciiParams, fontSizePx: Int): Bitmap {
+    /**
+     * Largest glyph size at which the grid still fits inside a fixed canvas. Not bounded by
+     * [AsciiParams.FONT_SIZE_RANGE] — with a fixed canvas the glyph size is an *output* of
+     * the layout, not something the user dials in.
+     */
+    fun fitFontSizeToCanvas(
+        cols: Int,
+        rows: Int,
+        ramp: String,
+        face: Typeface,
+        canvasWidth: Int,
+        canvasHeight: Int,
+    ): Int {
+        var best = 1
+        var low = 1
+        var high = MAX_CANVAS_FONT_SIZE
+        while (low <= high) {
+            val mid = (low + high) / 2
+            val cell = metrics(mid, ramp, face)
+            if (cols * cell.width <= canvasWidth && rows * cell.height <= canvasHeight) {
+                best = mid
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+        return best
+    }
+
+    fun render(art: AsciiArt, params: AsciiParams, fontSizePx: Int, canvasScale: Float = 1f): Bitmap {
         val ramp = params.effectiveRamp().ifEmpty { " " }
         val face = faceFor(params, ramp).typeface
-        val size = fitFontSize(art.cols, art.rows, ramp, fontSizePx, MAX_OUTPUT_SIDE, face)
+
+        // Two layouts. Free: the grid decides the image size. Canvas: the image size is
+        // given and the glyphs are sized to fill it, centred, letterboxed when the grid's
+        // aspect doesn't match the canvas.
+        val canvasWidth = (params.canvasWidth * canvasScale).toInt()
+            .coerceIn(1, MAX_OUTPUT_SIDE)
+        val canvasHeight = (params.canvasHeight * canvasScale).toInt()
+            .coerceIn(1, MAX_OUTPUT_SIDE)
+
+        val size: Int
+        val width: Int
+        val height: Int
+        if (params.canvasEnabled) {
+            size = fitFontSizeToCanvas(art.cols, art.rows, ramp, face, canvasWidth, canvasHeight)
+            width = canvasWidth
+            height = canvasHeight
+        } else {
+            size = fitFontSize(art.cols, art.rows, ramp, fontSizePx, MAX_OUTPUT_SIDE, face)
+            val cell = metrics(size, ramp, face)
+            width = (art.cols * cell.width).coerceIn(1, MAX_OUTPUT_SIDE)
+            height = (art.rows * cell.height).coerceIn(1, MAX_OUTPUT_SIDE)
+        }
         val cell = metrics(size, ramp, face)
-        val width = (art.cols * cell.width).coerceIn(1, MAX_OUTPUT_SIDE)
-        val height = (art.rows * cell.height).coerceIn(1, MAX_OUTPUT_SIDE)
+        val originX = if (params.canvasEnabled) (width - art.cols * cell.width) / 2f else 0f
+        val originY = if (params.canvasEnabled) (height - art.rows * cell.height) / 2f else 0f
 
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -97,7 +150,7 @@ object AsciiRenderer {
         val widths = FloatArray(1)
 
         for (row in 0 until art.rows) {
-            val y = row * cell.height + cell.baseline
+            val y = originY + row * cell.height + cell.baseline
             for (col in 0 until art.cols) {
                 val glyph = art.glyphAt(col, row)
                 if (glyph == ' ') continue
@@ -107,7 +160,7 @@ object AsciiRenderer {
                     paint.getTextWidths(single, 0, 1, widths)
                     widths[0]
                 }
-                val x = col * cell.width + (cell.width - glyphWidth) / 2f
+                val x = originX + col * cell.width + (cell.width - glyphWidth) / 2f
                 single[0] = glyph
                 canvas.drawText(single, 0, 1, x, y, paint)
             }

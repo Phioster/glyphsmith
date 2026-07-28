@@ -13,10 +13,12 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.export.ImageFormat
+import org.phioster.glyphsmith.ui.NumberField
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton
 import org.phioster.glyphsmith.ui.TerminalSlider
+import org.phioster.glyphsmith.ui.TerminalToggle
 import org.phioster.glyphsmith.ui.theme.Term
 
 /**
@@ -37,16 +39,60 @@ fun OutputPanel(
 ) {
     val params = state.params
     Column(modifier.fillMaxWidth()) {
+        SectionHeader("canvas")
+
+        TerminalToggle(
+            label = "fixed canvas size",
+            checked = params.canvasEnabled,
+            onCheckedChange = { onChange(params.copy(canvasEnabled = it)) },
+        )
+
+        if (params.canvasEnabled) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                NumberField(
+                    label = "width",
+                    value = params.canvasWidth,
+                    range = AsciiParams.CANVAS_SIZE_RANGE,
+                    onValueChange = { onChange(params.copy(canvasWidth = it)) },
+                    modifier = Modifier.weight(1f),
+                )
+                NumberField(
+                    label = "height",
+                    value = params.canvasHeight,
+                    range = AsciiParams.CANVAS_SIZE_RANGE,
+                    onValueChange = { onChange(params.copy(canvasHeight = it)) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Text(
+                "the grid is scaled to fill the canvas and centred; glyph size is computed, not set",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                CANVAS_PRESETS.forEach { (label, size) ->
+                    TerminalButton(
+                        label = label,
+                        onClick = { onChange(params.copy(canvasWidth = size.first, canvasHeight = size.second)) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+
         SectionHeader("output")
 
-        TerminalSlider(
-            label = "glyph size",
-            value = params.fontSizePx.toFloat(),
-            range = AsciiParams.FONT_SIZE_RANGE.first.toFloat()..AsciiParams.FONT_SIZE_RANGE.last.toFloat(),
-            steps = AsciiParams.FONT_SIZE_RANGE.count() - 2,
-            valueText = "${params.fontSizePx}px",
-            onValueChange = { onChange(params.copy(fontSizePx = it.toInt())) },
-        )
+        if (!params.canvasEnabled) {
+            TerminalSlider(
+                label = "glyph size",
+                value = params.fontSizePx.toFloat(),
+                range = AsciiParams.FONT_SIZE_RANGE.first.toFloat()..AsciiParams.FONT_SIZE_RANGE.last.toFloat(),
+                steps = AsciiParams.FONT_SIZE_RANGE.count() - 2,
+                valueText = "${params.fontSizePx}px",
+                onValueChange = { onChange(params.copy(fontSizePx = it.toInt())) },
+            )
+        }
 
         InfoRow("grid", "${state.cols} × ${state.rows} cells")
         InfoRow("characters", "${state.cols * state.rows}")
@@ -108,3 +154,10 @@ private fun InfoRow(label: String, value: String) {
 }
 
 private const val MAX_SIDE = 8192
+
+/** Handy targets: a phone wallpaper, a square post, and 4K. */
+private val CANVAS_PRESETS = listOf(
+    "1080×1440" to (1080 to 1440),
+    "1080²" to (1080 to 1080),
+    "3840×2160" to (3840 to 2160),
+)
