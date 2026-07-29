@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.data.Preset
+import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgMode
 import org.phioster.glyphsmith.ui.panels.AnimPanel
@@ -94,6 +95,8 @@ fun GlyphsmithScreen(
     onResetPresets: () -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
+    onPreviewQualityChange: (PreviewQuality) -> Unit,
+    onLoopedChange: (Boolean) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -189,6 +192,10 @@ fun GlyphsmithScreen(
                     onResetPresets = onResetPresets,
                     themeId = themeId,
                     onThemeChange = onThemeChange,
+                    previewQuality = state.previewQuality,
+                    onPreviewQualityChange = onPreviewQualityChange,
+                    looped = state.looped,
+                    onLoopedChange = onLoopedChange,
                 )
             }
         }

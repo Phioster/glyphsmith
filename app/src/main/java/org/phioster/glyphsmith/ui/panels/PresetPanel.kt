@@ -32,9 +32,11 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
+import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton
+import org.phioster.glyphsmith.ui.TerminalToggle
 import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.ui.theme.TermThemes
 
@@ -52,6 +54,10 @@ fun PresetPanel(
     onResetPresets: () -> Unit,
     themeId: String,
     onThemeChange: (String) -> Unit,
+    previewQuality: PreviewQuality,
+    onPreviewQualityChange: (PreviewQuality) -> Unit,
+    looped: Boolean,
+    onLoopedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var name by remember { mutableStateOf("") }
@@ -223,6 +229,27 @@ fun PresetPanel(
             onSelect = { onThemeChange(TermThemes.all[it].id) },
             itemLabel = { it.name },
             itemDetail = { if (it.light) "light" else "dark" },
+        )
+        StepperDropdown(
+            label = "preview quality",
+            items = PreviewQuality.entries.toList(),
+            selectedIndex = PreviewQuality.entries.indexOf(previewQuality),
+            onSelect = { onPreviewQualityChange(PreviewQuality.entries[it]) },
+            itemLabel = { it.label },
+            itemDetail = { "${it.maxSide}px — ${if (it == PreviewQuality.LIVE) "quicker" else "sharper"}" },
+        )
+        TerminalToggle(
+            label = "loop playback",
+            checked = looped,
+            onCheckedChange = onLoopedChange,
+        )
+        Text(
+            "live halves the preview resolution; the export is unaffected. without looping, " +
+                "playback stops on the last frame instead of snapping back — which is what " +
+                "you want while judging where an animation ends up.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 6.dp),
         )
         Text(
             "the theme belongs to the app, not to a preset — loading someone else's preset " +

@@ -65,6 +65,8 @@ class MainActivity : ComponentActivity() {
                         onResetPresets = viewModel::resetPresets,
                         onExportPalette = viewModel::exportPalette,
                         onImportPalette = viewModel::importPalette,
+                        onPreviewQualityChange = viewModel::setPreviewQuality,
+                        onLoopedChange = viewModel::setLooped,
                     )
                 }
             }

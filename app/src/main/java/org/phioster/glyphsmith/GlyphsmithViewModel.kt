@@ -35,6 +35,7 @@ import org.phioster.glyphsmith.data.ImageLoader
 import org.phioster.glyphsmith.data.PaletteFile
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
+import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.data.Settings
 import org.phioster.glyphsmith.data.Source
 import org.phioster.glyphsmith.data.StillSource
@@ -88,6 +89,9 @@ data class UiState(
     /** One rendered thumbnail per preset name, built from the current source. */
     val presetThumbs: Map<String, Bitmap> = emptyMap(),
     val themeId: String = "matrix",
+    val previewQuality: PreviewQuality = PreviewQuality.FULL,
+    /** Playback repeats rather than stopping at the last frame. */
+    val looped: Boolean = true,
     val status: String = "no image loaded",
 )
 
@@ -99,7 +103,12 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private val settings = Settings(app)
 
     private val _state = MutableStateFlow(
-        UiState(presets = presetStore.load(), themeId = settings.themeId),
+        UiState(
+            presets = presetStore.load(),
+            themeId = settings.themeId,
+            previewQuality = settings.previewQuality,
+            looped = settings.looped,
+        ),
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
@@ -148,6 +157,18 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         settings.themeId = id
         Term.palette = TermThemes.byId(id)
         _state.value = _state.value.copy(themeId = id)
+    }
+
+    /** Halving the preview resolution is the one lever that makes a heavy chain feel live. */
+    fun setPreviewQuality(quality: PreviewQuality) {
+        settings.previewQuality = quality
+        _state.value = _state.value.copy(previewQuality = quality)
+        viewModelScope.launch { rebuild(_state.value.params) }
+    }
+
+    fun setLooped(looped: Boolean) {
+        settings.looped = looped
+        _state.value = _state.value.copy(looped = looped)
     }
 
     fun updateParams(params: AsciiParams) {
@@ -363,7 +384,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val pixels = current.pixelsAt(_state.value.previewPosition)
         _state.value = _state.value.copy(working = true)
         val result = withContext(Dispatchers.Default) {
-            Pipeline.run(pixels, current.width, current.height, params, PREVIEW_MAX_SIDE)
+            Pipeline.run(pixels, current.width, current.height, params, _state.value.previewQuality.maxSide)
         }
         art = result.art
         // Measured once per rebuild and cached inside GlyphCoverage, so a slider drag pays
@@ -505,11 +526,16 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             val frameDelay = 1000L / animation.fps.coerceAtLeast(1)
             playbackJob = viewModelScope.launch {
                 var index = 0
+                val loop = _state.value.looped
                 while (isActive && animFrames.isNotEmpty()) {
                     _state.value = _state.value.copy(preview = animFrames[index % animFrames.size])
                     index++
+                    // Not looping means stopping on the last frame rather than snapping back,
+                    // which is what you want while judging where an animation ends up.
+                    if (!loop && index >= animFrames.size) break
                     delay(frameDelay)
                 }
+                if (!loop) _state.value = _state.value.copy(animPlaying = false)
             }
         }
     }
@@ -739,7 +765,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * Effects work in absolute pixels, so a glow radius of 200 covers a 160px thumbnail
      * entirely while barely showing at export size. The thumbnail is there to show a
      * preset's *character*, not to predict its output — the live preview has the same
-     * limitation at [PREVIEW_MAX_SIDE], this one is just further along the same scale.
+     * limitation at [PreviewQuality.FULL], this one is just further along the same scale.
      *
      * An animated preset is shown at frame 0. Two dozen running loops in a list would be
      * neither readable nor affordable.
@@ -783,7 +809,6 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         const val DEBOUNCE_MS = 90L
         const val MAX_HISTORY = 50
-        const val PREVIEW_MAX_SIDE = 1600
         const val ANIM_PREVIEW_MAX_SIDE = 640
         const val THUMB_MAX_SIDE = 160
         const val ANIM_EXPORT_MAX_SIDE = 1080
