@@ -58,6 +58,9 @@ class MainActivity : ComponentActivity() {
                         themeId = state.themeId,
                         onThemeChange = viewModel::setTheme,
                         onAutoOrderRamp = viewModel::autoOrderRamp,
+                        onToggleFavourite = viewModel::toggleFavourite,
+                        onRandomise = viewModel::randomise,
+                        onResetPresets = viewModel::resetPresets,
                     )
                 }
             }

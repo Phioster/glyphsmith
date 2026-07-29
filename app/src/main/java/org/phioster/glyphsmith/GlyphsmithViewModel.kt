@@ -24,7 +24,9 @@ import org.phioster.glyphsmith.anim.ColorQuantizer
 import org.phioster.glyphsmith.anim.GifEncoder
 import org.phioster.glyphsmith.anim.Mp4Encoder
 import org.phioster.glyphsmith.ascii.AsciiRenderer
+import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.ColorMode
+import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.ascii.Palettes
 import org.phioster.glyphsmith.ascii.Pipeline
 import org.phioster.glyphsmith.ascii.FontChoice
@@ -36,6 +38,20 @@ import org.phioster.glyphsmith.data.Settings
 import org.phioster.glyphsmith.data.Source
 import org.phioster.glyphsmith.data.StillSource
 import org.phioster.glyphsmith.data.VideoSource
+import org.phioster.glyphsmith.effects.BlurSharpenParams
+import org.phioster.glyphsmith.effects.ChromaticParams
+import org.phioster.glyphsmith.effects.CmykHalftoneParams
+import org.phioster.glyphsmith.effects.DiffractionStarsParams
+import org.phioster.glyphsmith.effects.EffectId
+import org.phioster.glyphsmith.effects.EffectStack
+import org.phioster.glyphsmith.effects.GlowParams
+import org.phioster.glyphsmith.effects.JpegGlitchParams
+import org.phioster.glyphsmith.effects.PixelSortParams
+import org.phioster.glyphsmith.effects.PostProcessingParams
+import org.phioster.glyphsmith.effects.SliceShiftParams
+import org.phioster.glyphsmith.effects.SubtextureParams
+import org.phioster.glyphsmith.effects.TextureKind
+import org.phioster.glyphsmith.effects.TintParams
 import org.phioster.glyphsmith.export.Exporter
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgExporter
@@ -67,6 +83,8 @@ data class UiState(
     /** Measured ink coverage per glyph of the base ramp, for the ramp editor. */
     val rampCoverage: List<Float> = emptyList(),
     val presets: List<Preset> = emptyList(),
+    /** One rendered thumbnail per preset name, built from the current source. */
+    val presetThumbs: Map<String, Bitmap> = emptyMap(),
     val themeId: String = "matrix",
     val status: String = "no image loaded",
 )
@@ -224,6 +242,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val merged = presetStore.importJson(text)
             ?: return@runExport "that file isn't a preset export"
         _state.value = _state.value.copy(presets = merged)
+        renderThumbs()
         "${merged.size} presets after import"
     }
 
@@ -249,6 +268,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 status = "loaded ${width}×$height",
             )
             rebuild(_state.value.params)
+            renderThumbs()
         }
     }
 
@@ -275,6 +295,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 status = "video ${opened.width}×${opened.height}",
             )
             rebuild(_state.value.params)
+            renderThumbs()
         }
     }
 
@@ -546,10 +567,153 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     fun savePreset(name: String) {
         val presets = presetStore.upsert(name, _state.value.params)
         _state.value = _state.value.copy(presets = presets, status = "preset saved")
+        renderThumbs()
     }
 
     fun deletePreset(name: String) {
         _state.value = _state.value.copy(presets = presetStore.delete(name), status = "preset deleted")
+        renderThumbs()
+    }
+
+    fun toggleFavourite(name: String) {
+        _state.value = _state.value.copy(presets = presetStore.toggleFavourite(name))
+    }
+
+    /** Puts the shipped library back, discarding anything saved on top of it. */
+    fun resetPresets() {
+        _state.value = _state.value.copy(
+            presets = presetStore.reset(),
+            status = "presets reset to the built-in library",
+        )
+        renderThumbs()
+    }
+
+    /**
+     * Rolls a look at random.
+     *
+     * Deliberately narrow: a genuinely uniform roll over every parameter produces an empty
+     * or unreadable image far more often than an interesting one, which makes the button
+     * useless. Cell size, depth and the effect count are all kept inside the range that
+     * reliably yields something worth looking at, and the effects are picked one at a time
+     * rather than all rolled independently.
+     */
+    fun randomise() {
+        val random = kotlin.random.Random.Default
+        val set = CharacterSets.all.random(random)
+        val palette = Palettes.all.random(random)
+        val dither = DitherMode.entries.random(random)
+
+        var effects = EffectStack()
+        repeat(random.nextInt(0, 3)) {
+            effects = when (EffectId.entries.random(random)) {
+                EffectId.POST -> effects.copy(
+                    postProcessing = PostProcessingParams(
+                        enabled = true,
+                        grain = random.nextInt(0, 40),
+                        vignette = random.nextInt(0, 60),
+                        scanlines = random.nextInt(0, 60),
+                    ),
+                )
+
+                EffectId.BLUR -> effects.copy(
+                    blurSharpen = BlurSharpenParams(enabled = true, amount = random.nextInt(-70, 70)),
+                )
+
+                EffectId.TINT -> effects.copy(tint = TintParams(enabled = true, color = palette.colors.last()))
+                EffectId.CHROMATIC -> effects.copy(
+                    chromatic = ChromaticParams(enabled = true, offset = random.nextInt(2, 18)),
+                )
+
+                EffectId.GLITCH -> effects.copy(
+                    jpegGlitch = JpegGlitchParams(enabled = true, corruption = random.nextInt(20, 140)),
+                )
+
+                EffectId.SORT -> effects.copy(
+                    pixelSort = PixelSortParams(
+                        enabled = true,
+                        thresholdLow = random.nextInt(10, 40),
+                        thresholdHigh = random.nextInt(55, 90),
+                    ),
+                )
+
+                EffectId.SLICE -> effects.copy(
+                    sliceShift = SliceShiftParams(enabled = true, maxOffset = random.nextInt(4, 20)),
+                )
+
+                EffectId.STARS -> effects.copy(stars = DiffractionStarsParams(enabled = true))
+                EffectId.SUBTEXTURE -> effects.copy(
+                    subtexture = SubtextureParams(
+                        enabled = true,
+                        kind = TextureKind.entries.random(random),
+                        intensity = random.nextInt(20, 60),
+                    ),
+                )
+
+                EffectId.CMYK -> effects.copy(
+                    cmyk = CmykHalftoneParams(enabled = true, frequency = random.nextInt(4, 14)),
+                )
+
+                EffectId.GLOW -> effects.copy(
+                    glow = GlowParams(enabled = true, intensity = random.nextInt(200, 600)),
+                )
+            }
+        }
+
+        updateParams(
+            _state.value.params.copy(
+                charSetId = set.id,
+                cellSize = random.nextInt(4, 13),
+                depth = random.nextInt(3, 24),
+                invert = random.nextBoolean(),
+                ditherMode = dither,
+                ditherStrength = random.nextInt(50, 101),
+                modScale = random.nextInt(4, 16),
+                modAngle = random.nextInt(0, 360),
+                colorMode = ColorMode.entries.random(random),
+                paletteId = palette.id,
+                paletteOverride = emptyList(),
+                paletteLocks = emptyList(),
+                rampOverride = "",
+                effects = effects,
+            ),
+        )
+        _state.value = _state.value.copy(status = "rolled ${set.name} · ${dither.label}")
+    }
+
+    private var thumbJob: Job? = null
+
+    /**
+     * Renders one small preview per preset from the current source.
+     *
+     * Effects work in absolute pixels, so a glow radius of 200 covers a 160px thumbnail
+     * entirely while barely showing at export size. The thumbnail is there to show a
+     * preset's *character*, not to predict its output — the live preview has the same
+     * limitation at [PREVIEW_MAX_SIDE], this one is just further along the same scale.
+     *
+     * An animated preset is shown at frame 0. Two dozen running loops in a list would be
+     * neither readable nor affordable.
+     */
+    private fun renderThumbs() {
+        val current = source ?: return
+        thumbJob?.cancel()
+        thumbJob = viewModelScope.launch {
+            val presets = _state.value.presets
+            val pixels = current.pixelsAt(_state.value.previewPosition)
+            val thumbs = withContext(Dispatchers.Default) {
+                presets.associate { preset ->
+                    preset.name to Pipeline.run(
+                        pixels,
+                        current.width,
+                        current.height,
+                        preset.params,
+                        THUMB_MAX_SIDE,
+                    ).bitmap
+                }
+            }
+            // The previous set is dropped rather than recycled: Compose may still be drawing
+            // one of them this frame, and a recycled bitmap under the canvas crashes.
+            _state.value = _state.value.copy(presetThumbs = thumbs)
+        }
     }
 
     fun applyPreset(preset: Preset) {
@@ -570,6 +734,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         const val MAX_HISTORY = 50
         const val PREVIEW_MAX_SIDE = 1600
         const val ANIM_PREVIEW_MAX_SIDE = 640
+        const val THUMB_MAX_SIDE = 160
         const val ANIM_EXPORT_MAX_SIDE = 1080
         const val MEMORY_BUDGET_BYTES = 96L * 1024 * 1024
         const val REFERENCE_FONT_SIZE = 32

@@ -87,6 +87,9 @@ fun GlyphsmithScreen(
     themeId: String,
     onThemeChange: (String) -> Unit,
     onAutoOrderRamp: () -> Unit,
+    onToggleFavourite: (String) -> Unit,
+    onRandomise: () -> Unit,
+    onResetPresets: () -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -168,6 +171,10 @@ fun GlyphsmithScreen(
                     onDelete = onDeletePreset,
                     onExport = onExportPresets,
                     onImport = onImportPresets,
+                    thumbs = state.presetThumbs,
+                    onToggleFavourite = onToggleFavourite,
+                    onRandomise = onRandomise,
+                    onResetPresets = onResetPresets,
                     themeId = themeId,
                     onThemeChange = onThemeChange,
                 )
