@@ -23,6 +23,22 @@ enum class PreviewQuality(val label: String, val maxSide: Int) {
  * quietly repaints someone else's interface — or halves their preview resolution — when
  * they load it would be a surprise nobody asked for.
  */
+/**
+ * How much work an animation preview is allowed to do.
+ *
+ * Distinct from [PreviewQuality], which is about the still image. This one decides whether
+ * playback waits for every frame or shows an approximation — the `quick` / `rendered` pair
+ * their bottom bar carries.
+ */
+enum class PlaybackQuality(val label: String, val maxSide: Int, val step: Int) {
+    /**
+     * Half the resolution *and* every second frame, held twice as long. Halving one alone is
+     * not enough on a long animation: sixty frames at half size is still sixty renders.
+     */
+    QUICK("Quick", 320, 2),
+    RENDERED("Rendered", 640, 1),
+}
+
 class Settings(context: Context) {
 
     private val prefs = context.getSharedPreferences("glyphsmith", Context.MODE_PRIVATE)
@@ -37,6 +53,17 @@ class Settings(context: Context) {
         }.getOrDefault(PreviewQuality.FULL)
         set(value) = prefs.edit().putString(KEY_QUALITY, value.name).apply()
 
+    var playbackQuality: PlaybackQuality
+        get() = runCatching {
+            PlaybackQuality.valueOf(prefs.getString(KEY_PLAYBACK, null) ?: "")
+        }.getOrDefault(PlaybackQuality.RENDERED)
+        set(value) = prefs.edit().putString(KEY_PLAYBACK, value.name).apply()
+
+    /** Ids of palettes the user starred. Stored here because a shipped palette is immutable. */
+    var favouritePalettes: Set<String>
+        get() = prefs.getStringSet(KEY_FAV_PALETTES, emptySet()) ?: emptySet()
+        set(value) = prefs.edit().putStringSet(KEY_FAV_PALETTES, value).apply()
+
     var looped: Boolean
         get() = prefs.getBoolean(KEY_LOOPED, true)
         set(value) = prefs.edit().putBoolean(KEY_LOOPED, value).apply()
@@ -45,6 +72,8 @@ class Settings(context: Context) {
         const val KEY_THEME = "theme"
         const val KEY_QUALITY = "previewQuality"
         const val KEY_LOOPED = "looped"
+        const val KEY_PLAYBACK = "playbackQuality"
+        const val KEY_FAV_PALETTES = "favouritePalettes"
         const val DEFAULT_THEME = "matrix"
     }
 }
