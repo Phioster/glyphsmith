@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.ascii.Palettes
@@ -69,34 +70,34 @@ class PresetLibraryTest {
         }
     }
 
-    /**
-     * The bench exists so a new algorithm cannot ship untested. If a mode ever has no
-     * preset, the generation has stopped covering the enum and someone will have to notice
-     * a missing algorithm by eye instead.
-     */
-    @Test
-    fun `every dither algorithm has a bench preset`() {
-        val benched = library
-            .filter { it.category == PresetStore.CATEGORY_LAB }
-            .map { it.params.ditherMode }
-            .toSet()
-        val expected = DitherMode.entries.filterNot { it == DitherMode.NONE }.toSet()
-        assertEquals(expected, benched)
-    }
-
-    /** The bench is a comparison, so only the algorithm may differ between its presets. */
-    @Test
-    fun `the bench presets differ only in their algorithm`() {
-        val bench = library.filter { it.category == PresetStore.CATEGORY_LAB }
-        val normalised = bench.map { it.params.copy(ditherMode = DitherMode.NONE) }.toSet()
-        assertEquals("bench presets differ in more than the algorithm", 1, normalised.size)
-    }
-
     @Test
     fun `the still categories really are still`() {
         library.filterNot { it.category in movingCategories }.forEach {
             assertFalse("${it.name} animates unexpectedly", it.params.animation.enabled)
         }
+    }
+
+    /**
+     * The comparison bench used to put one preset per algorithm in a LAB category. It was
+     * removed once it had served its purpose — twenty-six of fifty-six entries in a list you
+     * scroll, and twenty-six thumbnails re-rendered on every image change.
+     *
+     * A preset the *user* saved under that category has to survive its removal, though.
+     * PresetPanel sorts an unknown category to the end rather than dropping the preset, and
+     * this holds it to that: the alternative loses someone's work silently.
+     */
+    @Test
+    fun `a preset in a category the library no longer knows is still kept`() {
+        val orphan = Preset("mine", AsciiParams(), category = "LAB")
+        assertFalse("LAB is still a shipped category", "LAB" in PresetStore.categories)
+        assertEquals("LAB", orphan.category)
+        assertTrue("the sort would drop it", PresetStore.categories.indexOf(orphan.category) < 0)
+    }
+
+    @Test
+    fun `nothing shipped sits in the retired bench category`() {
+        assertTrue(library.none { it.category == "LAB" })
+        assertTrue(library.none { it.name.startsWith("lab ") })
     }
 
     /** The axis-dominant kernels were added for this look; something has to actually use it. */

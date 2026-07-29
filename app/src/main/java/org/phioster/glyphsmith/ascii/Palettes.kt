@@ -23,6 +23,11 @@ object Palettes {
     const val WARM = "WARM"
     const val COOL = "COOL"
     const val NEON = "NEON"
+    const val ABSTRACT = "ABSTRACT"
+    const val ACID = "ACID"
+    const val HALLOWEEN = "HALLOWEEN"
+    const val CYBERPUNK = "CYBERPUNK"
+    const val PRINT = "PRINT"
 
     private fun palette(id: String, name: String, category: String, vararg colors: Long) =
         Palette(id, name, category, colors.map { it.toInt() })
@@ -58,6 +63,47 @@ object Palettes {
         palette("neon", "Neon", NEON, 0xFF12021F, 0xFF5B0F8C, 0xFFC42BC4, 0xFFFF4FA3, 0xFF7CF9FF),
         palette("vapor", "Vapor", NEON, 0xFF190B2E, 0xFF44287A, 0xFFB44BC4, 0xFFFF7AC8, 0xFF9FF7F0),
         palette("acid", "Acid", NEON, 0xFF06140A, 0xFF14572B, 0xFF3BC44A, 0xFFA8FF3B, 0xFFF2FFB0),
+
+        // Abstract — colour chords with no counterpart in nature. They are not trying to
+        // describe anything, which is why they sit oddly on a photograph and beautifully on
+        // a shape.
+        palette("dusk-signal", "Dusk Signal", ABSTRACT, 0xFF0B1026, 0xFF2E1F5E, 0xFF6B3FA0, 0xFFC86DD7, 0xFFF4C4F3),
+        palette("saltmarsh", "Saltmarsh", ABSTRACT, 0xFF10221B, 0xFF2C4A3E, 0xFF6E8B6A, 0xFFB9C4A0, 0xFFEDE9D0),
+        palette("oxide", "Oxide", ABSTRACT, 0xFF1A0F0A, 0xFF4E2412, 0xFF8F4A22, 0xFFC98C4B, 0xFFEBD6AE),
+        palette("plumb", "Plumb", ABSTRACT, 0xFF120B1F, 0xFF33204D, 0xFF5E4682, 0xFF9B85B8, 0xFFDCD2E8),
+        palette("tidal", "Tidal", ABSTRACT, 0xFF03161C, 0xFF0C3A44, 0xFF1E6E72, 0xFF57A99B, 0xFFB4DCC6),
+
+        // Acid — high chroma and deliberately awkward neighbours. Nothing here is meant to
+        // be comfortable; that is the entire point of the category.
+        palette("acid-lime", "Acid Lime", ACID, 0xFF07100A, 0xFF1E4D00, 0xFF62A800, 0xFFB6F000, 0xFFEFFF9B),
+        palette("acid-punch", "Acid Punch", ACID, 0xFF12001A, 0xFF62006B, 0xFFD400A0, 0xFFFF5CC8, 0xFFFFE1F5),
+        palette("acid-burn", "Acid Burn", ACID, 0xFF1A0500, 0xFF7A1500, 0xFFE04A00, 0xFFFFA300, 0xFFFFF07A),
+        palette("acid-toxic", "Toxic", ACID, 0xFF050D05, 0xFF1F5C1A, 0xFF57C400, 0xFFC7FF1F, 0xFFF2FFCC),
+        palette("acid-bleach", "Bleach", ACID, 0xFF0A0A0F, 0xFF3D2C6B, 0xFF00B2CA, 0xFF7CFFB2, 0xFFFDFFE0),
+
+        // Halloween — orange, violet and poison green over black. A narrow brief, and the
+        // narrowness is why it works.
+        palette("pumpkin", "Pumpkin", HALLOWEEN, 0xFF0A0500, 0xFF3D1A00, 0xFF8C3B00, 0xFFE87400, 0xFFFFC46B),
+        palette("witching", "Witching Hour", HALLOWEEN, 0xFF07040F, 0xFF2A0F42, 0xFF5C2A85, 0xFF9C5FC4, 0xFFE0C2F0),
+        palette("graveyard", "Graveyard", HALLOWEEN, 0xFF060806, 0xFF1E2A1C, 0xFF44583C, 0xFF7C8C6A, 0xFFC3CBAE),
+        palette("candy-corn", "Candy Corn", HALLOWEEN, 0xFF140800, 0xFF6B2C00, 0xFFE07800, 0xFFFFC400, 0xFFFFF4C2),
+        palette("blood-moon", "Blood Moon", HALLOWEEN, 0xFF0C0203, 0xFF3D040D, 0xFF8A0F1E, 0xFFD44236, 0xFFF7B08A),
+
+        // Cyberpunk — magenta and cyan over deep blue. The palette everyone reaches for and
+        // few get right, because the trick is how dark the ground has to stay.
+        palette("neon-district", "Neon District", CYBERPUNK, 0xFF04010E, 0xFF15104A, 0xFF3C2C9E, 0xFFFF2FB9, 0xFF7CF2FF),
+        palette("night-market", "Night Market", CYBERPUNK, 0xFF060010, 0xFF2A0A4A, 0xFF8A1C8C, 0xFFFF5E9C, 0xFFFFD9A0),
+        palette("chrome-rain", "Chrome Rain", CYBERPUNK, 0xFF02080C, 0xFF0C2A3D, 0xFF1E6E8C, 0xFF3FD0E0, 0xFFCFF8FF),
+        palette("hard-light", "Hard Light", CYBERPUNK, 0xFF0A0014, 0xFF3D0057, 0xFF9500B5, 0xFFE838FF, 0xFFFFB8FF),
+        palette("wire", "Wire", CYBERPUNK, 0xFF03040A, 0xFF12203D, 0xFF2F5C8A, 0xFF5FA8D6, 0xFFB8E2F5),
+
+        // Print — real inks. Muted where the screen palettes are not, because paper reflects
+        // rather than emits and nothing on it reaches the brightness of a lit pixel.
+        palette("riso-blue-red", "Riso Blue/Red", PRINT, 0xFF12213D, 0xFF2B4C8C, 0xFF8A3B4A, 0xFFE0576B, 0xFFF5E6DC),
+        palette("riso-green-orange", "Riso Green/Orange", PRINT, 0xFF14261C, 0xFF2E6B47, 0xFF9C6B2E, 0xFFE89A3C, 0xFFF7EFDF),
+        palette("newsprint", "Newsprint", PRINT, 0xFF17171A, 0xFF44464B, 0xFF7C7F86, 0xFFB4B7BC, 0xFFE8E4DB),
+        palette("duotone-ink", "Duotone Ink", PRINT, 0xFF0F1B2E, 0xFF2E4468, 0xFF6B7FA0, 0xFFAFBACB, 0xFFEFF1F4),
+        palette("kraft", "Kraft", PRINT, 0xFF241A10, 0xFF5C4526, 0xFF9C7A47, 0xFFC9A97A, 0xFFE8D8BC),
     )
 
     val categories: List<String> = all.map { it.category }.distinct()
