@@ -28,7 +28,7 @@ data class PatternOptions(
     val centerX: Float = 0f,
     val centerY: Float = 0f,
     /**
-     * The orb family's own controls, mirroring the six sliders Dither Boy's orb styles
+     * The orb family's own controls, mirroring the six sliders the reference app's orb styles
      * carry. They only reach [DitherMode.MOD_ORB] and [DitherMode.BEEHIVE]; the other
      * modulation modes have no orbs to shape.
      */
@@ -283,7 +283,7 @@ object Dither {
     /**
      * The modulation family: a threshold surface sampled at a scaled cell coordinate.
      *
-     * Studio AAA publishes neither the maths nor the names behind Dither Boy's modulation
+     * The vendor publishes neither the maths nor the names behind the reference app's modulation
      * category — only that "Modulation Lines", "Waveform" and "Beehive" exist. These five
      * are this app's own reading of that category, not a reconstruction of theirs.
      */
@@ -477,7 +477,7 @@ object Dither {
 
             // --- glitch and special -------------------------------------------------
             /*
-             * The rest of the catalogue. Studio AAA names these and describes them in a line;
+             * The rest of the catalogue. The vendor names these and describes them in a line;
              * the mathematics is this app's own, and that is stated here rather than left for
              * someone to assume otherwise. What their controls are called told us what each
              * one is *for*, which turned out to be most of the work.

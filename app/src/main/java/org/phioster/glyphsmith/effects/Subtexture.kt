@@ -11,7 +11,7 @@ import kotlin.math.sin
 /**
  * Overlay textures, generated rather than shipped.
  *
- * Studio AAA sell texture packs for this — VHS, scanner trash, grunge paper — but their own
+ * The vendor sells texture packs for this — VHS, scanner trash, grunge paper — but their own
  * CRT tutorial builds the texture *out of the input image* instead of laying one on top, and
  * that is the approach taken here. It needs no third-party assets, it costs nothing to
  * ship, and a texture derived from the picture sits on it better than a stock scan does.

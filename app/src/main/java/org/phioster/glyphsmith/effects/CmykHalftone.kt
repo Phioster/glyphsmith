@@ -12,7 +12,7 @@ import kotlin.math.sqrt
 /**
  * A four-colour halftone screen, the way process printing does it.
  *
- * Added to Dither Boy in 6.0. The three controls it is documented as having — screen angle,
+ * Added to the reference app in 6.0. The three controls it is documented as having — screen angle,
  * black ink, and mid-tone gain — are the three here, because they are the three that matter:
  * the angles decide whether the screens moiré, the black ink decides how much of the neutral
  * tone is carried by K instead of by all three chromatic inks at once, and the gain is where

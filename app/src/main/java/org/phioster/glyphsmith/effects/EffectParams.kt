@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Controls for the directional bloom, named and ranged after Script Slayer's Epsilon Glow
+ * Controls for the directional bloom, named and ranged after the reference app's glow
  * panel so the numbers mean the same thing in both places.
  */
 @Serializable

@@ -39,7 +39,7 @@ import org.phioster.glyphsmith.ui.theme.Term
 private const val CATEGORY_ALL = "All"
 
 /**
- * Script Slayer's ASCII Settings, control for control: depth, character category and set,
+ * The reference app's ASCII settings, control for control: depth, character set and category,
  * injected characters, character offset, font style — plus cell size, which decides the
  * grid resolution and has no equivalent slider in the original's ASCII panel.
  */

@@ -524,7 +524,7 @@ class PresetStore(context: Context) {
             ),
 
             // --- signature ----------------------------------------------------------
-            // Modelled on the looks Studio AAA show in their public preview clips, not on
+            // Modelled on the looks the vendor shows in their public preview clips, not on
             // their presets — those are not published, and neither is the maths behind the
             // styles. Each of these is this app's own approximation of a look, built from
             // controls that already existed, and each one animates so that applying it and

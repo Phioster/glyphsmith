@@ -13,7 +13,7 @@ enum class FontStyle { REGULAR, BOLD, ITALIC, BOLD_ITALIC }
  * Every knob that turns a bitmap into a character grid. Serializable because a preset is
  * literally this object written to disk.
  *
- * The control set mirrors Script Slayer's ASCII Settings panel: depth, character category
+ * The control set mirrors the reference app's ASCII settings panel: depth, character
  * and set, injected characters, character offset, font style, palette / transparent
  * background / background colour.
  */

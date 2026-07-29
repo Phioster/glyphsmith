@@ -7,7 +7,7 @@ import org.junit.Test
 /**
  * The glitch and special styles, held to the claims their comments make.
  *
- * These are the ones with no published maths behind them — Studio AAA names them and gives a
+ * These are the ones with no published maths behind them — the vendor names them and gives a
  * line of description, and the implementation is this app's own. That makes the tests more
  * important rather than less: there is no reference to fall back on, so the only thing keeping
  * a style honest is a statement of what makes it that style and a check that it still holds.
