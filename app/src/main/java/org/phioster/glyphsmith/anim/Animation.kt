@@ -199,6 +199,31 @@ object Animator {
         return params
     }
 
+    /**
+     * A curve evaluated across a segment, on 0..1, **without wrapping**.
+     *
+     * [sample] cannot be reused here. It takes the fractional part of its input, which is
+     * exactly right for a track that repeats forever and exactly wrong for a segment: the
+     * end of a segment is 1.0, and `frac(1.0)` is 0, so every segment would snap back to its
+     * starting value on its final frame.
+     *
+     * TRIANGLE keeps its there-and-back shape on purpose — inside a segment that reads as a
+     * bump, which is a useful thing to be able to say in one piece instead of two.
+     */
+    fun shape(curve: AnimCurve, t: Float, salt: Int): Float {
+        val u = t.coerceIn(0f, 1f)
+        return when (curve) {
+            AnimCurve.SINE -> ((1f - cos(PI.toFloat() * u)) / 2f)
+            AnimCurve.TRIANGLE -> 1f - abs(2f * u - 1f)
+            AnimCurve.SAWTOOTH -> u
+            AnimCurve.PULSE -> if (u < 0.5f) 0f else 1f
+            AnimCurve.RANDOM -> hash((u * 64f).toInt(), salt)
+            AnimCurve.EASE_IN -> u * u
+            AnimCurve.EASE_OUT -> 1f - (1f - u) * (1f - u)
+            AnimCurve.EASE_IN_OUT -> u * u * (3f - 2f * u)
+        }
+    }
+
     /** The segment's value at [position] in 0..1, or null when it does not reach that far. */
     fun valueIn(segment: AnimSegment, position: Float): Int? {
         val span = segment.span
@@ -208,7 +233,7 @@ object Animator {
         // A zero-width segment is a single instant; it reports its end value rather than
         // dividing by nothing.
         val local = if (width <= 0f) 1f else (percent - span.first) / width
-        val shaped = sample(segment.curve, local, (percent).toInt(), segment.target.ordinal + 1)
+        val shaped = shape(segment.curve, local, segment.target.ordinal + 1)
         return (segment.from + (segment.to - segment.from) * shaped).roundToInt()
             .coerceIn(minOf(segment.from, segment.to), maxOf(segment.from, segment.to))
     }
