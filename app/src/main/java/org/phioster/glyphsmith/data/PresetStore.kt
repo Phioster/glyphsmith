@@ -12,6 +12,7 @@ import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
 import org.phioster.glyphsmith.anim.TemporalPattern
 import org.phioster.glyphsmith.ascii.ColorMode
+import org.phioster.glyphsmith.ascii.Dither
 import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
@@ -90,7 +91,10 @@ class PresetStore(context: Context) {
                 params = params,
                 // Overwriting a preset keeps where it sits and whether it was starred;
                 // re-saving a favourite should not quietly demote it.
-                category = existing?.category ?: CATEGORY_CUSTOM,
+                // A category the user already chose wins; otherwise it is derived, because
+                // everything landing in one CUSTOM heap is what made the picker unusable
+                // once there were more than a handful.
+                category = existing?.category ?: familyOf(params.ditherMode),
                 favourite = existing?.favourite ?: false,
                 description = description.ifEmpty { existing?.description ?: "" },
             )
@@ -154,6 +158,20 @@ class PresetStore(context: Context) {
             CATEGORY_HEAVY,
             CATEGORY_CUSTOM,
         )
+
+        /**
+         * Which shipped category a self-saved preset belongs in, read off its algorithm.
+         *
+         * Their library filters by the dither family rather than by a name anyone types, and
+         * that is the better idea: the family is a fact about the preset, whereas a typed
+         * category is a second thing to keep consistent.
+         */
+        fun familyOf(mode: DitherMode): String = when {
+            mode == DitherMode.NONE -> CATEGORY_CUSTOM
+            Dither.isModulation(mode) -> CATEGORY_DITHER
+            Dither.isOrdered(mode) -> CATEGORY_DITHER
+            else -> CATEGORY_CUSTOM
+        }
 
         private fun preset(name: String, category: String, params: AsciiParams) =
             Preset(name, params, category)

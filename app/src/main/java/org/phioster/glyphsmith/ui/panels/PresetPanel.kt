@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
+import org.phioster.glyphsmith.data.PlaybackQuality
 import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
@@ -56,6 +57,8 @@ fun PresetPanel(
     onThemeChange: (String) -> Unit,
     previewQuality: PreviewQuality,
     onPreviewQualityChange: (PreviewQuality) -> Unit,
+    playbackQuality: PlaybackQuality,
+    onPlaybackQualityChange: (PlaybackQuality) -> Unit,
     looped: Boolean,
     onLoopedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -237,6 +240,19 @@ fun PresetPanel(
             onSelect = { onPreviewQualityChange(PreviewQuality.entries[it]) },
             itemLabel = { it.label },
             itemDetail = { "${it.maxSide}px — ${if (it == PreviewQuality.LIVE) "quicker" else "sharper"}" },
+        )
+        StepperDropdown(
+            label = "playback",
+            items = PlaybackQuality.entries.toList(),
+            selectedIndex = PlaybackQuality.entries.indexOf(playbackQuality),
+            onSelect = { onPlaybackQualityChange(PlaybackQuality.entries[it]) },
+            itemLabel = { it.label },
+            itemDetail = {
+                when (it) {
+                    PlaybackQuality.QUICK -> "every other frame, smaller — approximate"
+                    PlaybackQuality.RENDERED -> "every frame at full preview size"
+                }
+            },
         )
         TerminalToggle(
             label = "loop playback",

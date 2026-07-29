@@ -68,6 +68,8 @@ class MainActivity : ComponentActivity() {
                         onExportPalette = viewModel::exportPalette,
                         onImportPalette = viewModel::importPalette,
                         onPreviewQualityChange = viewModel::setPreviewQuality,
+                        onPlaybackQualityChange = viewModel::setPlaybackQuality,
+                        onToggleFavouritePalette = viewModel::toggleFavouritePalette,
                         onLoopedChange = viewModel::setLooped,
                     )
                 }

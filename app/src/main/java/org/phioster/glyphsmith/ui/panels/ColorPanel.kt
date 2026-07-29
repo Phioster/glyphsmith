@@ -54,6 +54,8 @@ fun ColorPanel(
     onExtractPalette: (Int, QuantizeMethod) -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
+    favourites: Set<String>,
+    onToggleFavourite: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = params.renderPalette()
@@ -98,6 +100,8 @@ fun ColorPanel(
                 onExtractPalette = onExtractPalette,
                 onExportPalette = onExportPalette,
                 onImportPalette = onImportPalette,
+                favourites = favourites,
+                onToggleFavourite = onToggleFavourite,
                 categories = categories,
                 category = category,
                 onCategoryChange = { next ->
@@ -142,6 +146,8 @@ private fun PaletteSection(
     onExtractPalette: (Int, QuantizeMethod) -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
+    favourites: Set<String>,
+    onToggleFavourite: (String) -> Unit,
     categories: List<String>,
     category: String,
     onCategoryChange: (String) -> Unit,
@@ -160,6 +166,27 @@ private fun PaletteSection(
             selectedIndex = categories.indexOf(category).coerceAtLeast(0),
             onSelect = { onCategoryChange(categories[it]) },
         )
+        Row(
+            Modifier.fillMaxWidth().padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            TerminalButton(
+                label = if (params.paletteId in favourites) "★" else "☆",
+                accent = if (params.paletteId in favourites) Term.Amber else Term.InkDim,
+                onClick = { onToggleFavourite(params.paletteId) },
+            )
+            Text(
+                if (favourites.isEmpty()) {
+                    "star the ones you keep coming back to"
+                } else {
+                    "${favourites.size} starred"
+                },
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f).padding(top = 6.dp),
+            )
+        }
         StepperDropdown(
             label = "palette",
             items = palettes,
@@ -173,7 +200,7 @@ private fun PaletteSection(
                     ),
                 )
             },
-            itemLabel = { it.name },
+            itemLabel = { if (it.id in favourites) "★ ${it.name}" else it.name },
         )
 
         var method by remember { mutableStateOf(QuantizeMethod.MEDIAN_CUT) }

@@ -37,6 +37,7 @@ import org.phioster.glyphsmith.data.ImageLoader
 import org.phioster.glyphsmith.data.PaletteFile
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
+import org.phioster.glyphsmith.data.PlaybackQuality
 import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.data.Settings
 import org.phioster.glyphsmith.data.Source
@@ -95,6 +96,8 @@ data class UiState(
     val previewQuality: PreviewQuality = PreviewQuality.FULL,
     /** Playback repeats rather than stopping at the last frame. */
     val looped: Boolean = true,
+    val playbackQuality: PlaybackQuality = PlaybackQuality.RENDERED,
+    val favouritePalettes: Set<String> = emptySet(),
     /** How far a batch run has got, as done/total. Zero total means nothing is running. */
     val batchDone: Int = 0,
     val batchTotal: Int = 0,
@@ -114,6 +117,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             themeId = settings.themeId,
             previewQuality = settings.previewQuality,
             looped = settings.looped,
+            playbackQuality = settings.playbackQuality,
+            favouritePalettes = settings.favouritePalettes,
         ),
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -170,6 +175,18 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         settings.previewQuality = quality
         _state.value = _state.value.copy(previewQuality = quality)
         viewModelScope.launch { rebuild(_state.value.params) }
+    }
+
+    fun setPlaybackQuality(quality: PlaybackQuality) {
+        settings.playbackQuality = quality
+        _state.value = _state.value.copy(playbackQuality = quality)
+    }
+
+    fun toggleFavouritePalette(id: String) {
+        val next = settings.favouritePalettes.toMutableSet()
+        if (!next.remove(id)) next.add(id)
+        settings.favouritePalettes = next
+        _state.value = _state.value.copy(favouritePalettes = next)
     }
 
     fun setLooped(looped: Boolean) {
@@ -600,18 +617,27 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             val animation = params.animation
             _state.value = _state.value.copy(working = true, status = "rendering ${animation.frames} frames…")
 
+            val quality = _state.value.playbackQuality
             val frames = withContext(Dispatchers.Default) {
-                renderFrames(current, params, animation, ANIM_PREVIEW_MAX_SIDE)
+                renderFrames(current, params, animation, quality.maxSide, quality.step)
             }
             animFrames = frames
             _state.value = _state.value.copy(
                 working = false,
                 animPlaying = true,
                 animFrames = frames.size,
-                status = "${frames.size} frames · ${"%.1f".format(animation.durationSeconds)}s loop",
+                status = if (quality.step > 1) {
+                    // Said out loud, because a preview that quietly differs from the export
+                    // is worse than a slow one.
+                    "${frames.size} of ${animation.frames} frames · approximate preview"
+                } else {
+                    "${frames.size} frames · ${"%.1f".format(animation.durationSeconds)}s loop"
+                },
             )
 
-            val frameDelay = 1000L / animation.fps.coerceAtLeast(1)
+            // Each rendered frame stands in for `step` of them, so it has to be held that
+            // much longer or a quick preview would run at several times real speed.
+            val frameDelay = 1000L * quality.step / animation.fps.coerceAtLeast(1)
             playbackJob = viewModelScope.launch {
                 var index = 0
                 val loop = _state.value.looped
@@ -653,11 +679,15 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         base: AsciiParams,
         animation: AnimationParams,
         maxSide: Int,
+        step: Int = 1,
     ): List<Bitmap> {
-        val budgetSide = frameBudget(animation.frames, maxSide)
+        // Only the frames actually rendered count against the budget, so a stepped run gets
+        // more room per frame rather than the same room spread over frames it skips.
+        val rendered = (animation.frames + step - 1) / step
+        val budgetSide = frameBudget(rendered, maxSide)
         var width = 0
         var height = 0
-        return (0 until animation.frames).map { frame ->
+        return (0 until animation.frames step step).map { frame ->
             val position = frame.toFloat() / animation.frames
             // The clock is set here rather than in paramsAt, so temporal noise still moves
             // over a video whose parameter tracks are all switched off.

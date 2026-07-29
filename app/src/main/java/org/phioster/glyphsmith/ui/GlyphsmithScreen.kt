@@ -39,6 +39,7 @@ import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.anim.QuantizeMethod
 import org.phioster.glyphsmith.data.Preset
+import org.phioster.glyphsmith.data.PlaybackQuality
 import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgMode
@@ -102,6 +103,8 @@ fun GlyphsmithScreen(
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
     onPreviewQualityChange: (PreviewQuality) -> Unit,
+    onPlaybackQualityChange: (PlaybackQuality) -> Unit,
+    onToggleFavouritePalette: (String) -> Unit,
     onLoopedChange: (Boolean) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
@@ -175,6 +178,8 @@ fun GlyphsmithScreen(
                     onExtractPalette = onExtractPalette,
                     onExportPalette = onExportPalette,
                     onImportPalette = onImportPalette,
+                    favourites = state.favouritePalettes,
+                    onToggleFavourite = onToggleFavouritePalette,
                 )
                 Tab.EFFECTS -> EffectsPanel(state.params, onParamsChange)
                 Tab.LAYERS -> LayerPanel(state.params, onParamsChange)
@@ -218,6 +223,8 @@ fun GlyphsmithScreen(
                     onThemeChange = onThemeChange,
                     previewQuality = state.previewQuality,
                     onPreviewQualityChange = onPreviewQualityChange,
+                    playbackQuality = state.playbackQuality,
+                    onPlaybackQualityChange = onPlaybackQualityChange,
                     looped = state.looped,
                     onLoopedChange = onLoopedChange,
                 )
