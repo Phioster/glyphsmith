@@ -121,17 +121,16 @@ object Animator {
     }
 
     /**
-     * The parameters for one frame: the base settings with every enabled track applied, and
-     * the temporal clock set.
+     * The parameters for one frame: the base settings with every enabled track applied.
      *
-     * The clock is set even when no track is enabled — temporal noise is an animation in its
-     * own right, and switching it on should move the picture without also having to arm a
-     * track.
+     * The temporal clock is deliberately *not* set here. Temporal noise and a video are both
+     * animations in their own right, and this function's contract is that a disabled
+     * animation changes nothing — so the caller sets the clock, which it has to do anyway
+     * for a video whose parameter tracks are switched off.
      */
     fun paramsAt(base: AsciiParams, animation: AnimationParams, frame: Int): AsciiParams {
         if (!animation.enabled) return base
-        val loop = if (animation.frames <= 0) 0f else frame.toFloat() / animation.frames
-        var params = base.copy(temporal = base.temporal.copy(time = loop))
+        var params = base
         animation.tracks.filter { it.enabled }.forEach { track ->
             val value = valueAt(track, frame, animation.frames)
             params = apply(params, track.target, value)

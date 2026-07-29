@@ -63,6 +63,8 @@ fun GlyphsmithScreen(
     state: UiState,
     onParamsChange: (AsciiParams) -> Unit,
     onPickImage: (android.net.Uri) -> Unit,
+    onPickVideo: (android.net.Uri) -> Unit,
+    onPreviewPosition: (Float) -> Unit,
     onFormatChange: (ImageFormat) -> Unit,
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
@@ -87,6 +89,9 @@ fun GlyphsmithScreen(
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(onPickImage)
     }
+    val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let(onPickVideo)
+    }
 
     Column(
         Modifier
@@ -100,6 +105,11 @@ fun GlyphsmithScreen(
             onUndo = onUndo,
             onRedo = onRedo,
             onLoad = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+            onLoadVideo = {
+                videoPicker.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly),
+                )
+            },
         )
 
         Preview(state, Modifier.weight(1f))
@@ -131,6 +141,7 @@ fun GlyphsmithScreen(
                     onStop = onStopAnimation,
                     onExportGif = onExportGif,
                     onExportMp4 = onExportMp4,
+                    onPreviewPosition = onPreviewPosition,
                 )
 
                 Tab.OUTPUT -> OutputPanel(
@@ -165,6 +176,7 @@ private fun Header(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onLoad: () -> Unit,
+    onLoadVideo: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
@@ -177,7 +189,8 @@ private fun Header(
         }
         TerminalButton(label = "↶", onClick = onUndo, enabled = canUndo)
         TerminalButton(label = "↷", onClick = onRedo, enabled = canRedo)
-        TerminalButton(label = "load", onClick = onLoad)
+        TerminalButton(label = "img", onClick = onLoad)
+        TerminalButton(label = "vid", onClick = onLoadVideo)
     }
 }
 

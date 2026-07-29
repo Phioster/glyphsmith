@@ -31,6 +31,9 @@ import org.phioster.glyphsmith.ascii.FontChoice
 import org.phioster.glyphsmith.data.ImageLoader
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
+import org.phioster.glyphsmith.data.Source
+import org.phioster.glyphsmith.data.StillSource
+import org.phioster.glyphsmith.data.VideoSource
 import org.phioster.glyphsmith.export.Exporter
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgExporter
@@ -40,6 +43,10 @@ data class UiState(
     val params: AsciiParams = AsciiParams(),
     val preview: Bitmap? = null,
     val hasImage: Boolean = false,
+    /** The source is a video, so the preview can be scrubbed and playback has real frames. */
+    val isVideo: Boolean = false,
+    /** Where in a video the preview sits, 0..1. Meaningless for a still. */
+    val previewPosition: Float = 0f,
     val cols: Int = 0,
     val rows: Int = 0,
     val outputWidth: Int = 0,
@@ -76,9 +83,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private var lastCommitted = AsciiParams()
     private var suppressHistory = false
 
-    private var sourcePixels: IntArray? = null
-    private var sourceWidth = 0
-    private var sourceHeight = 0
+    private var source: Source? = null
     private var art: AsciiArt? = null
 
     init {
@@ -114,7 +119,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * [Palettes.sample] maps luminance onto list position.
      */
     fun extractPalette(count: Int) = runExport("palette") {
-        val pixels = sourcePixels ?: return@runExport "no image"
+        val pixels = currentPixels() ?: return@runExport "no image"
         val colors = withContext(Dispatchers.Default) {
             Palettes.fromColors(ColorQuantizer.palette(listOf(pixels), count).toList())
         }
@@ -184,23 +189,77 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 _state.value = _state.value.copy(working = false, status = "could not decode that image")
                 return@launch
             }
-            sourcePixels = withContext(Dispatchers.Default) { ImageLoader.pixelsOf(loaded) }
-            sourceWidth = loaded.width
-            sourceHeight = loaded.height
+            val pixels = withContext(Dispatchers.Default) { ImageLoader.pixelsOf(loaded) }
+            // Read the size before recycling — a recycled bitmap's dimensions are not
+            // something to rely on.
+            val width = loaded.width
+            val height = loaded.height
             loaded.recycle()
+            adopt(StillSource(pixels, width, height))
             _state.value = _state.value.copy(
                 hasImage = true,
-                status = "loaded ${sourceWidth}×$sourceHeight",
+                isVideo = false,
+                previewPosition = 0f,
+                status = "loaded ${width}×$height",
             )
             rebuild(_state.value.params)
         }
     }
 
+    /**
+     * Loads a video as the source. Frames are decoded on demand rather than held, so a long
+     * clip costs the same memory as a still — see [VideoSource].
+     */
+    fun loadVideo(uri: Uri) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(working = true, status = "opening video…")
+            val opened = withContext(Dispatchers.IO) { VideoSource.open(context, uri) }
+            if (opened == null) {
+                _state.value = _state.value.copy(
+                    working = false,
+                    status = "could not read that video",
+                )
+                return@launch
+            }
+            adopt(opened)
+            _state.value = _state.value.copy(
+                hasImage = true,
+                isVideo = true,
+                previewPosition = 0f,
+                status = "video ${opened.width}×${opened.height}",
+            )
+            rebuild(_state.value.params)
+        }
+    }
+
+    /** Scrubs the preview through a video. Ignored for a still, which has one frame. */
+    fun setPreviewPosition(position: Float) {
+        if (source?.isMoving != true) return
+        _state.value = _state.value.copy(previewPosition = position.coerceIn(0f, 1f))
+        viewModelScope.launch { rebuild(_state.value.params) }
+    }
+
+    /** Swaps in a new source and releases whatever the old one was holding. */
+    private fun adopt(next: Source) {
+        source?.close()
+        source = next
+    }
+
+    private fun currentPixels(): IntArray? =
+        source?.pixelsAt(_state.value.previewPosition)
+
+    override fun onCleared() {
+        source?.close()
+        source = null
+        super.onCleared()
+    }
+
     private suspend fun rebuild(params: AsciiParams) {
-        val pixels = sourcePixels ?: return
+        val current = source ?: return
+        val pixels = current.pixelsAt(_state.value.previewPosition)
         _state.value = _state.value.copy(working = true)
         val result = withContext(Dispatchers.Default) {
-            Pipeline.run(pixels, sourceWidth, sourceHeight, params, PREVIEW_MAX_SIDE)
+            Pipeline.run(pixels, current.width, current.height, params, PREVIEW_MAX_SIDE)
         }
         art = result.art
         // The old preview is deliberately not recycled: Compose may still be drawing it
@@ -219,10 +278,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun renderFullSize(): Bitmap? {
-        val pixels = sourcePixels ?: return null
+        val current = source ?: return null
+        val pixels = current.pixelsAt(_state.value.previewPosition)
         val params = _state.value.params
         return withContext(Dispatchers.Default) {
-            Pipeline.run(pixels, sourceWidth, sourceHeight, params, AsciiRenderer.MAX_OUTPUT_SIDE).bitmap
+            Pipeline.run(pixels, current.width, current.height, params, AsciiRenderer.MAX_OUTPUT_SIDE).bitmap
         }
     }
 
@@ -300,7 +360,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * would never hold the frame rate — a single frame is the whole pipeline.
      */
     fun playAnimation() {
-        val pixels = sourcePixels ?: return
+        val current = source ?: return
         viewModelScope.launch {
             cancelPlayback()
             val params = _state.value.params
@@ -308,7 +368,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(working = true, status = "rendering ${animation.frames} frames…")
 
             val frames = withContext(Dispatchers.Default) {
-                renderFrames(pixels, params, animation, ANIM_PREVIEW_MAX_SIDE)
+                renderFrames(current, params, animation, ANIM_PREVIEW_MAX_SIDE)
             }
             animFrames = frames
             _state.value = _state.value.copy(
@@ -351,7 +411,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * bitmap — and neither GIF nor MP4 accepts that.
      */
     private fun renderFrames(
-        pixels: IntArray,
+        source: Source,
         base: AsciiParams,
         animation: AnimationParams,
         maxSide: Int,
@@ -360,8 +420,14 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         var width = 0
         var height = 0
         return (0 until animation.frames).map { frame ->
+            val position = frame.toFloat() / animation.frames
+            // The clock is set here rather than in paramsAt, so temporal noise still moves
+            // over a video whose parameter tracks are all switched off.
             val frameParams = Animator.paramsAt(base, animation, frame)
-            val rendered = Pipeline.run(pixels, sourceWidth, sourceHeight, frameParams, budgetSide).bitmap
+                .let { it.copy(temporal = it.temporal.copy(time = position)) }
+            // A still hands back the same buffer every time; a video decodes this position.
+            val pixels = source.pixelsAt(position)
+            val rendered = Pipeline.run(pixels, source.width, source.height, frameParams, budgetSide).bitmap
             if (frame == 0) {
                 width = rendered.width
                 height = rendered.height
@@ -384,11 +450,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun exportGif() = runExport("gif") {
-        val pixels = sourcePixels ?: return@runExport "no image"
+        val current = source ?: return@runExport "no image"
         val params = _state.value.params
         val animation = params.animation
         val bytes = withContext(Dispatchers.Default) {
-            val frames = renderFrames(pixels, params, animation, ANIM_EXPORT_MAX_SIDE)
+            val frames = renderFrames(current, params, animation, ANIM_EXPORT_MAX_SIDE)
             val width = frames.first().width
             val height = frames.first().height
             val buffers = frames.map { bitmap ->
@@ -407,12 +473,12 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun exportMp4() = runExport("mp4") {
-        val pixels = sourcePixels ?: return@runExport "no image"
+        val current = source ?: return@runExport "no image"
         val params = _state.value.params
         val animation = params.animation
         val file = java.io.File(context.cacheDir, "glyphsmith-anim.mp4")
         val failure = withContext(Dispatchers.Default) {
-            val frames = renderFrames(pixels, params, animation, ANIM_EXPORT_MAX_SIDE)
+            val frames = renderFrames(current, params, animation, ANIM_EXPORT_MAX_SIDE)
             val result = Mp4Encoder.encode(frames, animation.fps.coerceAtLeast(1), file)
             frames.forEach { it.recycle() }
             result
