@@ -6,6 +6,7 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.roundToInt
+import org.phioster.glyphsmith.core.dither.Dither
 
 /** A parameter an animation track can drive. */
 /**

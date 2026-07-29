@@ -12,8 +12,6 @@ import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
 import org.phioster.glyphsmith.anim.TemporalPattern
 import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.DitherCategory
-import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
 import org.phioster.glyphsmith.effects.ChromaticParams
@@ -30,6 +28,8 @@ import org.phioster.glyphsmith.effects.GlowParams
 import org.phioster.glyphsmith.effects.JpegGlitchParams
 import org.phioster.glyphsmith.effects.PostProcessingParams
 import java.io.File
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.dither.DitherCategory
 
 @Serializable
 data class Preset(

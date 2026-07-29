@@ -31,9 +31,9 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.phioster.glyphsmith.ascii.DitherCategory
-import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.ui.theme.Term
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.dither.DitherCategory
 
 /**
  * `LABEL` over `[ value ▾ ] [<] [>]` — the stepper-plus-dropdown control the original uses

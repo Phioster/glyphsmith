@@ -3,6 +3,11 @@ package org.phioster.glyphsmith.ascii
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.phioster.glyphsmith.core.dither.FractalDiffuse
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.dither.Dither
+import org.phioster.glyphsmith.core.dither.Directional
+import org.phioster.glyphsmith.core.dither.DiffusionTap
 
 /**
  * The glitch and special styles, held to the claims their comments make.

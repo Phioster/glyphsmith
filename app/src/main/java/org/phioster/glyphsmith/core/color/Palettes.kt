@@ -1,4 +1,4 @@
-package org.phioster.glyphsmith.ascii
+package org.phioster.glyphsmith.core.color
 
 import kotlin.random.Random
 

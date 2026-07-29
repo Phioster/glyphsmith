@@ -1,4 +1,4 @@
-package org.phioster.glyphsmith.ascii
+package org.phioster.glyphsmith.core.dither
 
 import kotlin.math.exp
 import kotlin.math.ln

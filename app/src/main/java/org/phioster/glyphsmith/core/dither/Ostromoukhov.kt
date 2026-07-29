@@ -1,4 +1,4 @@
-package org.phioster.glyphsmith.ascii
+package org.phioster.glyphsmith.core.dither
 
 /**
  * Ostromoukhov's variable-coefficient error diffusion, SIGGRAPH 2001.

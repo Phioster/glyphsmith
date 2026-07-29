@@ -5,8 +5,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.Dither
-import org.phioster.glyphsmith.ascii.DitherMode
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.dither.Dither
 
 /**
  * The pixel path, end to end, without a single Android type — which is the whole reason the node

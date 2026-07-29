@@ -6,6 +6,11 @@ import org.phioster.glyphsmith.anim.TemporalParams
 import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.effects.EffectStack
 import org.phioster.glyphsmith.render.RenderMode
+import org.phioster.glyphsmith.core.image.Adjustments
+import org.phioster.glyphsmith.core.dither.OrbOptions
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.color.Palettes
+import org.phioster.glyphsmith.core.color.Palette
 
 enum class ColorMode { SINGLE, SOURCE, PALETTE }
 

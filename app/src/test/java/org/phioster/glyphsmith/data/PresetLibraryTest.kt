@@ -6,8 +6,8 @@ import org.junit.Test
 import org.phioster.glyphsmith.anim.AnimTarget
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.DitherMode
-import org.phioster.glyphsmith.ascii.Palettes
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.color.Palettes
 
 class PresetLibraryTest {
 

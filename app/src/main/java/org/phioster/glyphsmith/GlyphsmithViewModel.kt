@@ -27,8 +27,6 @@ import org.phioster.glyphsmith.anim.Mp4Encoder
 import org.phioster.glyphsmith.ascii.AsciiRenderer
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.DitherMode
-import org.phioster.glyphsmith.ascii.Palettes
 import org.phioster.glyphsmith.ascii.Pipeline
 import org.phioster.glyphsmith.ascii.GlyphCoverage
 import org.phioster.glyphsmith.data.CameraCapture
@@ -66,6 +64,8 @@ import org.phioster.glyphsmith.export.SvgMode
 import org.phioster.glyphsmith.export.TextExporters
 import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.ui.theme.TermThemes
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.color.Palettes
 
 data class UiState(
     val params: AsciiParams = AsciiParams(),

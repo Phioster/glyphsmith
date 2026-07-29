@@ -3,6 +3,12 @@ package org.phioster.glyphsmith.ascii
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.phioster.glyphsmith.core.dither.Riemersma
+import org.phioster.glyphsmith.core.dither.Ostromoukhov
+import org.phioster.glyphsmith.core.dither.FractalDiffuse
+import org.phioster.glyphsmith.core.dither.DotDiffusion
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.dither.Dither
 
 /**
  * The published algorithms, held to their published values.

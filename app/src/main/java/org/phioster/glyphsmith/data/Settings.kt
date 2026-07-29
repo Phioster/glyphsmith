@@ -1,6 +1,7 @@
 package org.phioster.glyphsmith.data
 
 import android.content.Context
+import org.phioster.glyphsmith.core.dither.DitherMode
 
 /**
  * How much work the preview is allowed to do.
@@ -65,7 +66,7 @@ class Settings(context: Context) {
         set(value) = prefs.edit().putStringSet(KEY_FAV_PALETTES, value).apply()
 
     /**
-     * Names of [org.phioster.glyphsmith.ascii.DitherMode] entries the user starred.
+     * Names of [org.phioster.glyphsmith.core.dither.DitherMode] entries the user starred.
      *
      * Stored by name rather than by ordinal: the list is going to keep growing, and a
      * favourite that silently becomes a different style because something was inserted above

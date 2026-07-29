@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
+import org.phioster.glyphsmith.core.image.Adjustments
 
 class AdjustmentsTest {
 

@@ -1,9 +1,9 @@
 package org.phioster.glyphsmith.render
 
 import org.phioster.glyphsmith.ascii.AsciiParams
-import org.phioster.glyphsmith.ascii.Dither
-import org.phioster.glyphsmith.ascii.PatternOptions
 import org.phioster.glyphsmith.core.color.PaletteQuantizer
+import org.phioster.glyphsmith.core.dither.PatternOptions
+import org.phioster.glyphsmith.core.dither.Dither
 
 /**
  * Colour dithering: reduces each cell to a palette entry and carries the error it made into the

@@ -1,6 +1,5 @@
 package org.phioster.glyphsmith.render
 
-import org.phioster.glyphsmith.ascii.Adjustments
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.ColorMode
 import kotlin.math.ceil
@@ -8,6 +7,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import org.phioster.glyphsmith.core.image.Adjustments
 
 /**
  * A source image reduced to a grid of cells: one luminance per cell, and one colour per cell

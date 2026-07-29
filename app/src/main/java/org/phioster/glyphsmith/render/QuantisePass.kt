@@ -2,18 +2,18 @@ package org.phioster.glyphsmith.render
 
 import org.phioster.glyphsmith.anim.Temporal
 import org.phioster.glyphsmith.ascii.AsciiParams
-import org.phioster.glyphsmith.ascii.Directional
-import org.phioster.glyphsmith.ascii.Dither
-import org.phioster.glyphsmith.ascii.DitherMode
-import org.phioster.glyphsmith.ascii.DotDiffusion
 import org.phioster.glyphsmith.ascii.EdgeDetect
 import org.phioster.glyphsmith.ascii.EdgeField
-import org.phioster.glyphsmith.ascii.FractalDiffuse
-import org.phioster.glyphsmith.ascii.PatternOptions
-import org.phioster.glyphsmith.ascii.Regions
-import org.phioster.glyphsmith.ascii.Riemersma
 import kotlin.math.max
 import kotlin.math.roundToInt
+import org.phioster.glyphsmith.core.dither.Riemersma
+import org.phioster.glyphsmith.core.dither.Regions
+import org.phioster.glyphsmith.core.dither.PatternOptions
+import org.phioster.glyphsmith.core.dither.FractalDiffuse
+import org.phioster.glyphsmith.core.dither.DotDiffusion
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.dither.Dither
+import org.phioster.glyphsmith.core.dither.Directional
 
 /**
  * A grid of quantised levels — the output of the dither, before anything decides what a level

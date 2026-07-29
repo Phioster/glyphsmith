@@ -3,9 +3,9 @@ package org.phioster.glyphsmith.data
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.phioster.glyphsmith.ascii.Palette
-import org.phioster.glyphsmith.ascii.Palettes
 import java.util.Locale
+import org.phioster.glyphsmith.core.color.Palettes
+import org.phioster.glyphsmith.core.color.Palette
 
 /**
  * A palette on its own, as a shareable file.

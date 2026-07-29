@@ -3,6 +3,7 @@ package org.phioster.glyphsmith.ascii
 import org.phioster.glyphsmith.render.CellSampler
 import org.phioster.glyphsmith.render.IndexGrid
 import org.phioster.glyphsmith.render.QuantisePass
+import org.phioster.glyphsmith.core.color.Palettes
 
 /**
  * A finished character grid. [colors] is null when the art is monochrome — the renderer
