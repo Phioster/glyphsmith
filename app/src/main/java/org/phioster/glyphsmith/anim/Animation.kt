@@ -139,6 +139,9 @@ data class AnimationParams(
 
 object Animator {
 
+    /** Slack at a segment's ends, in percent. Smaller than any position a frame can land on. */
+    private const val EDGE = 1e-3f
+
     /** Curve value in 0..1 for normalised loop position [u], including cycles and phase. */
     fun sample(curve: AnimCurve, u: Float, frame: Int, salt: Int): Float {
         val phased = frac(u)
@@ -228,11 +231,14 @@ object Animator {
     fun valueIn(segment: AnimSegment, position: Float): Int? {
         val span = segment.span
         val percent = position * 100f
-        if (percent < span.first || percent > span.last) return null
+        // The bounds are whole percentages and the position is a float, so the ends need
+        // slack: 0.6f * 100f is 60.000004, and comparing that strictly against 60 drops a
+        // segment's final frame.
+        if (percent < span.first - EDGE || percent > span.last + EDGE) return null
         val width = (span.last - span.first).toFloat()
         // A zero-width segment is a single instant; it reports its end value rather than
         // dividing by nothing.
-        val local = if (width <= 0f) 1f else (percent - span.first) / width
+        val local = if (width <= 0f) 1f else ((percent - span.first) / width).coerceIn(0f, 1f)
         val shaped = shape(segment.curve, local, segment.target.ordinal + 1)
         return (segment.from + (segment.to - segment.from) * shaped).roundToInt()
             .coerceIn(minOf(segment.from, segment.to), maxOf(segment.from, segment.to))
