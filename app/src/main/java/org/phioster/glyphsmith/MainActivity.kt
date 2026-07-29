@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
                         onExportSvg = viewModel::exportSvg,
                         onExportHtml = viewModel::exportHtml,
                         onExportAnsi = viewModel::exportAnsi,
+                        onRunBatch = viewModel::runBatch,
                         onExtractPalette = viewModel::extractPalette,
                         onCopy = viewModel::copyText,
                         onShareImage = viewModel::shareImage,

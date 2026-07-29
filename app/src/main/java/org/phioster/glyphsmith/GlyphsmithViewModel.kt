@@ -92,6 +92,9 @@ data class UiState(
     val previewQuality: PreviewQuality = PreviewQuality.FULL,
     /** Playback repeats rather than stopping at the last frame. */
     val looped: Boolean = true,
+    /** How far a batch run has got, as done/total. Zero total means nothing is running. */
+    val batchDone: Int = 0,
+    val batchTotal: Int = 0,
     val status: String = "no image loaded",
 )
 
@@ -466,6 +469,76 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val text = TextExporters.ansi(grid, _state.value.params)
         val uri = withContext(Dispatchers.IO) { Exporter.saveAnsi(context, text) }
         if (uri != null) "ansi saved to Download/Glyphsmith" else "save failed"
+    }
+
+    /**
+     * Runs every picked image through the current settings and saves each result.
+     *
+     * Deliberately sequential. Each pass allocates a full-size bitmap and the effect chain
+     * works on its own copies, so running several at once is the quickest way to meet the
+     * heap limit — and the phone has nothing to gain from it anyway.
+     *
+     * The source is put back afterwards. A batch is something you launch *from* a look you
+     * have already dialled in, and losing that look as a side effect would be hostile.
+     */
+    fun runBatch(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        viewModelScope.launch {
+            val params = _state.value.params
+            val restore = source
+            val restorePosition = _state.value.previewPosition
+            var saved = 0
+            var failed = 0
+
+            _state.value = _state.value.copy(
+                working = true,
+                batchDone = 0,
+                batchTotal = uris.size,
+                status = "batch 0/${uris.size}",
+            )
+
+            uris.forEachIndexed { index, uri ->
+                val loaded = withContext(Dispatchers.IO) { ImageLoader.load(context, uri) }
+                if (loaded == null) {
+                    failed++
+                } else {
+                    val pixels = withContext(Dispatchers.Default) { ImageLoader.pixelsOf(loaded) }
+                    val width = loaded.width
+                    val height = loaded.height
+                    loaded.recycle()
+
+                    val bitmap = withContext(Dispatchers.Default) {
+                        Pipeline.run(pixels, width, height, params, AsciiRenderer.MAX_OUTPUT_SIDE).bitmap
+                    }
+                    val format = _state.value.exportFormat
+                    val name = Exporter.timestampedName(format.extension)
+                        .replace("glyphsmith-", "glyphsmith-batch-${index + 1}-")
+                    val uriOut = withContext(Dispatchers.IO) {
+                        Exporter.saveImage(context, bitmap, format, name)
+                    }
+                    bitmap.recycle()
+                    if (uriOut != null) saved++ else failed++
+                }
+                _state.value = _state.value.copy(
+                    batchDone = index + 1,
+                    status = "batch ${index + 1}/${uris.size}",
+                )
+            }
+
+            source = restore
+            _state.value = _state.value.copy(
+                working = false,
+                batchDone = 0,
+                batchTotal = 0,
+                previewPosition = restorePosition,
+                status = if (failed == 0) {
+                    "batch done — $saved saved to Pictures/Glyphsmith"
+                } else {
+                    "batch done — $saved saved, $failed failed"
+                },
+            )
+            rebuild(_state.value.params)
+        }
     }
 
     fun copyText() = runExport("copy") {
