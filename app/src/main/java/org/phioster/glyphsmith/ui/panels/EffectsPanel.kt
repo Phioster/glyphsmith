@@ -96,6 +96,9 @@ fun EffectsPanel(
                 EffectId.SLICE ->
                     SliceShiftSection(fx.sliceShift, move) { p -> update { copy(sliceShift = p) } }
 
+                EffectId.INTERLACE ->
+                    InterlaceSection(fx.interlace, move) { p -> update { copy(interlace = p) } }
+
                 EffectId.STARS -> StarsSection(fx.stars, move) { p -> update { copy(stars = p) } }
                 EffectId.SUBTEXTURE ->
                     SubtextureSection(fx.subtexture, move) { p -> update { copy(subtexture = p) } }

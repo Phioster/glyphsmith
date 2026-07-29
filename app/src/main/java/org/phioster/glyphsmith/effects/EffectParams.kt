@@ -166,6 +166,7 @@ enum class EffectId(val label: String) {
     GLITCH("jpeg glitch"),
     SORT("pixel sort"),
     SLICE("slice shift"),
+    INTERLACE("interlace"),
     STARS("stars"),
     SUBTEXTURE("subtexture"),
     CMYK("cmyk halftone"),
@@ -197,6 +198,7 @@ data class EffectStack(
     val cmyk: CmykHalftoneParams = CmykHalftoneParams(),
     val pixelSort: PixelSortParams = PixelSortParams(),
     val sliceShift: SliceShiftParams = SliceShiftParams(),
+    val interlace: InterlaceParams = InterlaceParams(),
     val order: List<EffectId> = EffectId.entries.toList(),
 ) {
     fun enabledOf(id: EffectId): Boolean = when (id) {
@@ -207,6 +209,7 @@ data class EffectStack(
         EffectId.GLITCH -> jpegGlitch.enabled
         EffectId.SORT -> pixelSort.enabled
         EffectId.SLICE -> sliceShift.enabled
+        EffectId.INTERLACE -> interlace.enabled
         EffectId.STARS -> stars.enabled
         EffectId.SUBTEXTURE -> subtexture.enabled
         EffectId.CMYK -> cmyk.enabled

@@ -16,6 +16,7 @@ import org.phioster.glyphsmith.effects.CmykHalftoneParams
 import org.phioster.glyphsmith.effects.DiffractionStarsParams
 import org.phioster.glyphsmith.effects.GlowParams
 import org.phioster.glyphsmith.effects.JpegGlitchParams
+import org.phioster.glyphsmith.effects.InterlaceParams
 import org.phioster.glyphsmith.effects.PixelSortParams
 import org.phioster.glyphsmith.effects.PostProcessingParams
 import org.phioster.glyphsmith.effects.SliceShiftParams
@@ -440,6 +441,51 @@ internal fun SliceShiftSection(
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 4.dp),
+        )
+        SeedRow(params.seed) { onChange(params.copy(seed = it)) }
+    }
+}
+
+@Composable
+internal fun InterlaceSection(
+    params: InterlaceParams,
+    move: MoveHandler,
+    onChange: (InterlaceParams) -> Unit,
+) {
+    EffectSection("interlace", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "an interlaced frame is two fields — the even lines and the odd ones, sent " +
+                "separately. Damage one and the other stays clean, so the corruption lands " +
+                "on every other row rather than on a band. That comb is what makes it read " +
+                "as a signal fault instead of a cut.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        TerminalToggle(
+            label = "damage the odd field",
+            checked = params.oddField,
+            onCheckedChange = { onChange(params.copy(oddField = it)) },
+        )
+        TerminalSlider(
+            "shift", params.shift.toFloat(), 0f..100f,
+            { onChange(params.copy(shift = it.toInt())) },
+            valueText = "${params.shift}%",
+        )
+        TerminalSlider(
+            "density", params.density.toFloat(), 0f..100f,
+            { onChange(params.copy(density = it.toInt())) },
+            valueText = "${params.density}/100",
+        )
+        TerminalSlider(
+            "tear colour", params.tearColor.toFloat(), 0f..100f,
+            { onChange(params.copy(tearColor = it.toInt())) },
+            valueText = "${params.tearColor}/100",
+        )
+        TerminalToggle(
+            label = "freeze the field",
+            checked = params.freeze,
+            onCheckedChange = { onChange(params.copy(freeze = it)) },
         )
         SeedRow(params.seed) { onChange(params.copy(seed = it)) }
     }
