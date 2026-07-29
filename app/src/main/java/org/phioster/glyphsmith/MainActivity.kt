@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
                         onParamsChange = viewModel::updateParams,
                         onPickImage = viewModel::loadImage,
                         onPickVideo = viewModel::loadVideo,
+                        onCapture = viewModel::loadCapture,
                         onPreviewPosition = viewModel::setPreviewPosition,
                         onFormatChange = viewModel::setExportFormat,
                         onExportPng = viewModel::exportImage,

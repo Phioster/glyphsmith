@@ -3,6 +3,8 @@
     <!-- Share targets are written to cache/share; the external paths cover the pre-Q
          save-to-gallery fallback, which hands back a FileProvider uri. -->
     <cache-path name="share" path="share/" />
+    <!-- The system camera writes here; it needs a uri it can open from its own process. -->
+    <cache-path name="captures" path="captures/" />
     <external-path name="pictures" path="Pictures/" />
     <external-path name="downloads" path="Download/" />
 </paths>
