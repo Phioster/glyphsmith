@@ -21,7 +21,13 @@ object NodePipeline {
         var pixels = input
         for (node in nodes) {
             if (!node.enabled) continue
-            pixels = node.process(pixels, ctx)
+            val out = node.process(pixels, ctx)
+            // The one place a buffer may be recycled. A step that returned a *different* buffer
+            // has made the one it was given unreachable — the chain is linear, so nothing else
+            // can still be holding it. A step that mutated in place returns the same array, and
+            // that array is the live image; identity is what tells the two apart.
+            if (out.data !== pixels.data) ctx.pool.give(pixels.data)
+            pixels = out
         }
         return pixels
     }

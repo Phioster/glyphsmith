@@ -30,7 +30,7 @@ object DiffractionStars {
         val reach = max(1, (params.length * scale).roundToInt())
         val falloff = params.falloff / 10f
 
-        val accumulated = Pixels(IntArray(bright.data.size), workWidth, workHeight)
+        val accumulated = bright.derive(bright.buffer(), workWidth, workHeight)
         for (axis in 0 until axes) {
             val degrees = params.angle + axis * step
             val ray = PixelOps.directionalBlur(bright, degrees, reach, 1) { radius ->

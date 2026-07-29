@@ -45,4 +45,6 @@ class RenderContext(
      * set; nothing is required to.
      */
     val isScrubbing: Boolean = false,
+    /** Where a node gets a working buffer from, so a repeated render stops churning the heap. */
+    val pool: BufferPool = BufferPool(),
 )

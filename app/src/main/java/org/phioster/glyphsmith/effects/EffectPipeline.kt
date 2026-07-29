@@ -22,7 +22,7 @@ object EffectPipeline {
     fun apply(bitmap: Bitmap, stack: EffectStack, ctx: RenderContext): Bitmap {
         if (stack.activeCount == 0) return bitmap
 
-        val out = NodePipeline.run(Pixels.of(bitmap), EffectNodes.of(stack), ctx)
+        val out = NodePipeline.run(Pixels.of(bitmap, ctx.pool), EffectNodes.of(stack), ctx)
 
         // The pixels were copied into the buffer on the way in, so nothing is lost by
         // releasing the bitmap here. It never left this function, which is what makes that
