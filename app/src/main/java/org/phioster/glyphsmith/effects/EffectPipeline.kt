@@ -1,41 +1,33 @@
 package org.phioster.glyphsmith.effects
 
 import android.graphics.Bitmap
+import org.phioster.glyphsmith.core.pipeline.NodePipeline
+import org.phioster.glyphsmith.core.pipeline.RenderContext
 
 /**
- * Runs the whole chain over a rendered bitmap, in the order the stack asks for.
+ * The bitmap-facing edge of the effect chain.
  *
- * Everything works on one [Pixels] buffer that is handed from effect to effect, so an
- * enabled-but-neutral effect costs a function call rather than a bitmap copy. Effects that
- * can't work in place (channel separation, JPEG round-trip) return a new buffer; the rest
- * mutate and return the same one — which is why the loop below always reassigns.
+ * The chain itself is [NodePipeline] over the nodes [EffectNodes] builds; all this adds is the
+ * conversion at either end, which is the only part that needs an Android type. Keeping the
+ * conversion here rather than inside the chain is what lets every effect stay unit-testable.
+ *
+ * Effects that can't work in place (channel separation, JPEG round-trip) return a new buffer;
+ * the rest mutate and return the same one, and the chain reassigns either way.
+ *
+ * The empty-stack case returns the bitmap untouched — not a copy, and not recycled, because
+ * the caller goes on to use it.
  */
 object EffectPipeline {
 
-    fun apply(bitmap: Bitmap, stack: EffectStack): Bitmap {
+    fun apply(bitmap: Bitmap, stack: EffectStack, ctx: RenderContext): Bitmap {
         if (stack.activeCount == 0) return bitmap
 
-        var pixels = Pixels.of(bitmap)
-        for (id in stack.effectiveOrder()) {
-            pixels = step(pixels, id, stack)
-        }
+        val out = NodePipeline.run(Pixels.of(bitmap), EffectNodes.of(stack), ctx)
 
+        // The pixels were copied into the buffer on the way in, so nothing is lost by
+        // releasing the bitmap here. It never left this function, which is what makes that
+        // safe — a bitmap that has reached the UI must never be recycled.
         bitmap.recycle()
-        return pixels.toBitmap()
-    }
-
-    private fun step(pixels: Pixels, id: EffectId, stack: EffectStack): Pixels = when (id) {
-        EffectId.POST -> PostProcessing.apply(pixels, stack.postProcessing)
-        EffectId.BLUR -> BlurSharpen.apply(pixels, stack.blurSharpen)
-        EffectId.TINT -> Tint.apply(pixels, stack.tint)
-        EffectId.CHROMATIC -> Chromatic.apply(pixels, stack.chromatic)
-        EffectId.GLITCH -> JpegGlitch.apply(pixels, stack.jpegGlitch)
-        EffectId.SORT -> PixelSort.apply(pixels, stack.pixelSort)
-        EffectId.SLICE -> SliceShift.apply(pixels, stack.sliceShift)
-        EffectId.INTERLACE -> Interlace.apply(pixels, stack.interlace)
-        EffectId.STARS -> DiffractionStars.apply(pixels, stack.stars)
-        EffectId.SUBTEXTURE -> Subtexture.apply(pixels, stack.subtexture)
-        EffectId.CMYK -> CmykHalftone.apply(pixels, stack.cmyk)
-        EffectId.GLOW -> EpsilonGlow.apply(pixels, stack.glow)
+        return out.toBitmap()
     }
 }

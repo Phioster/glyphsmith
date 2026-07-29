@@ -14,8 +14,8 @@ enum class FontStyle { REGULAR, BOLD, ITALIC, BOLD_ITALIC }
  * literally this object written to disk.
  *
  * The control set mirrors the reference app's ASCII settings panel: depth, character
- * and set, injected characters, character offset, font style, palette / transparent
- * background / background colour.
+ * category and set, injected characters, character offset, font style, palette /
+ * transparent background / background colour.
  */
 @Serializable
 data class AsciiParams(

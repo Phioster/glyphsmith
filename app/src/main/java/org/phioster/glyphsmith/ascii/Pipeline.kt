@@ -1,6 +1,7 @@
 package org.phioster.glyphsmith.ascii
 
 import android.graphics.Bitmap
+import org.phioster.glyphsmith.core.pipeline.RenderContext
 import org.phioster.glyphsmith.effects.EffectPipeline
 import kotlin.math.max
 import kotlin.math.min
@@ -40,7 +41,9 @@ object Pipeline {
         sourceHeight: Int,
         params: AsciiParams,
         maxSide: Int,
+        isScrubbing: Boolean = false,
     ): Result {
+        val ctx = RenderContext(maxSide = maxSide, isScrubbing = isScrubbing)
         val ramp = params.effectiveRamp().ifEmpty { " " }
         val face = AsciiRenderer.faceFor(params, ramp)
         val aspect = AsciiRenderer.metrics(REFERENCE_FONT_SIZE, ramp, face.typeface).aspect
@@ -60,6 +63,7 @@ object Pipeline {
         var bitmap = EffectPipeline.apply(
             AsciiRenderer.render(grid, params, fontSize, canvasScale),
             params.effects,
+            ctx,
         )
 
         // Each layer is a full render of the same source at the base's size, transformed and
