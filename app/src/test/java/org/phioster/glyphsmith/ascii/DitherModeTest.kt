@@ -34,12 +34,22 @@ class DitherModeTest {
         }
     }
 
+    /**
+     * A modulation style drives its threshold from a surface, and there are three honest
+     * shelves for that: a repeating pattern, a special effect, or a deliberate fault. What it
+     * may never be is error diffusion or an ordered matrix, which are different mechanisms
+     * entirely — and that is what this guards.
+     */
     @Test
-    fun `modulation modes are filed as patterned or special`() {
+    fun `modulation modes are not filed as diffusion or as a matrix`() {
         DitherMode.entries.filter { Dither.isModulation(it) }.forEach { mode ->
             assertTrue(
                 "${mode.name} modulates but is filed under ${mode.category}",
-                mode.category in setOf(DitherCategory.PATTERNED, DitherCategory.SPECIAL),
+                mode.category in setOf(
+                    DitherCategory.PATTERNED,
+                    DitherCategory.SPECIAL,
+                    DitherCategory.GLITCH,
+                ),
             )
         }
     }
