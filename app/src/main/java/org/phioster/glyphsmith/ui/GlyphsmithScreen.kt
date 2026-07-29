@@ -31,6 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -71,6 +74,10 @@ fun GlyphsmithScreen(
     onPickImage: (android.net.Uri) -> Unit,
     onPickVideo: (android.net.Uri) -> Unit,
     onCapture: (android.net.Uri) -> Unit,
+    onStartLive: () -> Unit,
+    onStopLive: () -> Unit,
+    onFreezeLive: () -> Unit,
+    onFlipCamera: () -> Unit,
     onPreviewPosition: (Float) -> Unit,
     onFormatChange: (ImageFormat) -> Unit,
     onExportPng: () -> Unit,
@@ -120,6 +127,16 @@ fun GlyphsmithScreen(
     // coming back through the result.
     val context = LocalContext.current
     var pending by remember { mutableStateOf<android.net.Uri?>(null) }
+    var permissionDenied by remember { mutableStateOf(false) }
+    val cameraPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        // Refused is a state to report, not an error to swallow: without saying so the
+        // button would simply do nothing and look broken.
+        permissionDenied = !granted
+        if (granted) onStartLive()
+    }
+
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
         val target = pending
         pending = null
@@ -148,7 +165,42 @@ fun GlyphsmithScreen(
                 pending = uri
                 camera.launch(uri)
             },
+            live = state.liveCamera,
+            onLive = {
+                permissionDenied = false
+                if (state.liveCamera) {
+                    onStopLive()
+                } else if (
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED
+                ) {
+                    onStartLive()
+                } else {
+                    cameraPermission.launch(Manifest.permission.CAMERA)
+                }
+            },
         )
+
+        if (permissionDenied) {
+            Text(
+                "camera permission refused — the live view needs it. Taking a photo with " +
+                    "[cam] still works, that goes through the system camera app.",
+                color = Term.Amber,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
+        }
+
+        if (state.liveCamera) {
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                TerminalButton("freeze", onFreezeLive, Modifier.weight(1f))
+                TerminalButton("flip", onFlipCamera, Modifier.weight(1f))
+                TerminalButton("stop", onStopLive, Modifier.weight(1f))
+            }
+        }
 
         Preview(state, Modifier.weight(1f))
 
@@ -242,6 +294,8 @@ private fun Header(
     onLoad: () -> Unit,
     onLoadVideo: () -> Unit,
     onCapture: () -> Unit,
+    live: Boolean,
+    onLive: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
@@ -257,6 +311,11 @@ private fun Header(
         TerminalButton(label = "img", onClick = onLoad)
         TerminalButton(label = "vid", onClick = onLoadVideo)
         TerminalButton(label = "cam", onClick = onCapture)
+        TerminalButton(
+            label = if (live) "live ■" else "live",
+            accent = if (live) Term.Amber else Term.Ink,
+            onClick = onLive,
+        )
     }
 }
 
