@@ -38,6 +38,7 @@ class MainActivity : ComponentActivity() {
                         onExportPng = viewModel::exportImage,
                         onExportTxt = viewModel::exportText,
                         onExportSvg = viewModel::exportSvg,
+                        onExtractPalette = viewModel::extractPalette,
                         onCopy = viewModel::copyText,
                         onShareImage = viewModel::shareImage,
                         onShareText = viewModel::shareText,

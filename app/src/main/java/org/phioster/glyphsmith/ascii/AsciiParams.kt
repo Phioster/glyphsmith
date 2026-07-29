@@ -69,6 +69,14 @@ data class AsciiParams(
     val paletteId: String = "phosphor",
     /** Edited palette stops. Non-empty means the UI has customised [paletteId]'s colours. */
     val paletteOverride: List<Int> = emptyList(),
+    /** Per-stop locks; a locked stop survives a shuffle. Shorter than the palette means unlocked. */
+    val paletteLocks: List<Boolean> = emptyList(),
+    /**
+     * How many colour levels to take from the palette, independent of the glyph [depth].
+     * 0 means all of them. Mismatching the two deliberately is how a palette reads as a
+     * harder posterisation than the character ramp.
+     */
+    val paletteDepth: Int = 0,
     val transparentBackground: Boolean = false,
     val backgroundColor: Int = DEFAULT_BACKGROUND,
     /** Glyph size in output pixels; the exported image is grid × this. Ignored in canvas mode. */
@@ -117,11 +125,24 @@ data class AsciiParams(
     /** Upper bound the offset slider runs to — the offset wraps at the ramp length. */
     fun offsetMax(): Int = effectiveRamp().length.coerceAtLeast(1)
 
-    /** The palette in force: the edited stops when there are any, else the named palette. */
+    /** The palette the UI edits: the edited stops when there are any, else the named one. */
     fun activePalette(): Palette {
         val named = Palettes.byId(paletteId)
         return if (paletteOverride.isEmpty()) named else named.copy(colors = paletteOverride)
     }
+
+    /**
+     * The palette the engine actually samples — [activePalette] narrowed to [paletteDepth].
+     * Kept separate so the stop editor still shows every stop it is editing rather than the
+     * reduced set that happens to be in use.
+     */
+    fun renderPalette(): Palette {
+        val base = activePalette()
+        return base.copy(colors = Palettes.withDepth(base.colors, paletteDepth))
+    }
+
+    /** Whether the stop at [index] is pinned against a shuffle. */
+    fun isStopLocked(index: Int): Boolean = paletteLocks.getOrElse(index) { false }
 
     companion object {
         const val MAX_INJECTION = 10
@@ -132,6 +153,7 @@ data class AsciiParams(
         val FONT_SIZE_RANGE = 6..48
         val CANVAS_SIZE_RANGE = 64..8192
         val DITHER_SCALE_RANGE = 25..400
+        val PALETTE_DEPTH_RANGE = 2..32
         val MOD_SCALE_RANGE = 2..64
         val MOD_ANGLE_RANGE = 0..359
     }

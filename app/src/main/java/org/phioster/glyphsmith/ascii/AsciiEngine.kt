@@ -142,7 +142,7 @@ object AsciiEngine {
         val levels = ramp.length
         val glyphs = CharArray(cols * rows)
         val colors = if (colorGrid != null) IntArray(cols * rows) else null
-        val palette = params.activePalette()
+        val palette = params.renderPalette()
 
         val mode = params.ditherMode
         val strength = (params.ditherStrength / 100f).coerceIn(0f, 1f)

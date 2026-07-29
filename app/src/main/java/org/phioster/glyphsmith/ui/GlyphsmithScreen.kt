@@ -67,6 +67,7 @@ fun GlyphsmithScreen(
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
     onExportSvg: (SvgMode) -> Unit,
+    onExtractPalette: (Int) -> Unit,
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
     onShareText: () -> Unit,
@@ -121,7 +122,7 @@ fun GlyphsmithScreen(
                     missingGlyphs = state.missingGlyphs,
                 )
                 Tab.MAPPING -> MappingPanel(state.params, onParamsChange)
-                Tab.COLOR -> ColorPanel(state.params, onParamsChange)
+                Tab.COLOR -> ColorPanel(state.params, onParamsChange, onExtractPalette)
                 Tab.EFFECTS -> EffectsPanel(state.params, onParamsChange)
                 Tab.ANIM -> AnimPanel(
                     state = state,

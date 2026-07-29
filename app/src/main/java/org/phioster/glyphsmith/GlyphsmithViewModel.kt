@@ -20,9 +20,12 @@ import org.phioster.glyphsmith.ascii.AsciiArt
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.Animator
+import org.phioster.glyphsmith.anim.ColorQuantizer
 import org.phioster.glyphsmith.anim.GifEncoder
 import org.phioster.glyphsmith.anim.Mp4Encoder
 import org.phioster.glyphsmith.ascii.AsciiRenderer
+import org.phioster.glyphsmith.ascii.ColorMode
+import org.phioster.glyphsmith.ascii.Palettes
 import org.phioster.glyphsmith.ascii.Pipeline
 import org.phioster.glyphsmith.ascii.FontChoice
 import org.phioster.glyphsmith.data.ImageLoader
@@ -100,6 +103,30 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     fun updateParams(params: AsciiParams) {
         _state.value = _state.value.copy(params = params)
         paramsFlow.value = params
+    }
+
+    /**
+     * Builds a palette out of the loaded image.
+     *
+     * The median-cut quantiser already exists for the GIF export, so the colours come from
+     * exactly the same code that picks a GIF's 256 — no second, subtly different notion of
+     * "the important colours in this image". The result is sorted darkest-first because
+     * [Palettes.sample] maps luminance onto list position.
+     */
+    fun extractPalette(count: Int) = runExport("palette") {
+        val pixels = sourcePixels ?: return@runExport "no image"
+        val colors = withContext(Dispatchers.Default) {
+            Palettes.fromColors(ColorQuantizer.palette(listOf(pixels), count).toList())
+        }
+        if (colors.isEmpty()) return@runExport "no colours found"
+        updateParams(
+            _state.value.params.copy(
+                colorMode = ColorMode.PALETTE,
+                paletteOverride = colors,
+                paletteLocks = List(colors.size) { false },
+            ),
+        )
+        "extracted ${colors.size} colours"
     }
 
     fun undo() {

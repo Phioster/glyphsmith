@@ -30,9 +30,14 @@ import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton
 import org.phioster.glyphsmith.ui.TerminalChip
+import org.phioster.glyphsmith.ui.TerminalSlider
 import org.phioster.glyphsmith.ui.TerminalToggle
 import org.phioster.glyphsmith.ui.hexOf
 import org.phioster.glyphsmith.ui.theme.Term
+import kotlin.random.Random
+
+/** How many colours the extraction offers to pull out — a short ramp or a rich one. */
+private val EXTRACT_COUNTS = listOf(5, 8, 16)
 
 /**
  * Character colour, palette and background — the original's Use Palette / Transparent
@@ -43,9 +48,10 @@ import org.phioster.glyphsmith.ui.theme.Term
 fun ColorPanel(
     params: AsciiParams,
     onChange: (AsciiParams) -> Unit,
+    onExtractPalette: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val palette = params.activePalette()
+    val palette = params.renderPalette()
     val categories = remember { Palettes.categories }
     var category by remember(params.paletteId) { mutableStateOf(Palettes.byId(params.paletteId).category) }
     val palettes = remember(category) { Palettes.inCategory(category) }
@@ -84,6 +90,7 @@ fun ColorPanel(
             ColorMode.PALETTE -> PaletteSection(
                 params = params,
                 onChange = onChange,
+                onExtractPalette = onExtractPalette,
                 categories = categories,
                 category = category,
                 onCategoryChange = { next ->
@@ -125,6 +132,7 @@ fun ColorPanel(
 private fun PaletteSection(
     params: AsciiParams,
     onChange: (AsciiParams) -> Unit,
+    onExtractPalette: (Int) -> Unit,
     categories: List<String>,
     category: String,
     onCategoryChange: (String) -> Unit,
@@ -132,6 +140,9 @@ private fun PaletteSection(
 ) {
     val selected = palettes.indexOfFirst { it.id == params.paletteId }.coerceAtLeast(0)
     val stops = params.activePalette().colors
+
+    /** Locks are stored per index, so dropping a stop has to drop its lock with it. */
+    fun locksFor(size: Int) = List(size) { params.isStopLocked(it) }
 
     Column(Modifier.fillMaxWidth()) {
         StepperDropdown(
@@ -144,8 +155,59 @@ private fun PaletteSection(
             label = "palette",
             items = palettes,
             selectedIndex = selected,
-            onSelect = { onChange(params.copy(paletteId = palettes[it].id, paletteOverride = emptyList())) },
+            onSelect = {
+                onChange(
+                    params.copy(
+                        paletteId = palettes[it].id,
+                        paletteOverride = emptyList(),
+                        paletteLocks = emptyList(),
+                    ),
+                )
+            },
             itemLabel = { it.name },
+        )
+
+        Row(
+            Modifier.fillMaxWidth().padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            EXTRACT_COUNTS.forEach { count ->
+                TerminalButton(
+                    label = "from image ×$count",
+                    onClick = { onExtractPalette(count) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Text(
+            "pulls the palette out of the loaded image with the same median-cut quantiser " +
+                "the GIF export uses, sorted darkest first",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+
+        TerminalSlider(
+            label = "palette depth",
+            value = params.paletteDepth.toFloat(),
+            range = 0f..AsciiParams.PALETTE_DEPTH_RANGE.last.toFloat(),
+            valueText = if (params.paletteDepth == 0) {
+                "all (${stops.size})"
+            } else {
+                "${params.paletteDepth} of ${stops.size}"
+            },
+            onValueChange = { value ->
+                val depth = value.toInt()
+                onChange(
+                    params.copy(
+                        paletteDepth = if (depth in 1 until AsciiParams.PALETTE_DEPTH_RANGE.first) {
+                            0
+                        } else {
+                            depth
+                        },
+                    ),
+                )
+            },
         )
 
         Text(
@@ -155,6 +217,7 @@ private fun PaletteSection(
             modifier = Modifier.padding(top = 8.dp),
         )
         stops.forEachIndexed { index, stop ->
+            val locked = params.isStopLocked(index)
             Row(
                 Modifier.fillMaxWidth().padding(vertical = 3.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -172,10 +235,25 @@ private fun PaletteSection(
                     modifier = Modifier.weight(1f).padding(top = 5.dp),
                 )
                 TerminalButton(
+                    label = if (locked) "■" else "□",
+                    accent = if (locked) Term.Amber else Term.Ink,
+                    onClick = {
+                        val locks = locksFor(stops.size).toMutableList()
+                        locks[index] = !locked
+                        onChange(params.copy(paletteOverride = stops, paletteLocks = locks))
+                    },
+                )
+                TerminalButton(
                     label = "−",
                     enabled = stops.size > 2,
                     onClick = {
-                        onChange(params.copy(paletteOverride = stops.filterIndexed { i, _ -> i != index }))
+                        onChange(
+                            params.copy(
+                                paletteOverride = stops.filterIndexed { i, _ -> i != index },
+                                paletteLocks = locksFor(stops.size)
+                                    .filterIndexed { i, _ -> i != index },
+                            ),
+                        )
                     },
                 )
             }
@@ -187,16 +265,48 @@ private fun PaletteSection(
         ) {
             TerminalButton(
                 label = "add stop",
-                onClick = { onChange(params.copy(paletteOverride = stops + stops.last())) },
+                onClick = {
+                    onChange(
+                        params.copy(
+                            paletteOverride = stops + stops.last(),
+                            paletteLocks = locksFor(stops.size) + false,
+                        ),
+                    )
+                },
                 modifier = Modifier.weight(1f),
             )
             TerminalButton(
-                label = "reset palette",
+                label = "shuffle",
+                enabled = stops.size > 1,
+                onClick = {
+                    onChange(
+                        params.copy(
+                            paletteOverride = Palettes.shuffle(
+                                stops,
+                                locksFor(stops.size),
+                                Random.Default,
+                            ),
+                            paletteLocks = locksFor(stops.size),
+                        ),
+                    )
+                },
+                modifier = Modifier.weight(1f),
+            )
+            TerminalButton(
+                label = "reset",
                 enabled = params.paletteOverride.isNotEmpty(),
-                onClick = { onChange(params.copy(paletteOverride = emptyList())) },
+                onClick = {
+                    onChange(params.copy(paletteOverride = emptyList(), paletteLocks = emptyList()))
+                },
                 modifier = Modifier.weight(1f),
             )
         }
+        Text(
+            "■ pins a stop against the shuffle",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp),
+        )
 
         if (stops.isNotEmpty()) {
             HexColorField(
