@@ -46,7 +46,11 @@ object Palettes {
         // Retro
         palette("gameboy", "Game Boy", RETRO, 0xFF0F380F, 0xFF306230, 0xFF8BAC0F, 0xFF9BBC0F),
         palette("c64", "Commodore", RETRO, 0xFF352879, 0xFF6C5EB5, 0xFF7ABFC7, 0xFFAAFF66, 0xFFEEEEEE),
-        palette("cga", "CGA", RETRO, 0xFF000000, 0xFF55FFFF, 0xFFFF55FF, 0xFFFFFFFF),
+        // Cyan and magenta were the wrong way round from the day this shipped: magenta
+        // sits at 0.52 luminance and cyan at 0.86, so the ramp doubled back on itself and
+        // mid-tones came out cyan while brighter ones came out magenta. The colours are the
+        // real CGA set; only their order was wrong.
+        palette("cga", "CGA", RETRO, 0xFF000000, 0xFFFF55FF, 0xFF55FFFF, 0xFFFFFFFF),
         palette("spectrum", "Spectrum", RETRO, 0xFF000000, 0xFF0000D7, 0xFFD70000, 0xFFD7D700, 0xFFFFFFFF),
 
         // Warm
