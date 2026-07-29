@@ -233,7 +233,12 @@ fun GlyphsmithScreen(
 
         StatusLine(state)
 
-        TabRow(tab) { tab = it }
+        // Switching to pixel mode while sitting on a glyph-only tab would leave the user on a
+        // panel that is no longer offered, so the selection follows the mode back to the top.
+        val glyphMode = state.params.renderMode.isGlyph
+        if (!glyphMode && tab == Tab.MAPPING) tab = Tab.ASCII
+
+        TabRow(tab, glyphMode) { tab = it }
 
         Column(
             Modifier
@@ -445,7 +450,12 @@ private fun StatusLine(state: UiState) {
 }
 
 @Composable
-private fun TabRow(selected: Tab, onSelect: (Tab) -> Unit) {
+private fun TabRow(selected: Tab, glyphMode: Boolean, onSelect: (Tab) -> Unit) {
+    // The mapping panel is twenty-two sliders about how luminance becomes a *character*. In
+    // pixel mode there is no character, so the tab is not offered rather than being shown full
+    // of controls that do nothing.
+    val tabs = Tab.entries.filter { glyphMode || it != Tab.MAPPING }
+
     Row(
         Modifier
             .fillMaxWidth()
@@ -453,7 +463,7 @@ private fun TabRow(selected: Tab, onSelect: (Tab) -> Unit) {
             .padding(bottom = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Tab.entries.forEach { tab ->
+        tabs.forEach { tab ->
             TerminalChip(
                 label = tab.label,
                 selected = tab == selected,
