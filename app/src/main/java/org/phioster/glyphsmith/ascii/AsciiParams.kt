@@ -111,6 +111,14 @@ data class AsciiParams(
     val animation: AnimationParams = AnimationParams(),
     /** Animated noise added to the dither threshold — works with every dither mode. */
     val temporal: TemporalParams = TemporalParams(),
+    /**
+     * Extra renderings stacked over this one. Empty by default, so nothing changes for
+     * anything that has never touched them.
+     *
+     * A layer carries a whole [AsciiParams] and therefore a `layers` list of its own; that
+     * one is deliberately not recursed into. See [Layer].
+     */
+    val layers: List<Layer> = emptyList(),
 ) {
     val charSet: CharacterSet get() = CharacterSets.byId(charSetId)
 

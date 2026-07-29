@@ -44,6 +44,7 @@ import org.phioster.glyphsmith.ui.panels.AnimPanel
 import org.phioster.glyphsmith.ui.panels.AsciiPanel
 import org.phioster.glyphsmith.ui.panels.ColorPanel
 import org.phioster.glyphsmith.ui.panels.EffectsPanel
+import org.phioster.glyphsmith.ui.panels.LayerPanel
 import org.phioster.glyphsmith.ui.panels.OutputPanel
 import org.phioster.glyphsmith.ui.panels.PresetPanel
 import org.phioster.glyphsmith.ui.panels.MappingPanel
@@ -54,6 +55,7 @@ private enum class Tab(val label: String) {
     MAPPING("MAP"),
     COLOR("COLOUR"),
     EFFECTS("FX"),
+    LAYERS("LYR"),
     ANIM("ANIM"),
     OUTPUT("OUT"),
     PRESETS("PRE"),
@@ -156,6 +158,7 @@ fun GlyphsmithScreen(
                     onImportPalette = onImportPalette,
                 )
                 Tab.EFFECTS -> EffectsPanel(state.params, onParamsChange)
+                Tab.LAYERS -> LayerPanel(state.params, onParamsChange)
                 Tab.ANIM -> AnimPanel(
                     state = state,
                     onChange = onParamsChange,
