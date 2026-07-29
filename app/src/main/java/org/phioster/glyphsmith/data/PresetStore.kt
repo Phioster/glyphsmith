@@ -1196,8 +1196,11 @@ class PresetStore(context: Context) {
                     ditherMode = DitherMode.LOW_POLY,
                     modScale = 10,
                     colorMode = ColorMode.SOURCE,
+                    // A triangle rather than a sawtooth: the axis picks one of six cuts and
+                    // does not wrap, so it rides up through them and back down instead of
+                    // snapping from the last to the first in view.
                     animation = animation(
-                        sweep(AnimTarget.PATTERN_DENSITY, 0, 100, AnimCurve.SAWTOOTH),
+                        sweep(AnimTarget.PATTERN_DENSITY, 0, 100, AnimCurve.TRIANGLE),
                         frames = 36,
                         fps = 8,
                     ),

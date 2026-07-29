@@ -82,21 +82,28 @@ class PresetLibraryTest {
 
     /**
      * A track that ends somewhere other than where it began leaves a visible jump at the loop
-     * seam. Sawtooth is exempt and only for the modulation phase, which wraps inside the
-     * pattern — a full sweep of it lands exactly back on itself.
+     * seam. A non-closing curve is therefore allowed only on a target whose range joins up —
+     * an angle, or a modulation phase — and only when it sweeps the whole of it.
      */
     @Test
     fun `every animated track either closes or wraps`() {
         motion.forEach { preset ->
             preset.params.animation.tracks.filter { it.enabled }.forEach { track ->
                 if (track.curve.seamless) return@forEach
-                assertEquals(
-                    "${preset.name} runs a non-closing curve on ${track.target}",
-                    AnimTarget.MOD_PHASE,
-                    track.target,
+                assertTrue(
+                    "${preset.name} runs a non-closing curve on ${track.target}, which does not wrap",
+                    track.target.cyclic,
                 )
-                assertEquals("${preset.name} does not sweep a whole period", 0, track.from)
-                assertEquals("${preset.name} does not sweep a whole period", 100, track.to)
+                assertEquals(
+                    "${preset.name} does not sweep the whole of ${track.target}",
+                    track.target.min,
+                    minOf(track.from, track.to),
+                )
+                assertEquals(
+                    "${preset.name} does not sweep the whole of ${track.target}",
+                    track.target.max,
+                    maxOf(track.from, track.to),
+                )
             }
         }
     }
