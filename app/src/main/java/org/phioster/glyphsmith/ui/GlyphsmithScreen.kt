@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -68,6 +69,7 @@ fun GlyphsmithScreen(
     onParamsChange: (AsciiParams) -> Unit,
     onPickImage: (android.net.Uri) -> Unit,
     onPickVideo: (android.net.Uri) -> Unit,
+    onCapture: (android.net.Uri) -> Unit,
     onPreviewPosition: (Float) -> Unit,
     onFormatChange: (ImageFormat) -> Unit,
     onExportPng: () -> Unit,
@@ -110,6 +112,17 @@ fun GlyphsmithScreen(
         uri?.let(onPickVideo)
     }
 
+    // The destination has to be decided before the camera is launched and read after it
+    // returns, and TakePicture reports only success — so the uri is held here rather than
+    // coming back through the result.
+    val context = LocalContext.current
+    var pending by remember { mutableStateOf<android.net.Uri?>(null) }
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
+        val target = pending
+        pending = null
+        if (saved && target != null) onCapture(target)
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -126,6 +139,11 @@ fun GlyphsmithScreen(
                 videoPicker.launch(
                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly),
                 )
+            },
+            onCapture = {
+                val (_, uri) = org.phioster.glyphsmith.data.CameraCapture.destination(context)
+                pending = uri
+                camera.launch(uri)
             },
         )
 
@@ -216,6 +234,7 @@ private fun Header(
     onRedo: () -> Unit,
     onLoad: () -> Unit,
     onLoadVideo: () -> Unit,
+    onCapture: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
@@ -230,6 +249,7 @@ private fun Header(
         TerminalButton(label = "↷", onClick = onRedo, enabled = canRedo)
         TerminalButton(label = "img", onClick = onLoad)
         TerminalButton(label = "vid", onClick = onLoadVideo)
+        TerminalButton(label = "cam", onClick = onCapture)
     }
 }
 

@@ -32,6 +32,7 @@ import org.phioster.glyphsmith.ascii.Palettes
 import org.phioster.glyphsmith.ascii.Pipeline
 import org.phioster.glyphsmith.ascii.FontChoice
 import org.phioster.glyphsmith.ascii.GlyphCoverage
+import org.phioster.glyphsmith.data.CameraCapture
 import org.phioster.glyphsmith.data.ImageLoader
 import org.phioster.glyphsmith.data.PaletteFile
 import org.phioster.glyphsmith.data.Preset
@@ -334,6 +335,17 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             rebuild(_state.value.params)
             renderThumbs()
         }
+    }
+
+    /**
+     * Takes the photo the system camera just wrote and loads it like any other image.
+     *
+     * Nothing here knows it came from a camera, which is the point: a capture is a source
+     * like any other, and everything downstream — presets, effects, export — stays unaware.
+     */
+    fun loadCapture(uri: Uri) {
+        CameraCapture.prune(context)
+        loadImage(uri)
     }
 
     /**
