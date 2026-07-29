@@ -80,6 +80,26 @@ enum class DitherMode {
     ARTIFACT_MODULATION,
     VARIABLE_ERROR,
     FRACTAL_DIFFUSE,
+    WAVEFORM,
+    WAVEFORM_ALT,
+    THRESHOLDER,
+    SINE_WAVE_MOD,
+    TOPOGRAPHY,
+    VORTEX,
+    RADIAL_PEAKS,
+    DOTTED_LINES,
+    DISPLACE_CONTOUR,
+    ORB_MATRIX,
+    ORDERED_MODULATION,
+    GLITCH,
+    CRACKED_DIFFUSE,
+    ARTIFACT_GLITCH,
+    ATKINSON_VHS,
+    ATKINSON_LINE_MOD,
+    STUCKI_LINES,
+    CONTRAST_AWARE_X,
+    CONTRAST_AWARE_Y,
+    VORTEX_DIFFUSION,
     ;
 
     val label: String
@@ -144,6 +164,26 @@ enum class DitherMode {
             ARTIFACT_MODULATION -> "Artifact Modulation"
             VARIABLE_ERROR -> "Variable Error"
             FRACTAL_DIFFUSE -> "Fractal Diffuse"
+            WAVEFORM -> "Waveform"
+            WAVEFORM_ALT -> "Waveform Alt"
+            THRESHOLDER -> "Thresholder"
+            SINE_WAVE_MOD -> "Sine Wave Modulation"
+            TOPOGRAPHY -> "Topography"
+            VORTEX -> "Vortex"
+            RADIAL_PEAKS -> "Radial Peaks"
+            DOTTED_LINES -> "Dotted Lines"
+            DISPLACE_CONTOUR -> "Displace Contour"
+            ORB_MATRIX -> "Orb Matrix"
+            ORDERED_MODULATION -> "Ordered Modulation"
+            GLITCH -> "Glitch"
+            CRACKED_DIFFUSE -> "Cracked Diffuse"
+            ARTIFACT_GLITCH -> "Artifact Modulation (Glitch)"
+            ATKINSON_VHS -> "Atkinson-VHS"
+            ATKINSON_LINE_MOD -> "Atkinson Line Modulation"
+            STUCKI_LINES -> "Stucki Diffusion Lines"
+            CONTRAST_AWARE_X -> "Contrast Aware X"
+            CONTRAST_AWARE_Y -> "Contrast Aware Y"
+            VORTEX_DIFFUSION -> "Vortex Diffusion"
         }
 
     /**
@@ -160,7 +200,7 @@ enum class DitherMode {
             FLOYD_STEINBERG, ATKINSON, JARVIS, SIERRA_LITE, STUCKI, BURKES, SIERRA,
             SIERRA_TWO_ROW, FALSE_FLOYD, STEVENSON_ARCE, SMOOTH_DIFFUSE, RIEMERSMA,
             OSTROMOUKHOV, SHIAU_FAN, DOT_DIFFUSION, GAUSSIAN, ARTIFACT_MODULATION,
-            VARIABLE_ERROR, FRACTAL_DIFFUSE,
+            VARIABLE_ERROR, FRACTAL_DIFFUSE, CRACKED_DIFFUSE, VORTEX_DIFFUSION,
             -> DitherCategory.ERROR_DIFFUSION
 
             BAYER_2, BAYER_4, BAYER_8, BAYER_16, CLUSTER_4, CLUSTER_8,
@@ -181,10 +221,16 @@ enum class DitherMode {
 
             // Both push nearly all of the error along one axis, so the grain arrives as
             // streaks rather than as noise — a signal fault rather than a halftone.
-            DIFFUSE_Y, DIFFUSE_X -> DitherCategory.GLITCH
+            DIFFUSE_Y, DIFFUSE_X,
+            WAVEFORM, WAVEFORM_ALT, ORDERED_MODULATION, GLITCH, ARTIFACT_GLITCH,
+            ATKINSON_VHS, ATKINSON_LINE_MOD, STUCKI_LINES,
+            CONTRAST_AWARE_X, CONTRAST_AWARE_Y,
+            -> DitherCategory.GLITCH
 
             MOD_WAVE, MOD_RINGS, MOD_ORB, BEEHIVE,
             NOISE, WAVE, RADIAL_BURST, SINE_DISTORT,
+            THRESHOLDER, SINE_WAVE_MOD, TOPOGRAPHY, VORTEX, RADIAL_PEAKS, DOTTED_LINES,
+            DISPLACE_CONTOUR, ORB_MATRIX,
             -> DitherCategory.SPECIAL
 
             TRI_POLY, HEXA_POLY, PENTA_POLY, LOW_POLY -> DitherCategory.POLYGON

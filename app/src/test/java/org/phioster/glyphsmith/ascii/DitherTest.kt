@@ -74,9 +74,20 @@ class DitherTest {
         assertTrue("the result is flat", out.toSet().size > 1)
     }
 
+    /**
+     * The Atkinson family throws error away on purpose — that loss is what holds their
+     * contrast up. Everything else must pass on all of it, and naming the exceptions here
+     * rather than testing for "roughly one" is what stops a leak going unnoticed.
+     */
+    private val discarders = setOf(
+        DitherMode.ATKINSON,
+        DitherMode.ATKINSON_VHS,
+        DitherMode.ATKINSON_LINE_MOD,
+    )
+
     @Test
-    fun `diffusion kernels conserve the error, except Atkinson`() {
-        diffusionModes.filter { it != DitherMode.ATKINSON }.forEach { mode ->
+    fun `diffusion kernels conserve the error, except the Atkinson family`() {
+        diffusionModes.filter { it !in discarders }.forEach { mode ->
             val sum = Dither.diffusionKernel(mode).map { it.weight }.sum()
             assertEquals("$mode should pass on all of the error", 1f, sum, 1e-4f)
         }

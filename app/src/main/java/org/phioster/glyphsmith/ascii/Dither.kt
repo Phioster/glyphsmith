@@ -108,6 +108,10 @@ object Dither {
         DitherMode.PRINT_PATTERN, DitherMode.GRIDLOCK, DitherMode.RANDOM_ORDERED,
         DitherMode.NOISE, DitherMode.WAVE, DitherMode.RADIAL_BURST,
         DitherMode.SINE_DISTORT,
+        DitherMode.WAVEFORM, DitherMode.WAVEFORM_ALT, DitherMode.THRESHOLDER,
+        DitherMode.SINE_WAVE_MOD, DitherMode.TOPOGRAPHY, DitherMode.VORTEX,
+        DitherMode.RADIAL_PEAKS, DitherMode.DOTTED_LINES, DitherMode.DISPLACE_CONTOUR,
+        DitherMode.ORB_MATRIX, DitherMode.ORDERED_MODULATION, DitherMode.GLITCH,
         -> true
 
         else -> false
@@ -122,7 +126,11 @@ object Dither {
      * keep ignoring it, and a test enforces exactly this split.
      */
     fun isContentAware(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.CROSSHATCH, DitherMode.STIPPLING -> true
+        DitherMode.CROSSHATCH, DitherMode.STIPPLING,
+        DitherMode.WAVEFORM, DitherMode.WAVEFORM_ALT, DitherMode.THRESHOLDER,
+        DitherMode.SINE_WAVE_MOD, DitherMode.TOPOGRAPHY, DitherMode.RADIAL_PEAKS,
+        DitherMode.DISPLACE_CONTOUR,
+        -> true
         else -> false
     }
 
@@ -148,6 +156,12 @@ object Dither {
         DitherMode.TRI_POLY, DitherMode.LOW_POLY -> "triangle size"
         DitherMode.HEXA_POLY, DitherMode.PENTA_POLY -> "hex size"
         DitherMode.CAMO -> "cell size"
+        DitherMode.WAVEFORM, DitherMode.WAVEFORM_ALT, DitherMode.SINE_WAVE_MOD -> "wavelength"
+        DitherMode.TOPOGRAPHY, DitherMode.DISPLACE_CONTOUR -> "contour spacing"
+        DitherMode.VORTEX, DitherMode.RADIAL_PEAKS -> "ring spacing"
+        DitherMode.DOTTED_LINES -> "line spacing"
+        DitherMode.ORDERED_MODULATION -> "sequence length"
+        DitherMode.GLITCH -> "band height"
         else -> "period"
     }
 
@@ -161,6 +175,14 @@ object Dither {
         DitherMode.CIRCLE_GRID, DitherMode.DIAMOND_GRID -> "fill"
         DitherMode.LOW_POLY -> "triangle type"
         DitherMode.PENTA_POLY -> "split direction"
+        DitherMode.WAVEFORM -> "frequency range"
+        DitherMode.WAVEFORM_ALT -> "bend"
+        DitherMode.THRESHOLDER -> "content weight"
+        DitherMode.TOPOGRAPHY -> "warp"
+        DitherMode.VORTEX -> "twist"
+        DitherMode.RADIAL_PEAKS -> "interference"
+        DitherMode.DOTTED_LINES -> "dotting"
+        DitherMode.DISPLACE_CONTOUR -> "displacement"
         else -> null
     }
 
@@ -453,6 +475,132 @@ object Dither {
                 (0.5f + 0.25f * (a + b)).coerceIn(0f, 1f)
             }
 
+            // --- glitch and special -------------------------------------------------
+            /*
+             * The rest of the catalogue. Studio AAA names these and describes them in a line;
+             * the mathematics is this app's own, and that is stated here rather than left for
+             * someone to assume otherwise. What their controls are called told us what each
+             * one is *for*, which turned out to be most of the work.
+             */
+
+            // Waveform. The wave's frequency follows the picture, so detail crowds the crests
+            // together and flat areas stretch them out — a wave that reports what it crosses.
+            DitherMode.WAVEFORM -> {
+                val rate = 0.5f + (1f - value) * (1f + options.density / 100f * 3f)
+                0.5f + 0.5f * sin(TAU * (u * rate + phase)).toFloat()
+            }
+
+            // The same idea with the wave itself bent by brightness rather than sped up, so
+            // the crests bow around what is bright instead of bunching against it.
+            DitherMode.WAVEFORM_ALT -> {
+                val bend = (value - 0.5f) * (options.density / 100f * 4f)
+                0.5f + 0.5f * sin(TAU * (u + v * bend + phase)).toFloat()
+            }
+
+            // Three sines at unrelated frequencies, summed and then pushed by the cell's own
+            // brightness. Unrelated on purpose: rational ratios would beat into a visible
+            // repeat, and the point of this one is a threshold with no period at all.
+            DitherMode.THRESHOLDER -> {
+                val a = sin(TAU * (u + phase)).toFloat()
+                val b = sin(TAU * (v * 1.6180339f)).toFloat()
+                val c2 = sin(TAU * ((u + v) * 0.7548776f)).toFloat()
+                val field = (a + b + c2) / 6f
+                (0.5f + field + (value - 0.5f) * (options.density / 100f)).coerceIn(0f, 1f)
+            }
+
+            // Two sines crossed into a lattice of hollows, with brightness raising or lowering
+            // the water level so the pools open and close across the picture.
+            DitherMode.SINE_WAVE_MOD -> {
+                val a = sin(TAU * (u + phase)).toFloat()
+                val b = sin(TAU * v).toFloat()
+                (0.5f + 0.25f * a * b + (1f - value - 0.5f) * 0.4f).coerceIn(0f, 1f)
+            }
+
+            /*
+             * Topography. Contour lines at fixed heights through the brightness, exactly as a
+             * map draws them, with the height field warped a little so the lines wander the
+             * way a coastline does instead of sitting in perfect rings.
+             */
+            DitherMode.TOPOGRAPHY -> {
+                val warp = options.density / 100f * 0.25f *
+                    sin(TAU * (u * 0.5f + phase)).toFloat() * sin(TAU * (v * 0.5f)).toFloat()
+                val height = (value + warp) * (period * 0.75f)
+                val band = abs(frac(height) - 0.5f) * 2f
+                band.coerceIn(0f, 1f)
+            }
+
+            // A polar spiral: turning the angle into the radius is what makes a circle into a
+            // coil, and the second axis says how tightly it winds.
+            DitherMode.VORTEX -> {
+                val dx = x - options.centerX
+                val dy = y - options.centerY
+                val r = hypot(dx, dy) / period
+                val twist = 0.5f + options.density / 100f * 4f
+                val a = (atan2(dy, dx) / TAU).toFloat()
+                0.5f + 0.5f * sin(TAU * (r + a * twist + phase)).toFloat()
+            }
+
+            /*
+             * Rings spreading from bright cores. A cell's brightness offsets the ring phase,
+             * so light areas push their rings outwards while dark ones hold them back, and
+             * where two fields meet the rings interfere the way ripples do.
+             */
+            DitherMode.RADIAL_PEAKS -> {
+                val dx = x - options.centerX
+                val dy = y - options.centerY
+                val r = hypot(dx, dy) / period
+                val push = value * (options.density / 100f * 2f)
+                0.5f + 0.5f * sin(TAU * (r - push + phase)).toFloat()
+            }
+
+            // Flowing lines broken into dashes. The line is one sine and the dashing another
+            // across it, so the dashes travel along the line rather than sitting on a grid.
+            DitherMode.DOTTED_LINES -> {
+                val line = 0.5f + 0.5f * sin(TAU * (v + phase)).toFloat()
+                val dash = 0.5f + 0.5f * sin(TAU * (u * (1f + options.density / 100f * 6f)))
+                    .toFloat()
+                (line * 0.6f + dash * 0.4f).coerceIn(0f, 1f)
+            }
+
+            /*
+             * Contours displaced by the picture. Same banding as Topography, but the bands are
+             * pushed sideways by brightness rather than warped in place, so the lines bunch
+             * where the image changes fast — thick in flat areas, tight over detail.
+             */
+            DitherMode.DISPLACE_CONTOUR -> {
+                val shift = (value - 0.5f) * (1f + options.density / 100f * 5f)
+                val band = abs(frac(u + shift + phase) - 0.5f) * 2f
+                band.coerceIn(0f, 1f)
+            }
+
+            // Orbs and a Bayer tile at once. Neither alone gives both a shape and a texture:
+            // the orb decides where ink gathers, the matrix decides how it breaks up.
+            DitherMode.ORB_MATRIX -> {
+                val orb = orbField(u + phase, v, options.orb, 0f)
+                val matrix = orderedThreshold(DitherMode.BAYER_8, floor(x).toInt(), floor(y).toInt())
+                (orb * 0.6f + matrix * 0.4f).coerceIn(0f, 1f)
+            }
+
+            // A one-dimensional Bayer sequence read along a wavy line rather than a straight
+            // one, so the ordered texture keeps its evenness while the rows themselves ripple.
+            DitherMode.ORDERED_MODULATION -> {
+                val ripple = 0.35f * sin(TAU * (v * 0.5f + phase)).toFloat()
+                val along = floor((u + ripple) * period).toInt()
+                BAYER_1D[Math.floorMod(along, BAYER_1D.size)]
+            }
+
+            /*
+             * Glitch. Whole bands of rows torn sideways by a random amount, with the tear
+             * rolled per band rather than per cell — damage arrives in blocks, and a per-cell
+             * roll would be noise, which is a different style entirely.
+             */
+            DitherMode.GLITCH -> {
+                val band = floor(v * 2f).toInt()
+                val roll = hash(band, 0, 17)
+                val torn = if (roll < 0.35f) hash(band, 1, 23) * 2f - 1f else 0f
+                frac(u + torn + phase)
+            }
+
             DitherMode.MOD_ORB -> orbField(u + phase, v, options.orb, 0f)
 
             // Offsetting every other row by half a cell is what turns a square grid of orbs
@@ -506,6 +654,16 @@ object Dither {
         val hard = if (distance < 1f) 0f else 1f
         return (soft * (1f - hardness) + hard * hardness).coerceIn(0f, 1f)
     }
+
+    /**
+     * A Bayer sequence in one dimension — the same recursive interleave, along a line.
+     *
+     * Eight steps, each as far as possible from the ones already placed, which is what gives
+     * an ordered dither its evenness. Written out because a 1×8 case is not worth generating.
+     */
+    private val BAYER_1D = floatArrayOf(
+        0.0625f, 0.5625f, 0.3125f, 0.8125f, 0.1875f, 0.6875f, 0.4375f, 0.9375f,
+    )
 
     /** The trade's process-colour screen angles, in the order cyan, magenta, yellow, black. */
     private val SCREEN_ANGLES = intArrayOf(15, 75, 0, 45)
@@ -760,7 +918,81 @@ object Dither {
          */
         DitherMode.FRACTAL_DIFFUSE -> emptyList()
 
+        // Error split evenly between right and straight down, with nothing on the diagonal.
+        // Denying it the diagonal is what makes the artefacts run in unbroken horizontal and
+        // vertical runs that never cross — the cracks the name refers to.
+        DitherMode.CRACKED_DIFFUSE -> listOf(
+            DiffusionTap(1, 0, 1 / 2f),
+            DiffusionTap(0, 1, 1 / 2f),
+        )
+
+        // Nothing ever reaches the row below, so an error runs to the end of its line and
+        // stops. Errors cannot average out across rows, and each line drifts independently —
+        // which is what a dropped video line looks like.
+        DitherMode.ARTIFACT_GLITCH -> listOf(
+            DiffusionTap(1, 0, 8 / 16f),
+            DiffusionTap(2, 0, 5 / 16f),
+            DiffusionTap(3, 0, 3 / 16f),
+        )
+
+        // Atkinson smeared sideways. It keeps his eighths — including the quarter he throws
+        // away, which is what holds the contrast up — but reaches four cells along the row
+        // instead of two, so the loss trails behind bright areas like a tape head catching up.
+        DitherMode.ATKINSON_VHS -> listOf(
+            DiffusionTap(1, 0, 1 / 8f),
+            DiffusionTap(2, 0, 1 / 8f),
+            DiffusionTap(3, 0, 1 / 8f),
+            DiffusionTap(4, 0, 1 / 8f),
+            DiffusionTap(0, 1, 1 / 8f),
+            DiffusionTap(1, 1, 1 / 8f),
+        )
+
+        /*
+         * Atkinson whose sideways bias follows the brightness — see [variableKernel]. Highlights
+         * send their error along the row and shadows send it down, so the smear appears only
+         * where the picture is light. Modulation in the literal sense: one thing varying another.
+         */
+        DitherMode.ATKINSON_LINE_MOD -> atkinsonLineKernel(0.5f)
+
+        // Stucki with its first row weighted far more heavily than its lower ones. The error
+        // therefore travels much further along a row than down the image, and the grain
+        // stretches into lines without ever becoming purely horizontal.
+        DitherMode.STUCKI_LINES -> listOf(
+            DiffusionTap(1, 0, 12 / 42f),
+            DiffusionTap(2, 0, 8 / 42f),
+            DiffusionTap(3, 0, 4 / 42f),
+            DiffusionTap(-2, 1, 1 / 42f),
+            DiffusionTap(-1, 1, 2 / 42f),
+            DiffusionTap(0, 1, 6 / 42f),
+            DiffusionTap(1, 1, 4 / 42f),
+            DiffusionTap(2, 1, 2 / 42f),
+            DiffusionTap(-1, 2, 1 / 42f),
+            DiffusionTap(0, 2, 1 / 42f),
+            DiffusionTap(1, 2, 1 / 42f),
+        )
+
+        /*
+         * These three decide their own order or need the whole grid, so they carry no taps.
+         * Contrast Aware X and Y measure a neighbourhood, which a per-cell kernel cannot see;
+         * Vortex Diffusion walks a spiral. All three go through the precomputed path.
+         */
+        DitherMode.CONTRAST_AWARE_X, DitherMode.CONTRAST_AWARE_Y,
+        DitherMode.VORTEX_DIFFUSION,
+        -> emptyList()
+
         else -> emptyList()
+    }
+
+    /** Atkinson's eighths, with the split between along-the-row and down set by brightness. */
+    private fun atkinsonLineKernel(value: Float): List<DiffusionTap> {
+        val lean = value.coerceIn(0f, 1f)
+        return listOf(
+            DiffusionTap(1, 0, (1f + lean) / 8f),
+            DiffusionTap(2, 0, (1f + lean * 0.5f) / 8f),
+            DiffusionTap(-1, 1, (1f - lean * 0.5f) / 8f),
+            DiffusionTap(0, 1, (1f - lean * 0.5f) / 8f),
+            DiffusionTap(1, 1, (1f - lean * 0.5f) / 8f),
+        )
     }
 
     /** How many rows below the current one a kernel reaches — the error buffer's depth. */
@@ -776,7 +1008,10 @@ object Dither {
      * out of the loop the way the others are.
      */
     fun hasVariableKernel(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.OSTROMOUKHOV, DitherMode.VARIABLE_ERROR -> true
+        DitherMode.OSTROMOUKHOV, DitherMode.VARIABLE_ERROR,
+        DitherMode.ATKINSON_LINE_MOD,
+        -> true
+
         else -> false
     }
 
@@ -794,6 +1029,10 @@ object Dither {
         DitherMode.OSTROMOUKHOV -> Ostromoukhov.kernelFor(value)
         DitherMode.VARIABLE_ERROR -> VARIABLE_ERROR_KERNELS[
             (value.coerceIn(0f, 1f) * (VARIABLE_ERROR_KERNELS.size - 1)).toInt(),
+        ]
+
+        DitherMode.ATKINSON_LINE_MOD -> ATKINSON_LINE_KERNELS[
+            (value.coerceIn(0f, 1f) * (ATKINSON_LINE_KERNELS.size - 1)).toInt(),
         ]
 
         else -> null
@@ -818,6 +1057,9 @@ object Dither {
     private val VARIABLE_ERROR_KERNELS: List<List<DiffusionTap>> =
         (0 until 64).map { variableErrorKernel(it / 63f) }
 
+    private val ATKINSON_LINE_KERNELS: List<List<DiffusionTap>> =
+        (0 until 64).map { atkinsonLineKernel(it / 63f) }
+
     /**
      * Whether this mode decides every cell up front instead of along the rows.
      *
@@ -827,7 +1069,9 @@ object Dither {
      * hand back a finished grid of glyph indices and the loop just reads it.
      */
     fun isPrecomputed(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.RIEMERSMA, DitherMode.DOT_DIFFUSION, DitherMode.FRACTAL_DIFFUSE -> true
+        DitherMode.RIEMERSMA, DitherMode.DOT_DIFFUSION, DitherMode.FRACTAL_DIFFUSE,
+        DitherMode.CONTRAST_AWARE_X, DitherMode.CONTRAST_AWARE_Y, DitherMode.VORTEX_DIFFUSION,
+        -> true
         else -> isRegion(mode)
     }
 
