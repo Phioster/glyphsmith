@@ -132,8 +132,25 @@ rolls a look within ranges chosen to actually produce something. The LAB categor
 comparison bench: one preset per dithering algorithm at otherwise identical settings,
 generated from the enum so an algorithm added later cannot be left without one.
 
+**Layers** — extra renderings of the same picture stacked over the first, each with its own
+complete settings plus blend mode, opacity, offset, scale, rotation and flip. A layer is
+captured from the settings in force rather than edited separately: build a look, capture it,
+change the settings, capture again. Layers render at the output size and are scaled
+afterwards, so scaling one up enlarges its glyphs rather than resampling a smaller picture
+of them.
+
+**Batch** — pick a set of images and run them all through the current settings. Your loaded
+image and its framing come back afterwards.
+
 **Export** — PNG to `Pictures/Glyphsmith`; the character grid, GIF, MP4 and SVG to
-`Download/Glyphsmith`; clipboard; or the system share sheet. Presets are saved as JSON.
+`Download/Glyphsmith`; clipboard; or the system share sheet. Presets are saved as JSON, and
+palettes can be exported on their own — a name and a list of hex colours, editable by hand.
+
+Two text formats keep the colour the `.txt` export drops: a self-contained HTML page, and
+ANSI escapes a terminal renders straight from `cat`.
+
+**Preview** — Live halves the preview resolution for a heavy effect chain; the export is
+untouched. Playback can loop or stop on the last frame.
 
 **Themes** — six interface looks (Matrix, Amber CRT, Ice, Handheld, Rose, and the one light
 theme, Parchment). The theme is an app setting rather than part of a preset: loading someone
