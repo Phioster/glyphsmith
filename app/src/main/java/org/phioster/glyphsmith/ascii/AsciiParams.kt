@@ -31,6 +31,14 @@ data class AsciiParams(
     val offset: Int = 0,
     /** Up to [MAX_INJECTION] custom characters appended to the dense end of the ramp. */
     val injection: String = "",
+    /**
+     * Replaces the selected set's glyphs. Empty means the set is used as it ships.
+     *
+     * One field serves two features: `auto-order` writes the measured coverage order into
+     * it, and the ramp editor writes a hand-arranged one. Because it is an ordinary field it
+     * travels into presets and exports without anything else having to know about it.
+     */
+    val rampOverride: String = "",
     val invert: Boolean = false,
     val fontStyle: FontStyle = FontStyle.REGULAR,
     val glyphFont: GlyphFont = GlyphFont.AUTO,
@@ -108,8 +116,11 @@ data class AsciiParams(
      * Injection lands at the dense end on purpose — injected glyphs show up in the
      * brightest areas, which is predictable and keeps the tonal ramp below it intact.
      */
+    /** The glyphs the ramp is built from: the override when set, else the chosen set. */
+    fun baseGlyphs(): String = rampOverride.ifEmpty { charSet.glyphs }
+
     fun effectiveRamp(): String {
-        val base = charSet.glyphs
+        val base = baseGlyphs()
         val levels = effectiveDepth
         val narrowed = when {
             levels >= base.length -> base

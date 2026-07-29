@@ -86,6 +86,7 @@ fun GlyphsmithScreen(
     onExportMp4: () -> Unit,
     themeId: String,
     onThemeChange: (String) -> Unit,
+    onAutoOrderRamp: () -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -132,6 +133,8 @@ fun GlyphsmithScreen(
                     onChange = onParamsChange,
                     fontLabel = state.fontLabel,
                     missingGlyphs = state.missingGlyphs,
+                    rampCoverage = state.rampCoverage,
+                    onAutoOrder = onAutoOrderRamp,
                 )
                 Tab.MAPPING -> MappingPanel(state.params, onParamsChange)
                 Tab.COLOR -> ColorPanel(state.params, onParamsChange, onExtractPalette)

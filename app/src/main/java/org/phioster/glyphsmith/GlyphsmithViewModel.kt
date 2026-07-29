@@ -28,6 +28,7 @@ import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.ascii.Palettes
 import org.phioster.glyphsmith.ascii.Pipeline
 import org.phioster.glyphsmith.ascii.FontChoice
+import org.phioster.glyphsmith.ascii.GlyphCoverage
 import org.phioster.glyphsmith.data.ImageLoader
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
@@ -63,6 +64,8 @@ data class UiState(
     val canRedo: Boolean = false,
     val fontLabel: String = "",
     val missingGlyphs: String = "",
+    /** Measured ink coverage per glyph of the base ramp, for the ramp editor. */
+    val rampCoverage: List<Float> = emptyList(),
     val presets: List<Preset> = emptyList(),
     val themeId: String = "matrix",
     val status: String = "no image loaded",
@@ -154,6 +157,27 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             ),
         )
         "extracted ${colors.size} colours"
+    }
+
+    /**
+     * Reorders the ramp by measured ink coverage.
+     *
+     * The sets ship in a hand-chosen order, which is a guess; anything typed into Inject
+     * Characters is not even that, since it lands at the dense end unmeasured. Measuring
+     * uses the face the ramp will actually be drawn with, so the answer is right for this
+     * ramp rather than right in general.
+     */
+    fun autoOrderRamp() = runExport("ramp") {
+        val params = _state.value.params
+        val face = AsciiRenderer.faceFor(params, params.effectiveRamp().ifEmpty { " " })
+        val sorted = withContext(Dispatchers.Default) {
+            GlyphCoverage.sort(params.baseGlyphs() + params.injection, face.typeface)
+        }
+        if (sorted.isEmpty()) return@runExport "nothing to order"
+        // The injected characters are now placed by measurement, so they must not also be
+        // appended a second time by effectiveRamp().
+        updateParams(params.copy(rampOverride = sorted, injection = ""))
+        "ordered ${sorted.length} glyphs by coverage"
     }
 
     fun undo() {
@@ -284,6 +308,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             Pipeline.run(pixels, current.width, current.height, params, PREVIEW_MAX_SIDE)
         }
         art = result.art
+        // Measured once per rebuild and cached inside GlyphCoverage, so a slider drag pays
+        // for the rasterisation only the first time a glyph is seen in this face.
+        val coverage = withContext(Dispatchers.Default) {
+            GlyphCoverage.profile(params.baseGlyphs(), result.face.typeface).map { it.second }
+        }
         // The old preview is deliberately not recycled: Compose may still be drawing it
         // this frame, and a recycled bitmap under the canvas is an instant crash.
         _state.value = _state.value.copy(
@@ -294,6 +323,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             outputHeight = result.outputHeight,
             fontLabel = result.face.label,
             missingGlyphs = result.face.missing,
+            rampCoverage = coverage,
             working = false,
             status = "${result.art.cols}×${result.art.rows} cells",
         )

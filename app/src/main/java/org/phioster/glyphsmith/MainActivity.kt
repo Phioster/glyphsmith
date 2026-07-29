@@ -57,6 +57,7 @@ class MainActivity : ComponentActivity() {
                         onExportMp4 = viewModel::exportMp4,
                         themeId = state.themeId,
                         onThemeChange = viewModel::setTheme,
+                        onAutoOrderRamp = viewModel::autoOrderRamp,
                     )
                 }
             }
