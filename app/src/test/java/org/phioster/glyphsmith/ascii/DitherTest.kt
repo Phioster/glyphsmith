@@ -13,19 +13,26 @@ class DitherTest {
     private val orderedModes = DitherMode.entries.filter { Dither.isOrdered(it) }
 
     /**
-     * Every mode has to be exactly one kind of thing. RIEMERSMA is the one that is neither a
-     * kernel nor a threshold — it walks its own curve — and it is named here rather than
-     * quietly allowed, so a mode that falls through by accident still fails.
+     * Every mode has to be exactly one kind of thing.
+     *
+     * There are now three: a kernel that passes error on, a threshold read off the position,
+     * and a region that flattens an area. NONE is the one genuine exception — it is the
+     * absence of dithering — and it is named here rather than quietly allowed, so a mode that
+     * falls through by accident still fails.
+     *
+     * Riemersma used to be named alongside it. It no longer needs to be: walking a curve to
+     * decide every cell up front is what the region styles do too, and that is a kind rather
+     * than an oddity.
      */
     @Test
-    fun `every mode is a kernel, a threshold, or a named exception`() {
-        val exceptions = setOf(DitherMode.NONE, DitherMode.RIEMERSMA)
+    fun `every mode is a kernel, a threshold, a region, or the absence of dithering`() {
         DitherMode.entries.forEach { mode ->
             val kinds = listOf(
                 Dither.diffusionKernel(mode).isNotEmpty(),
                 Dither.isThresholdBased(mode),
+                Dither.isPrecomputed(mode),
             ).count { it }
-            val expected = if (mode in exceptions) 0 else 1
+            val expected = if (mode == DitherMode.NONE) 0 else 1
             assertEquals("$mode is $kinds kinds of dither at once", expected, kinds)
         }
     }

@@ -64,6 +64,15 @@ enum class DitherMode {
     WAVE,
     RADIAL_BURST,
     SINE_DISTORT,
+    MOSAIC,
+    SQUARE_MOSAIC,
+    CIRCLE_GRID,
+    DIAMOND_GRID,
+    TRI_POLY,
+    HEXA_POLY,
+    PENTA_POLY,
+    LOW_POLY,
+    CAMO,
     ;
 
     val label: String
@@ -112,6 +121,15 @@ enum class DitherMode {
             WAVE -> "Wave"
             RADIAL_BURST -> "Radial Burst"
             SINE_DISTORT -> "Sine Distort"
+            MOSAIC -> "Mosaic"
+            SQUARE_MOSAIC -> "Square Mosaic"
+            CIRCLE_GRID -> "Circle Grid"
+            DIAMOND_GRID -> "Diamond Grid"
+            TRI_POLY -> "Tri-Poly"
+            HEXA_POLY -> "Hexa-Poly"
+            PENTA_POLY -> "Penta-Poly"
+            LOW_POLY -> "Low-Poly"
+            CAMO -> "Camo"
         }
 
     /**
@@ -140,6 +158,9 @@ enum class DitherMode {
             // pattern, whatever "ordered" suggests. ORDERED here means a matrix, and a test
             // holds it to that.
             RANDOM_ORDERED,
+            // These flatten an area rather than threshold a cell, but what they produce is a
+            // pattern of tiles, and that is where someone looking for one will look.
+            MOSAIC, SQUARE_MOSAIC, CIRCLE_GRID, DIAMOND_GRID, CAMO,
             -> DitherCategory.PATTERNED
 
             // Both push nearly all of the error along one axis, so the grain arrives as
@@ -149,5 +170,7 @@ enum class DitherMode {
             MOD_WAVE, MOD_RINGS, MOD_ORB, BEEHIVE,
             NOISE, WAVE, RADIAL_BURST, SINE_DISTORT,
             -> DitherCategory.SPECIAL
+
+            TRI_POLY, HEXA_POLY, PENTA_POLY, LOW_POLY -> DitherCategory.POLYGON
         }
 }
