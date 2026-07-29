@@ -687,6 +687,79 @@ object Dither {
             DiffusionTap(1, 1, 1 / 20f),
         )
 
+        /*
+         * Ostromoukhov, SIGGRAPH 2001. The weights are looked up per input level rather than
+         * fixed — see [Ostromoukhov]. This entry is only the shape: it tells the engine that
+         * the mode diffuses at all and how deep an error buffer it needs.
+         */
+        DitherMode.OSTROMOUKHOV -> Ostromoukhov.representative
+
+        /*
+         * Shiau-Fan. Transcribed from Figure 1 of Ostromoukhov's paper, where it is drawn
+         * beside Floyd-Steinberg for comparison. Nearly all of the error goes to the right and
+         * straight down; what reaches the row below travels a long way left, which is what
+         * breaks up the diagonal worms Floyd-Steinberg leaves behind.
+         */
+        DitherMode.SHIAU_FAN -> listOf(
+            DiffusionTap(1, 0, 8 / 16f),
+            DiffusionTap(-3, 1, 1 / 16f),
+            DiffusionTap(-2, 1, 1 / 16f),
+            DiffusionTap(-1, 1, 2 / 16f),
+            DiffusionTap(0, 1, 4 / 16f),
+        )
+
+        /*
+         * Knuth's dot diffusion needs no kernel — it decides its own order and its own
+         * neighbours, in [DotDiffusion]. It appears here only so the engine sizes an error
+         * buffer for it; the taps are never read.
+         */
+        DitherMode.DOT_DIFFUSION -> emptyList()
+
+        /*
+         * A Gaussian falling off over a 5x5 window, computed rather than chosen: the weight of
+         * each tap is exp(-d²/2σ²) with σ = 1.2, normalised over the forward half. The classic
+         * kernels all have a bias built into their integer weights; this one has none, and the
+         * grain comes out correspondingly soft and even.
+         */
+        DitherMode.GAUSSIAN -> listOf(
+            DiffusionTap(1, 0, 24 / 128f),
+            DiffusionTap(2, 0, 9 / 128f),
+            DiffusionTap(-2, 1, 6 / 128f),
+            DiffusionTap(-1, 1, 17 / 128f),
+            DiffusionTap(0, 1, 24 / 128f),
+            DiffusionTap(1, 1, 17 / 128f),
+            DiffusionTap(2, 1, 6 / 128f),
+            DiffusionTap(-2, 2, 2 / 128f),
+            DiffusionTap(-1, 2, 6 / 128f),
+            DiffusionTap(0, 2, 9 / 128f),
+            DiffusionTap(1, 2, 6 / 128f),
+            DiffusionTap(2, 2, 2 / 128f),
+        )
+
+        // Every neighbour weighted the same. The classic kernels are shaped precisely to
+        // avoid this — equal weights let the error pile up in step with the grid and throw
+        // off a regular artefact, which here is the point rather than the failure.
+        DitherMode.ARTIFACT_MODULATION -> listOf(
+            DiffusionTap(1, 0, 1 / 4f),
+            DiffusionTap(-1, 1, 1 / 4f),
+            DiffusionTap(0, 1, 1 / 4f),
+            DiffusionTap(1, 1, 1 / 4f),
+        )
+
+        /*
+         * Floyd-Steinberg's footprint with the split between right and down-left decided by
+         * the cell's own brightness — see [variableKernel]. Highlights push their error
+         * sideways and shadows push it down, so the grain leans one way in the light and the
+         * other in the dark. This entry is the balanced middle.
+         */
+        DitherMode.VARIABLE_ERROR -> variableErrorKernel(0.5f)
+
+        /*
+         * Diffusion along a Hilbert curve, in [Riemersma]. Like dot diffusion it decides its
+         * own order, and appears here only so the engine knows it diffuses.
+         */
+        DitherMode.FRACTAL_DIFFUSE -> emptyList()
+
         else -> emptyList()
     }
 
@@ -702,7 +775,10 @@ object Dither {
      * comes from picking different weights per input level, so his kernel cannot be hoisted
      * out of the loop the way the others are.
      */
-    fun hasVariableKernel(mode: DitherMode): Boolean = false
+    fun hasVariableKernel(mode: DitherMode): Boolean = when (mode) {
+        DitherMode.OSTROMOUKHOV, DitherMode.VARIABLE_ERROR -> true
+        else -> false
+    }
 
     /**
      * The kernel for a cell of brightness [value] in 0..1, or null if [mode] uses a constant.
@@ -714,8 +790,33 @@ object Dither {
      * [diffusionKernel] — that is what [kernelDepth] measures to size the error buffer, and
      * what the loop falls back on.
      */
-    @Suppress("UNUSED_PARAMETER")
-    fun variableKernel(mode: DitherMode, value: Float): List<DiffusionTap>? = null
+    fun variableKernel(mode: DitherMode, value: Float): List<DiffusionTap>? = when (mode) {
+        DitherMode.OSTROMOUKHOV -> Ostromoukhov.kernelFor(value)
+        DitherMode.VARIABLE_ERROR -> VARIABLE_ERROR_KERNELS[
+            (value.coerceIn(0f, 1f) * (VARIABLE_ERROR_KERNELS.size - 1)).toInt(),
+        ]
+
+        else -> null
+    }
+
+    /**
+     * Floyd-Steinberg's four taps, with the share between right and down-left sliding with
+     * brightness. The total is always sixteen sixteenths — an intensity-dependent kernel that
+     * also leaks error would be two changes at once, and only one of them is the idea.
+     */
+    private fun variableErrorKernel(value: Float): List<DiffusionTap> {
+        val lean = (value.coerceIn(0f, 1f) * 3f)
+        return listOf(
+            DiffusionTap(1, 0, (4f + lean) / 16f),
+            DiffusionTap(-1, 1, (4f - lean) / 16f),
+            DiffusionTap(0, 1, 5 / 16f),
+            DiffusionTap(1, 1, 3 / 16f),
+        )
+    }
+
+    /** Pre-built so the loop never allocates; 64 steps is finer than the eye or the ramp. */
+    private val VARIABLE_ERROR_KERNELS: List<List<DiffusionTap>> =
+        (0 until 64).map { variableErrorKernel(it / 63f) }
 
     /**
      * Whether this mode decides every cell up front instead of along the rows.
@@ -725,7 +826,10 @@ object Dither {
      * right corner before the top left. Rather than bend the main loop around them, they
      * hand back a finished grid of glyph indices and the loop just reads it.
      */
-    fun isPrecomputed(mode: DitherMode): Boolean = mode == DitherMode.RIEMERSMA || isRegion(mode)
+    fun isPrecomputed(mode: DitherMode): Boolean = when (mode) {
+        DitherMode.RIEMERSMA, DitherMode.DOT_DIFFUSION, DitherMode.FRACTAL_DIFFUSE -> true
+        else -> isRegion(mode)
+    }
 
     /**
      * Styles that flatten an area rather than threshold a cell.
