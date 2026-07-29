@@ -1,7 +1,10 @@
 package org.phioster.glyphsmith.ascii
 
 import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.min
 import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -29,6 +32,14 @@ data class PatternOptions(
      * carry. They only reach [DitherMode.MOD_ORB] and [DitherMode.BEEHIVE]; the other
      * modulation modes have no orbs to shape.
      */
+    /**
+     * 0..100 — the second axis, whose meaning is the style's own.
+     *
+     * One field rather than a slider per style, because a dozen new fields would each be
+     * dead for eleven of the twelve. What it means is spelled out where it is read, and the
+     * panel relabels the slider so nobody has to guess.
+     */
+    val density: Int = 50,
     val orb: OrbOptions = OrbOptions(),
 )
 
@@ -92,9 +103,56 @@ object Dither {
         DitherMode.MOD_LINES, DitherMode.MOD_WAVE, DitherMode.MOD_RINGS,
         DitherMode.MOD_ORB, DitherMode.BEEHIVE, DitherMode.UNIFORM_MODULATION,
         DitherMode.HEART_GRID, DitherMode.POP_TONE,
+        DitherMode.CHECKERS, DitherMode.DIAMOND, DitherMode.CROSSHATCH,
+        DitherMode.STIPPLING, DitherMode.BIT_TONE, DitherMode.BLOCK_TONE,
+        DitherMode.PRINT_PATTERN, DitherMode.GRIDLOCK, DitherMode.RANDOM_ORDERED,
+        DitherMode.NOISE, DitherMode.WAVE, DitherMode.RADIAL_BURST,
+        DitherMode.SINE_DISTORT,
         -> true
 
         else -> false
+    }
+
+    /**
+     * Styles that read the cell's brightness as well as its position.
+     *
+     * The distinction is worth naming rather than leaving implicit. A pattern that ignores
+     * the picture tiles the same way over a face and over a blank wall; one that reads it
+     * puts its ink where the image is dark, which is what a pen does. Everything else must
+     * keep ignoring it, and a test enforces exactly this split.
+     */
+    fun isContentAware(mode: DitherMode): Boolean = when (mode) {
+        DitherMode.CROSSHATCH, DitherMode.STIPPLING -> true
+        else -> false
+    }
+
+    /**
+     * What the pattern-size slider is actually called for this style.
+     *
+     * The storage is one field; the meaning is not. Labelling it "period" while it sets a
+     * dot size is the kind of small dishonesty that makes a panel feel arbitrary.
+     */
+    fun periodLabel(mode: DitherMode): String = when (mode) {
+        DitherMode.CHECKERS -> "block size"
+        DitherMode.CROSSHATCH -> "line spacing"
+        DitherMode.STIPPLING -> "dot spacing"
+        DitherMode.BIT_TONE, DitherMode.BLOCK_TONE -> "dot size"
+        DitherMode.PRINT_PATTERN -> "dot scale"
+        DitherMode.GRIDLOCK -> "grid size"
+        DitherMode.RANDOM_ORDERED -> "block size"
+        DitherMode.NOISE -> "grain"
+        DitherMode.WAVE, DitherMode.SINE_DISTORT -> "frequency"
+        DitherMode.RADIAL_BURST -> "ring spacing"
+        else -> "period"
+    }
+
+    /** Styles that use the second axis, and what it means there. */
+    fun densityLabel(mode: DitherMode): String? = when (mode) {
+        DitherMode.SINE_DISTORT -> "second frequency"
+        DitherMode.RADIAL_BURST -> "spokes"
+        DitherMode.CROSSHATCH -> "line weight"
+        DitherMode.STIPPLING -> "dot size"
+        else -> null
     }
 
     /**
@@ -257,6 +315,135 @@ object Dither {
                 if (d < 0.62f) 0.08f else 0.92f
             }
 
+            // --- geometry -----------------------------------------------------------
+            // These read the position and nothing else, so they tile a face exactly as they
+            // tile a wall. That is not a shortcoming: a screen is supposed to be indifferent
+            // to what is printed through it.
+
+            DitherMode.CHECKERS ->
+                if ((floor(u + phase).toInt() + floor(v).toInt()) % 2 == 0) 0.25f else 0.75f
+
+            // Manhattan distance rather than Euclidean, which is the whole difference between
+            // a diamond and a circle.
+            DitherMode.DIAMOND ->
+                (abs(frac(u + phase) - 0.5f) + abs(frac(v) - 0.5f)).coerceIn(0f, 1f)
+
+            /*
+             * Crosshatch. Four stroke directions, and a direction only starts drawing once
+             * the cell is dark enough to need it — which is what a pen actually does, and the
+             * reason this style cannot work from position alone. Light areas get one set of
+             * strokes, shadows get all four crossing.
+             */
+            DitherMode.CROSSHATCH -> {
+                val darkness = 1f - value
+                val weight = 0.15f + options.density / 100f * 0.45f
+                val strokes = floatArrayOf(
+                    v + phase,
+                    u + phase,
+                    (u + v) * 0.70710678f,
+                    (u - v) * 0.70710678f,
+                )
+                var inked = false
+                for (k in strokes.indices) {
+                    if (darkness * strokes.size < k) break
+                    if (frac(strokes[k]) < weight) {
+                        inked = true
+                        break
+                    }
+                }
+                if (inked) 0.1f else 0.9f
+            }
+
+            /*
+             * Stippling. One dot per lattice cell, jittered off the grid so the eye reads
+             * scatter rather than rows, and its radius grows as the cell darkens. The jitter
+             * is keyed to the cell so a dot stays put between frames instead of boiling.
+             */
+            DitherMode.STIPPLING -> {
+                val cu = floor(u + phase).toInt()
+                val cv = floor(v).toInt()
+                val dx = frac(u + phase) - hash(cu, cv, 7)
+                val dy = frac(v) - hash(cv, cu, 13)
+                val radius = (1f - value) * (0.2f + options.density / 100f * 0.6f)
+                if (hypot(dx, dy) < radius) 0.1f else 0.9f
+            }
+
+            // Concentric rings quantised to four steps. The quantisation is the style: a
+            // smooth dot is Block Tone, a stepped one reads as low-bit.
+            DitherMode.BIT_TONE -> {
+                val dx = frac(u + phase) - 0.5f
+                val dy = frac(v) - 0.5f
+                val d = (hypot(dx, dy) / 0.70710678f).coerceIn(0f, 1f)
+                floor(d * 4f) / 4f
+            }
+
+            // The printer's screen sits at 45°, where the lattice is least visible to the
+            // eye. Rotating it here rather than asking for an angle is the difference between
+            // a halftone and a grid of circles.
+            DitherMode.BLOCK_TONE -> {
+                val ru = (u + v) * 0.70710678f + phase
+                val rv = (v - u) * 0.70710678f
+                val dx = frac(ru) - 0.5f
+                val dy = frac(rv) - 0.5f
+                (hypot(dx, dy) / 0.70710678f).coerceIn(0f, 1f)
+            }
+
+            // Process colour uses four screens at 15°, 75°, 0° and 45° — angles chosen so
+            // that their overlap makes a rosette instead of a moiré. Overlaying all four is
+            // what makes this read as print rather than as one halftone.
+            DitherMode.PRINT_PATTERN -> {
+                var nearest = 1f
+                for (degrees in SCREEN_ANGLES) {
+                    val r = degrees * PI / 180.0
+                    val c2 = cos(r).toFloat()
+                    val s2 = sin(r).toFloat()
+                    val du = frac(u * c2 + v * s2 + phase) - 0.5f
+                    val dv = frac(-u * s2 + v * c2) - 0.5f
+                    nearest = min(nearest, hypot(du, dv) / 0.70710678f)
+                }
+                nearest.coerceIn(0f, 1f)
+            }
+
+            // Two diagonal rules crossing. The threshold is the distance to whichever rule is
+            // nearer, so the lines themselves stay dark while the fields between them open up.
+            DitherMode.GRIDLOCK -> {
+                val a = abs(frac((u + v) * 0.70710678f + phase) - 0.5f)
+                val b = abs(frac((u - v) * 0.70710678f) - 0.5f)
+                (min(a, b) * 2f).coerceIn(0f, 1f)
+            }
+
+            // A threshold rolled once per block. Bigger blocks read as torn paper, single
+            // cells as film grain — which is why Noise below rolls per cell instead.
+            DitherMode.RANDOM_ORDERED -> hash(floor(u + phase).toInt(), floor(v).toInt(), 3)
+
+            DitherMode.NOISE -> hash(
+                floor((u + phase) * period).toInt(),
+                floor(v * period).toInt(),
+                5,
+            )
+
+            DitherMode.WAVE -> 0.5f + 0.5f * sin(TAU * (u + phase)).toFloat()
+
+            // Rings and spokes at once: the radius gives the concentric waves, the angle
+            // gives the burst, and adding them before the sine is what curves the spokes.
+            DitherMode.RADIAL_BURST -> {
+                val dx = x - options.centerX
+                val dy = y - options.centerY
+                val spokes = 1f + options.density / 100f * 15f
+                val ring = hypot(dx, dy) / period
+                val spoke = (atan2(dy, dx) / TAU).toFloat() * spokes
+                0.5f + 0.5f * sin(TAU * (ring + spoke + phase)).toFloat()
+            }
+
+            // Two sines at different frequencies laid over each other. Where their crests
+            // nearly agree they beat against one another, and that beat is the moiré.
+            DitherMode.SINE_DISTORT -> {
+                val second = 0.2f + options.density / 100f * 3f
+                val a = sin(TAU * (u + phase)).toFloat()
+                val b = sin(TAU * (v * second)).toFloat()
+                (0.5f + 0.25f * (a + b)).coerceIn(0f, 1f)
+            }
+
             DitherMode.MOD_ORB -> orbField(u + phase, v, options.orb, 0f)
 
             // Offsetting every other row by half a cell is what turns a square grid of orbs
@@ -310,6 +497,9 @@ object Dither {
         val hard = if (distance < 1f) 0f else 1f
         return (soft * (1f - hardness) + hard * hardness).coerceIn(0f, 1f)
     }
+
+    /** The trade's process-colour screen angles, in the order cyan, magenta, yellow, black. */
+    private val SCREEN_ANGLES = intArrayOf(15, 75, 0, 45)
 
     private fun hash(x: Int, y: Int, seed: Int): Float {
         var h = x * 374761393 + y * 668265263 + seed * 1274126177

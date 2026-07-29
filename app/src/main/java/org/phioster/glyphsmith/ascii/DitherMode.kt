@@ -51,6 +51,19 @@ enum class DitherMode {
     UNIFORM_MODULATION,
     HEART_GRID,
     POP_TONE,
+    CHECKERS,
+    DIAMOND,
+    CROSSHATCH,
+    STIPPLING,
+    BIT_TONE,
+    BLOCK_TONE,
+    PRINT_PATTERN,
+    GRIDLOCK,
+    RANDOM_ORDERED,
+    NOISE,
+    WAVE,
+    RADIAL_BURST,
+    SINE_DISTORT,
     ;
 
     val label: String
@@ -86,6 +99,19 @@ enum class DitherMode {
             UNIFORM_MODULATION -> "Uniform Modulation"
             HEART_GRID -> "Heart Grid"
             POP_TONE -> "Pop Tone"
+            CHECKERS -> "Checkers"
+            DIAMOND -> "Diamond"
+            CROSSHATCH -> "Crosshatch"
+            STIPPLING -> "Stippling"
+            BIT_TONE -> "Bit Tone"
+            BLOCK_TONE -> "Block Tone"
+            PRINT_PATTERN -> "Print Pattern"
+            GRIDLOCK -> "Gridlock"
+            RANDOM_ORDERED -> "Random Ordered"
+            NOISE -> "Noise"
+            WAVE -> "Wave"
+            RADIAL_BURST -> "Radial Burst"
+            SINE_DISTORT -> "Sine Distort"
         }
 
     /**
@@ -107,12 +133,21 @@ enum class DitherMode {
             BLUE_NOISE_16, BLUE_NOISE_32,
             -> DitherCategory.ORDERED
 
-            MOD_LINES, UNIFORM_MODULATION, HEART_GRID, POP_TONE -> DitherCategory.PATTERNED
+            MOD_LINES, UNIFORM_MODULATION, HEART_GRID, POP_TONE,
+            CHECKERS, DIAMOND, CROSSHATCH, STIPPLING, BIT_TONE, BLOCK_TONE, PRINT_PATTERN,
+            GRIDLOCK,
+            // Filed by mechanism rather than by name: a threshold rolled per block is a
+            // pattern, whatever "ordered" suggests. ORDERED here means a matrix, and a test
+            // holds it to that.
+            RANDOM_ORDERED,
+            -> DitherCategory.PATTERNED
 
             // Both push nearly all of the error along one axis, so the grain arrives as
             // streaks rather than as noise — a signal fault rather than a halftone.
             DIFFUSE_Y, DIFFUSE_X -> DitherCategory.GLITCH
 
-            MOD_WAVE, MOD_RINGS, MOD_ORB, BEEHIVE -> DitherCategory.SPECIAL
+            MOD_WAVE, MOD_RINGS, MOD_ORB, BEEHIVE,
+            NOISE, WAVE, RADIAL_BURST, SINE_DISTORT,
+            -> DitherCategory.SPECIAL
         }
 }

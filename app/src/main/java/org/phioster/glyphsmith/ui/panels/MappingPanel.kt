@@ -183,13 +183,24 @@ fun MappingPanel(
 
         if (Dither.isModulation(params.ditherMode)) {
             TerminalSlider(
-                label = "period",
+                // Named after what it does for *this* style. It is one stored value, but
+                // calling it "period" while it sets a dot size makes the panel feel arbitrary.
+                label = Dither.periodLabel(params.ditherMode),
                 value = params.modScale.toFloat(),
                 range = AsciiParams.MOD_SCALE_RANGE.first.toFloat()..
                     AsciiParams.MOD_SCALE_RANGE.last.toFloat(),
                 valueText = "${params.modScale} cells",
                 onValueChange = { onChange(params.copy(modScale = it.toInt())) },
             )
+            Dither.densityLabel(params.ditherMode)?.let { label ->
+                TerminalSlider(
+                    label = label,
+                    value = params.patternDensity.toFloat(),
+                    range = 0f..100f,
+                    valueText = "${params.patternDensity}/100",
+                    onValueChange = { onChange(params.copy(patternDensity = it.toInt())) },
+                )
+            }
             TerminalSlider(
                 label = "angle",
                 value = params.modAngle.toFloat(),

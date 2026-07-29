@@ -80,6 +80,14 @@ data class AsciiParams(
     val modAngle: Int = 0,
     /** 0..100 % of a period; animate it and the pattern travels. */
     val modPhase: Int = 0,
+    /**
+     * 0..100 — a pattern's second axis, whose meaning belongs to the style.
+     *
+     * Spokes for a radial burst, the beating frequency for a moiré, line weight for a
+     * crosshatch. One field instead of a dozen, each of which would sit dead for every style
+     * but one; the panel renames the slider so it never reads as "density".
+     */
+    val patternDensity: Int = 50,
     /** Shape of an individual orb — only the orb and beehive modes read these. */
     val orbCount: Int = 1,
     val orbSize: Int = 100,
