@@ -305,7 +305,7 @@ fun StylePicker(
     var expanded by remember { mutableStateOf(false) }
     // Keyed to the selection so that picking a style in another section leaves that section
     // open next time, instead of snapping back to wherever the user started.
-    var openCategory by remember(selected) { mutableStateOf(selected.category) }
+    var openCategory by remember(selected) { mutableStateOf<DitherCategory?>(selected.category) }
 
     val all = DitherMode.entries
     val starred = all.filter { it.name in favourites }
