@@ -771,7 +771,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
                 EffectId.TINT -> effects.copy(tint = TintParams(enabled = true, color = palette.colors.last()))
                 EffectId.CHROMATIC -> effects.copy(
-                    chromatic = ChromaticParams(enabled = true, offset = random.nextInt(2, 18)),
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = random.nextInt(2, 18)),
                 )
 
                 EffectId.GLITCH -> effects.copy(

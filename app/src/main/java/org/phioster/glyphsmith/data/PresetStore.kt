@@ -256,7 +256,7 @@ class PresetStore(context: Context) {
                     effects = EffectStack(
                         chromatic = ChromaticParams(
                             enabled = true,
-                            offset = 9,
+                            maxDisplace = 9,
                             waveAmplitude = 14,
                             waveFrequency = 20,
                             waveNoise = 35,
@@ -589,7 +589,7 @@ class PresetStore(context: Context) {
                     effects = EffectStack(
                         chromatic = ChromaticParams(
                             enabled = true,
-                            offset = 6,
+                            maxDisplace = 6,
                             waveAmplitude = 18,
                             waveFrequency = 12,
                         ),
@@ -617,7 +617,7 @@ class PresetStore(context: Context) {
                         amount = 40,
                     ),
                     effects = EffectStack(
-                        chromatic = ChromaticParams(enabled = true, offset = 8),
+                        chromatic = ChromaticParams(enabled = true, maxDisplace = 8),
                         sliceShift = SliceShiftParams(enabled = true, slices = 26, maxOffset = 10, density = 40),
                         glow = GlowParams(enabled = true, intensity = 560, radius = 100),
                     ),
@@ -666,7 +666,7 @@ class PresetStore(context: Context) {
                             thresholdHigh = 72,
                             maxRun = 120,
                         ),
-                        chromatic = ChromaticParams(enabled = true, offset = 5),
+                        chromatic = ChromaticParams(enabled = true, maxDisplace = 5),
                         glow = GlowParams(enabled = true, intensity = 300, radius = 70),
                     ),
                 ),
@@ -703,7 +703,7 @@ class PresetStore(context: Context) {
                     cellSize = 5,
                     colorMode = ColorMode.SOURCE,
                     effects = EffectStack(
-                        chromatic = ChromaticParams(enabled = true, offset = 7, waveAmplitude = 9, waveNoise = 40),
+                        chromatic = ChromaticParams(enabled = true, maxDisplace = 7, waveAmplitude = 9, waveNoise = 40),
                         subtexture = SubtextureParams(
                             enabled = true,
                             kind = TextureKind.VHS_BANDS,

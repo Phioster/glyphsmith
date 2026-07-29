@@ -167,9 +167,33 @@ internal fun ChromaticSection(
 ) {
     EffectSection("chromatic effects", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
         TerminalSlider(
-            "channel offset", params.offset.toFloat(), 0f..50f,
-            { onChange(params.copy(offset = it.toInt())) },
-            valueText = "${params.offset}px",
+            "max displace", params.maxDisplace.toFloat(), 0f..50f,
+            { onChange(params.copy(maxDisplace = it.toInt())) },
+            valueText = "${params.maxDisplace}px",
+        )
+        TerminalSlider(
+            "red channel", params.redChannel.toFloat(), 0f..100f,
+            { onChange(params.copy(redChannel = it.toInt())) },
+            valueText = "${params.redChannel}/100",
+        )
+        TerminalSlider(
+            "green channel", params.greenChannel.toFloat(), 0f..100f,
+            { onChange(params.copy(greenChannel = it.toInt())) },
+            valueText = "${params.greenChannel}/100",
+        )
+        TerminalSlider(
+            "blue channel", params.blueChannel.toFloat(), 0f..100f,
+            { onChange(params.copy(blueChannel = it.toInt())) },
+            valueText = "${params.blueChannel}/100",
+        )
+        Text(
+            "max displace gates the three channels — at 0 they do nothing however far you " +
+                "move them. 50 is the middle. Align two of them to get yellow or cyan " +
+                "fringing instead of a plain red/blue split; a channel that is not in the " +
+                "picture will not move at all.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
         )
         TerminalSlider(
             "angle", params.angle.toFloat(), 0f..359f,

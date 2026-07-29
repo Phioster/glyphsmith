@@ -48,6 +48,20 @@ data class AsciiParams(
     val contrast: Float = 1f,
     /** 0.2..3, gamma applied before mapping. */
     val gamma: Float = 1f,
+    /**
+     * The adjustments that run *before* the dither, so they change what the algorithm sees
+     * rather than how the result looks. Saturation and blur also exist in the effect chain,
+     * where they do something else entirely — see [Adjustments].
+     *
+     * All neutral by default, so nothing saved before these existed renders differently.
+     */
+    val saturation: Int = 100,
+    val midtones: Int = 50,
+    val highlights: Int = 50,
+    val hue: Int = 0,
+    /** Radius in *cells*, not pixels. 0 is off. */
+    val preBlur: Int = 0,
+    val denoise: Int = 0,
     /** How the quantisation error is handled when a cell picks its glyph. */
     val ditherMode: DitherMode = DitherMode.NONE,
     /** 0..100 — how much of the error is actually propagated. */
@@ -195,6 +209,10 @@ data class AsciiParams(
         val CANVAS_SIZE_RANGE = 64..8192
         val DITHER_SCALE_RANGE = 25..400
         val PALETTE_DEPTH_RANGE = 2..32
+        val SATURATION_RANGE = 0..200
+        val TONE_RANGE = 0..100
+        val HUE_RANGE = 0..359
+        val NEIGHBOURHOOD_RANGE = 0..6
         val MOD_SCALE_RANGE = 2..64
         val MOD_ANGLE_RANGE = 0..359
     }

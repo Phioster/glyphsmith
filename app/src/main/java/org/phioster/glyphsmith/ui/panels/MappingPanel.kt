@@ -55,8 +55,64 @@ fun MappingPanel(
             valueText = String.format(Locale.US, "%.2f", params.gamma),
             onValueChange = { onChange(params.copy(gamma = it)) },
         )
+        TerminalSlider(
+            label = "midtones",
+            value = params.midtones.toFloat(),
+            range = 0f..100f,
+            valueText = if (params.midtones == 50) "neutral" else "${params.midtones}/100",
+            onValueChange = { onChange(params.copy(midtones = it.toInt())) },
+        )
+        TerminalSlider(
+            label = "highlights",
+            value = params.highlights.toFloat(),
+            range = 0f..100f,
+            valueText = if (params.highlights == 50) "neutral" else "${params.highlights}/100",
+            onValueChange = { onChange(params.copy(highlights = it.toInt())) },
+        )
         Text(
-            "order: gamma → contrast → brightness, then the ramp",
+            "order: gamma → contrast → brightness → midtones → highlights, then the ramp",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+
+        SectionHeader("pre-dither")
+
+        TerminalSlider(
+            label = "saturation",
+            value = params.saturation.toFloat(),
+            range = 0f..200f,
+            valueText = if (params.saturation == 100) "neutral" else "${params.saturation}/200",
+            onValueChange = { onChange(params.copy(saturation = it.toInt())) },
+        )
+        TerminalSlider(
+            label = "hue",
+            value = params.hue.toFloat(),
+            range = 0f..359f,
+            valueText = "${params.hue}°",
+            onValueChange = { onChange(params.copy(hue = it.toInt())) },
+        )
+        TerminalSlider(
+            label = "denoise",
+            value = params.denoise.toFloat(),
+            range = 0f..AsciiParams.NEIGHBOURHOOD_RANGE.last.toFloat(),
+            steps = AsciiParams.NEIGHBOURHOOD_RANGE.count() - 2,
+            valueText = if (params.denoise == 0) "off" else "${params.denoise} cells",
+            onValueChange = { onChange(params.copy(denoise = it.toInt())) },
+        )
+        TerminalSlider(
+            label = "blur",
+            value = params.preBlur.toFloat(),
+            range = 0f..AsciiParams.NEIGHBOURHOOD_RANGE.last.toFloat(),
+            steps = AsciiParams.NEIGHBOURHOOD_RANGE.count() - 2,
+            valueText = if (params.preBlur == 0) "off" else "${params.preBlur} cells",
+            onValueChange = { onChange(params.copy(preBlur = it.toInt())) },
+        )
+        Text(
+            "these run before the dither, so they change what the algorithm sees and the " +
+                "pattern itself moves. saturation and blur exist in FX as well — there they " +
+                "only change how the finished glyphs look. denoise drops stray cells without " +
+                "softening edges; blur softens everything.",
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 6.dp),
@@ -257,6 +313,12 @@ fun MappingPanel(
                         brightness = 0f,
                         contrast = 1f,
                         gamma = 1f,
+                        saturation = 100,
+                        midtones = 50,
+                        highlights = 50,
+                        hue = 0,
+                        preBlur = 0,
+                        denoise = 0,
                         ditherMode = DitherMode.NONE,
                         ditherStrength = 100,
                         serpentine = true,

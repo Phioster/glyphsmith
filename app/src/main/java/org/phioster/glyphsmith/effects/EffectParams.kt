@@ -1,5 +1,6 @@
 package org.phioster.glyphsmith.effects
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
@@ -73,8 +74,26 @@ data class TintParams(
 @Serializable
 data class ChromaticParams(
     val enabled: Boolean = false,
-    /** 0..50 px — how far red and blue are pulled apart. */
-    val offset: Int = 6,
+    /**
+     * 0..50 px — the furthest apart the channels can be pulled. It gates the three channel
+     * positions entirely: at 0 they do nothing, however far they are moved.
+     *
+     * Still serialised as `offset`, which is what it was called when it only ever pulled red
+     * and blue symmetrically. Renaming the field without renaming the key would have made
+     * every saved preset lose its setting.
+     */
+    @SerialName("offset") val maxDisplace: Int = 6,
+    /**
+     * Where each channel sits along the displacement axis, 0..100 with 50 in the middle.
+     *
+     * The defaults are 100 / 50 / 0 rather than the tidier-looking 0 / 50 / 100 because
+     * those are the positions that reproduce exactly what this effect did before the
+     * channels were separable: red forward, green still, blue back. Aligning two of them
+     * deliberately is what produces yellow or cyan fringing instead of a plain RGB split.
+     */
+    val redChannel: Int = 100,
+    val greenChannel: Int = 50,
+    val blueChannel: Int = 0,
     /** 0..359 degrees — the axis red and blue separate along. */
     val angle: Int = 0,
     /** 0..100 px — amplitude of the horizontal row displacement. */

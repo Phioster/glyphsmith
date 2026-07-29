@@ -156,7 +156,7 @@ object Animator {
 
             AnimTarget.CHROMATIC_OFFSET -> params.copy(
                 effects = params.effects.copy(
-                    chromatic = params.effects.chromatic.copy(offset = value.coerceIn(0, 50)),
+                    chromatic = params.effects.chromatic.copy(maxDisplace = value.coerceIn(0, 50)),
                 ),
             )
 
