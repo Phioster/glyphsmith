@@ -146,6 +146,8 @@ class PresetStore(context: Context) {
         const val CATEGORY_MOTION = "MOTION"
         const val CATEGORY_HEAVY = "HEAVY"
         const val CATEGORY_SIGNATURE = "SIGNATURE"
+        const val CATEGORY_INK = "INK"
+        const val CATEGORY_GEOMETRY = "GEOMETRY"
         const val CATEGORY_CUSTOM = "CUSTOM"
 
         /** Picker order. Anything the user saves lands in CUSTOM, which sits last. */
@@ -153,6 +155,8 @@ class PresetStore(context: Context) {
             CATEGORY_CLASSIC,
             CATEGORY_DITHER,
             CATEGORY_PRINT,
+            CATEGORY_INK,
+            CATEGORY_GEOMETRY,
             CATEGORY_SIGNATURE,
             CATEGORY_MOTION,
             CATEGORY_HEAVY,
@@ -170,8 +174,11 @@ class PresetStore(context: Context) {
             DitherCategory.ORDERED,
             DitherCategory.PATTERNED,
             DitherCategory.SPECIAL,
-            DitherCategory.POLYGON,
             -> CATEGORY_DITHER
+
+            // Polygon arrived with a shelf of its own, so a saved tessellation goes there
+            // rather than into the general dither drawer.
+            DitherCategory.POLYGON -> CATEGORY_GEOMETRY
 
             // Basic, error diffusion and glitch land in CUSTOM, which is where they landed
             // before this read the category instead of asking three questions. Rerouting them
@@ -747,6 +754,468 @@ class PresetStore(context: Context) {
                         stars = DiffractionStarsParams(enabled = true, rays = 6, length = 80, threshold = 60),
                         glow = GlowParams(enabled = true, intensity = 600, radius = 140),
                     ),
+                ),
+            ),
+
+            // --- ink ----------------------------------------------------------------
+            // Pen, brush and burin. Fine cells and few tones on purpose: these styles put
+            // their marks where the picture is dark rather than shading it, so giving them a
+            // long ramp asks them to do a job they are not for.
+            preset(
+                "pen and ink", CATEGORY_INK,
+                AsciiParams(
+                    charSetId = "ascii-standard-10",
+                    cellSize = 3,
+                    depth = 3,
+                    contrast = 1.3f,
+                    ditherMode = DitherMode.CROSSHATCH,
+                    modScale = 4,
+                    patternDensity = 35,
+                    inkColor = 0xFF1A1712.toInt(),
+                    backgroundColor = 0xFFE8DFC8.toInt(),
+                ),
+            ),
+            preset(
+                "stipple study", CATEGORY_INK,
+                AsciiParams(
+                    charSetId = "misc-dots",
+                    cellSize = 3,
+                    depth = 3,
+                    contrast = 1.25f,
+                    ditherMode = DitherMode.STIPPLING,
+                    modScale = 3,
+                    patternDensity = 55,
+                    inkColor = 0xFF141414.toInt(),
+                    backgroundColor = 0xFFF0EBDD.toInt(),
+                ),
+            ),
+            preset(
+                "copperplate", CATEGORY_INK,
+                AsciiParams(
+                    charSetId = "block-horizontal",
+                    cellSize = 4,
+                    depth = 4,
+                    contrast = 1.4f,
+                    ditherMode = DitherMode.DOTTED_LINES,
+                    modScale = 5,
+                    modAngle = 20,
+                    patternDensity = 60,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ink",
+                ),
+            ),
+            preset(
+                "survey map", CATEGORY_INK,
+                AsciiParams(
+                    charSetId = "ascii-standard-10",
+                    cellSize = 4,
+                    depth = 4,
+                    ditherMode = DitherMode.TOPOGRAPHY,
+                    modScale = 10,
+                    patternDensity = 30,
+                    inkColor = 0xFF23331F.toInt(),
+                    backgroundColor = 0xFFEDE7D2.toInt(),
+                ),
+            ),
+
+            // --- geometry -----------------------------------------------------------
+            // Large cells and short ramps, because these flatten areas: a tessellation with
+            // sixty tones is a photograph with visible seams, not a low-poly picture.
+            preset(
+                "low poly", CATEGORY_GEOMETRY,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 6,
+                    depth = 5,
+                    ditherMode = DitherMode.LOW_POLY,
+                    modScale = 10,
+                    patternDensity = 0,
+                    colorMode = ColorMode.SOURCE,
+                ),
+            ),
+            preset(
+                "hex tiles", CATEGORY_GEOMETRY,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 5,
+                    depth = 6,
+                    ditherMode = DitherMode.HEXA_POLY,
+                    modScale = 8,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "sunset",
+                ),
+            ),
+            preset(
+                "camouflage", CATEGORY_GEOMETRY,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 5,
+                    depth = 4,
+                    contrast = 1.2f,
+                    ditherMode = DitherMode.CAMO,
+                    modScale = 7,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "saltmarsh",
+                ),
+            ),
+            preset(
+                "tile floor", CATEGORY_GEOMETRY,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 5,
+                    depth = 6,
+                    ditherMode = DitherMode.SQUARE_MOSAIC,
+                    modScale = 6,
+                    patternDensity = 30,
+                    colorMode = ColorMode.SOURCE,
+                ),
+            ),
+            preset(
+                "dot grid", CATEGORY_GEOMETRY,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 4,
+                    depth = 5,
+                    ditherMode = DitherMode.CIRCLE_GRID,
+                    modScale = 6,
+                    patternDensity = 70,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ice",
+                ),
+            ),
+
+            // --- the literature ------------------------------------------------------
+            // Deliberately plain: no effects, no palette tricks, a long ramp and a
+            // photographic subject in mind. These exist so the algorithms can be seen.
+            preset(
+                "ostromoukhov", CATEGORY_DITHER,
+                AsciiParams(
+                    charSetId = "ascii-standard-70",
+                    cellSize = 3,
+                    depth = 10,
+                    ditherMode = DitherMode.OSTROMOUKHOV,
+                    serpentine = true,
+                ),
+            ),
+            preset(
+                "shiau-fan", CATEGORY_DITHER,
+                AsciiParams(
+                    charSetId = "ascii-standard-70",
+                    cellSize = 3,
+                    depth = 10,
+                    ditherMode = DitherMode.SHIAU_FAN,
+                    serpentine = true,
+                ),
+            ),
+            preset(
+                "dot diffusion", CATEGORY_DITHER,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 4,
+                    depth = 6,
+                    ditherMode = DitherMode.DOT_DIFFUSION,
+                ),
+            ),
+            preset(
+                "fractal walk", CATEGORY_DITHER,
+                AsciiParams(
+                    charSetId = "misc-dots",
+                    cellSize = 3,
+                    depth = 4,
+                    contrast = 1.2f,
+                    ditherMode = DitherMode.FRACTAL_DIFFUSE,
+                ),
+            ),
+
+            // --- print ---------------------------------------------------------------
+            preset(
+                "process rosette", CATEGORY_PRINT,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 4,
+                    depth = 5,
+                    ditherMode = DitherMode.PRINT_PATTERN,
+                    modScale = 8,
+                    colorMode = ColorMode.SOURCE,
+                ),
+            ),
+            preset(
+                "press halftone", CATEGORY_PRINT,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 3,
+                    depth = 4,
+                    contrast = 1.35f,
+                    ditherMode = DitherMode.BLOCK_TONE,
+                    modScale = 5,
+                    inkColor = 0xFF15130F.toInt(),
+                    backgroundColor = 0xFFE4DFD2.toInt(),
+                ),
+            ),
+            preset(
+                "low bit halftone", CATEGORY_PRINT,
+                AsciiParams(
+                    charSetId = "block-quadrant",
+                    cellSize = 4,
+                    depth = 4,
+                    ditherMode = DitherMode.BIT_TONE,
+                    modScale = 6,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "cga",
+                ),
+            ),
+
+            // --- signature -----------------------------------------------------------
+            preset(
+                "cracked", CATEGORY_SIGNATURE,
+                AsciiParams(
+                    charSetId = "block-quadrant",
+                    cellSize = 4,
+                    depth = 4,
+                    contrast = 1.3f,
+                    ditherMode = DitherMode.CRACKED_DIFFUSE,
+                    serpentine = false,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "acid",
+                ),
+            ),
+            preset(
+                "tape damage", CATEGORY_SIGNATURE,
+                AsciiParams(
+                    charSetId = "block-horizontal",
+                    cellSize = 4,
+                    depth = 5,
+                    ditherMode = DitherMode.ATKINSON_VHS,
+                    serpentine = false,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        chromatic = ChromaticParams(enabled = true, maxDisplace = 9),
+                    ),
+                ),
+            ),
+            preset(
+                "edge keeper", CATEGORY_SIGNATURE,
+                AsciiParams(
+                    charSetId = "misc-dots",
+                    cellSize = 3,
+                    depth = 5,
+                    contrast = 1.25f,
+                    ditherMode = DitherMode.CONTRAST_AWARE_Y,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ice",
+                ),
+            ),
+
+            // --- motion --------------------------------------------------------------
+            /*
+             * These arrive with the animation already switched on and the track already
+             * aimed, so applying one and pressing play is the whole interaction.
+             *
+             * Nearly all of them move a *pattern* rather than the picture, which is why they
+             * loop cleanly: a sawtooth over the modulation phase travels exactly one period
+             * and arrives where it began. The ones driving the second axis use a sine
+             * instead, because that axis has no period to complete — a sawtooth there would
+             * snap back visibly at the seam.
+             */
+            preset(
+                "winding vortex", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 4,
+                    depth = 6,
+                    ditherMode = DitherMode.VORTEX,
+                    modScale = 9,
+                    patternDensity = 30,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "twilight",
+                    animation = animation(
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        sweep(AnimTarget.PATTERN_DENSITY, 15, 55),
+                        frames = 40,
+                    ),
+                ),
+            ),
+            preset(
+                "breathing contours", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "ascii-standard-10",
+                    cellSize = 4,
+                    depth = 4,
+                    ditherMode = DitherMode.TOPOGRAPHY,
+                    modScale = 12,
+                    patternDensity = 20,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "saltmarsh",
+                    animation = animation(sweep(AnimTarget.PATTERN_DENSITY, 5, 60), frames = 44),
+                ),
+            ),
+            preset(
+                "ripple peaks", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 4,
+                    depth = 5,
+                    ditherMode = DitherMode.RADIAL_PEAKS,
+                    modScale = 7,
+                    patternDensity = 40,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ice",
+                    animation = animation(
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        frames = 36,
+                    ),
+                ),
+            ),
+            preset(
+                "moire drift", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "block-quadrant",
+                    cellSize = 3,
+                    depth = 3,
+                    ditherMode = DitherMode.SINE_DISTORT,
+                    modScale = 5,
+                    patternDensity = 45,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "acid",
+                    animation = animation(sweep(AnimTarget.PATTERN_DENSITY, 30, 65), frames = 48),
+                ),
+            ),
+            preset(
+                "waveform scan", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "block-horizontal",
+                    cellSize = 4,
+                    depth = 5,
+                    ditherMode = DitherMode.WAVEFORM,
+                    modScale = 8,
+                    patternDensity = 50,
+                    modAngle = 90,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "phosphor",
+                    animation = animation(
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        frames = 36,
+                    ),
+                ),
+            ),
+            preset(
+                "spinning burst", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "misc-dots",
+                    cellSize = 4,
+                    depth = 4,
+                    ditherMode = DitherMode.RADIAL_BURST,
+                    modScale = 6,
+                    patternDensity = 35,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ember",
+                    animation = animation(
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        frames = 32,
+                    ),
+                ),
+            ),
+            preset(
+                "tearing signal", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "block-quadrant",
+                    cellSize = 4,
+                    depth = 4,
+                    ditherMode = DitherMode.GLITCH,
+                    modScale = 7,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        chromatic = ChromaticParams(enabled = true, maxDisplace = 7),
+                    ),
+                    animation = animation(
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        sweep(AnimTarget.GLITCH_SEED, 1, 400, AnimCurve.RANDOM),
+                        frames = 30,
+                    ),
+                ),
+            ),
+            preset(
+                "crawling hatch", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "ascii-standard-10",
+                    cellSize = 3,
+                    depth = 3,
+                    contrast = 1.3f,
+                    ditherMode = DitherMode.CROSSHATCH,
+                    modScale = 5,
+                    patternDensity = 40,
+                    inkColor = 0xFF1A1712.toInt(),
+                    backgroundColor = 0xFFE8DFC8.toInt(),
+                    animation = animation(
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        frames = 40,
+                    ),
+                ),
+            ),
+            preset(
+                "pulsing stipple", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "misc-dots",
+                    cellSize = 3,
+                    depth = 3,
+                    ditherMode = DitherMode.STIPPLING,
+                    modScale = 4,
+                    patternDensity = 40,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "bone",
+                    animation = animation(sweep(AnimTarget.PATTERN_DENSITY, 20, 75), frames = 40),
+                ),
+            ),
+            preset(
+                "rolling gridlock", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 4,
+                    depth = 4,
+                    ditherMode = DitherMode.GRIDLOCK,
+                    modScale = 7,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "neon-district",
+                    animation = animation(
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        frames = 34,
+                    ),
+                ),
+            ),
+            /*
+             * The one that animates a *choice* rather than a quantity. The second axis picks
+             * which of the six triangle cuts is used, so a sawtooth across it steps through
+             * every tessellation in turn and the whole surface re-facets at each step.
+             */
+            preset(
+                "shifting facets", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 6,
+                    depth = 5,
+                    ditherMode = DitherMode.LOW_POLY,
+                    modScale = 10,
+                    colorMode = ColorMode.SOURCE,
+                    // A triangle rather than a sawtooth: the axis picks one of six cuts and
+                    // does not wrap, so it rides up through them and back down instead of
+                    // snapping from the last to the first in view.
+                    animation = animation(
+                        sweep(AnimTarget.PATTERN_DENSITY, 0, 100, AnimCurve.TRIANGLE),
+                        frames = 36,
+                        fps = 8,
+                    ),
+                ),
+            ),
+            preset(
+                "spiral grain", CATEGORY_MOTION,
+                AsciiParams(
+                    charSetId = "ascii-standard-70",
+                    cellSize = 3,
+                    depth = 8,
+                    ditherMode = DitherMode.VORTEX_DIFFUSION,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ember",
+                    animation = animation(sweep(AnimTarget.DITHER_STRENGTH, 40, 100), frames = 34),
                 ),
             ),
         )

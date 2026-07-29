@@ -8,17 +8,34 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 
 /** A parameter an animation track can drive. */
-enum class AnimTarget(val label: String, val min: Int, val max: Int) {
+/**
+ * [cyclic] marks the targets whose range joins up at the ends: 359° is the same direction as
+ * 0°, and a full sweep of a modulation phase lands exactly back on the pattern it started
+ * from. Those are the only ones a non-closing curve may drive without leaving a visible jump
+ * at the loop seam — everywhere else a sawtooth snaps back in plain sight.
+ */
+enum class AnimTarget(
+    val label: String,
+    val min: Int,
+    val max: Int,
+    val cyclic: Boolean = false,
+) {
     DEPTH("Depth", 1, AsciiParams.MAX_DEPTH),
     CHARACTER_OFFSET("Character Offset", 0, 64),
     DITHER_STRENGTH("Dither Strength", 0, 100),
     /** A full sweep of a modulation period, so a sawtooth over 0..100 travels seamlessly. */
-    MOD_PHASE("Modulation Phase", 0, 100),
+    MOD_PHASE("Modulation Phase", 0, 100, cyclic = true),
+    /**
+     * The pattern's second axis — a vortex's twist, a topography's warp, a wave's frequency
+     * range. Worth animating precisely because its meaning changes with the style: one track
+     * makes a spiral wind up, a contour map breathe, or a moiré drift through its beat.
+     */
+    PATTERN_DENSITY("Pattern Density", 0, 100),
     EDGE_THRESHOLD("Edge Threshold", 0, 100),
     GLITCH_SEED("Glitch Seed", 1, 9999),
     CHROMATIC_OFFSET("Chromatic Offset", 0, 50),
-    GLOW_DIRECTION("Glow Direction", 0, 359),
-    STARS_ANGLE("Stars Angle", 0, 359),
+    GLOW_DIRECTION("Glow Direction", 0, 359, cyclic = true),
+    STARS_ANGLE("Stars Angle", 0, 359, cyclic = true),
 }
 
 /**
@@ -253,6 +270,7 @@ object Animator {
             // Left unclamped: the phase wraps inside the pattern, so a track that runs past
             // 100 simply keeps travelling instead of stalling at the end of its range.
             AnimTarget.MOD_PHASE -> params.copy(modPhase = value)
+            AnimTarget.PATTERN_DENSITY -> params.copy(patternDensity = value.coerceIn(0, 100))
             AnimTarget.EDGE_THRESHOLD -> params.copy(edgeThreshold = value.coerceIn(0, 100))
             AnimTarget.GLITCH_SEED -> params.copy(
                 effects = params.effects.copy(
