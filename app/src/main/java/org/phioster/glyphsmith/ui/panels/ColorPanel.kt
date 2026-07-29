@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import org.phioster.glyphsmith.anim.QuantizeMethod
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.ascii.Palettes
@@ -50,7 +51,7 @@ private val EXTRACT_COUNTS = listOf(5, 8, 16)
 fun ColorPanel(
     params: AsciiParams,
     onChange: (AsciiParams) -> Unit,
-    onExtractPalette: (Int) -> Unit,
+    onExtractPalette: (Int, QuantizeMethod) -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
     modifier: Modifier = Modifier,
@@ -138,7 +139,7 @@ fun ColorPanel(
 private fun PaletteSection(
     params: AsciiParams,
     onChange: (AsciiParams) -> Unit,
-    onExtractPalette: (Int) -> Unit,
+    onExtractPalette: (Int, QuantizeMethod) -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
     categories: List<String>,
@@ -175,6 +176,20 @@ private fun PaletteSection(
             itemLabel = { it.name },
         )
 
+        var method by remember { mutableStateOf(QuantizeMethod.MEDIAN_CUT) }
+        StepperDropdown(
+            label = "extraction",
+            items = QuantizeMethod.entries.toList(),
+            selectedIndex = QuantizeMethod.entries.indexOf(method),
+            onSelect = { method = QuantizeMethod.entries[it] },
+            itemLabel = { it.label },
+            itemDetail = {
+                when (it) {
+                    QuantizeMethod.MEDIAN_CUT -> "splits the colour cube — fast and exact"
+                    QuantizeMethod.K_MEANS -> "follows where the pixels are — fairer, slower"
+                }
+            },
+        )
         Row(
             Modifier.fillMaxWidth().padding(top = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -182,14 +197,15 @@ private fun PaletteSection(
             EXTRACT_COUNTS.forEach { count ->
                 TerminalButton(
                     label = "from image ×$count",
-                    onClick = { onExtractPalette(count) },
+                    onClick = { onExtractPalette(count, method) },
                     modifier = Modifier.weight(1f),
                 )
             }
         }
         Text(
-            "pulls the palette out of the loaded image with the same median-cut quantiser " +
-                "the GIF export uses, sorted darkest first",
+            "median cut splits the colour cube, so a few vivid pixels can claim a whole " +
+                "slot; k-means follows where the pixels actually are, so an entry gets " +
+                "spent on a colour that covers real area. Both come back sorted darkest first.",
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 4.dp),

@@ -37,6 +37,8 @@ data class Preset(
     /** Grouping in the picker. Defaulted so presets saved before this still load. */
     val category: String = PresetStore.CATEGORY_CUSTOM,
     val favourite: Boolean = false,
+    /** Free text the author leaves for whoever loads it — why this look, or where from. */
+    val description: String = "",
 )
 
 /**
@@ -79,7 +81,7 @@ class PresetStore(context: Context) {
         return merged
     }
 
-    fun upsert(name: String, params: AsciiParams): List<Preset> {
+    fun upsert(name: String, params: AsciiParams, description: String = ""): List<Preset> {
         val trimmed = name.trim().ifEmpty { "untitled" }
         val existing = load().firstOrNull { it.name.equals(trimmed, ignoreCase = true) }
         val updated = load().filterNot { it.name.equals(trimmed, ignoreCase = true) } +
@@ -90,7 +92,18 @@ class PresetStore(context: Context) {
                 // re-saving a favourite should not quietly demote it.
                 category = existing?.category ?: CATEGORY_CUSTOM,
                 favourite = existing?.favourite ?: false,
+                description = description.ifEmpty { existing?.description ?: "" },
             )
+        save(updated)
+        return updated
+    }
+
+    /** Renames in place and keeps the preset's position, star and settings. */
+    fun rename(from: String, to: String, description: String): List<Preset> {
+        val trimmed = to.trim().ifEmpty { from }
+        val updated = load().map {
+            if (it.name == from) it.copy(name = trimmed, description = description) else it
+        }
         save(updated)
         return updated
     }

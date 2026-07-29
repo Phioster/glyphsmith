@@ -22,6 +22,13 @@ import java.util.Locale
 data class PaletteFile(
     val name: String,
     val colors: List<String>,
+    /**
+     * Where it belongs in the picker. Defaulted so a file written before this existed still
+     * loads, and free text rather than a fixed set — a category that nearly matches an
+     * existing one simply becomes a new one, which is a nuisance worth knowing about but
+     * better than refusing a file outright.
+     */
+    val category: String = "IMPORTED",
 ) {
     companion object {
         private val json = Json {
@@ -34,6 +41,7 @@ data class PaletteFile(
             PaletteFile(
                 name = palette.name,
                 colors = palette.colors.map { String.format(Locale.US, "#%06X", it and 0xFFFFFF) },
+                category = palette.category.ifEmpty { "IMPORTED" },
             ),
         )
 
