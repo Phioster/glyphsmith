@@ -8,7 +8,112 @@ package org.phioster.glyphsmith.anim
  * shortcut below therefore covers most real exports, and median cut only runs for
  * source-coloured output.
  */
+/** How a palette is picked out of an image. */
+enum class QuantizeMethod(val label: String) {
+    /** Splits the colour cube along its widest axis. Fast, exact, and always the same. */
+    MEDIAN_CUT("Median Cut"),
+
+    /**
+     * Moves a fixed number of centres until they settle. Slower and iterative, but it
+     * weights by how much of the image each colour actually covers, so a small area of
+     * vivid colour does not claim a slot the way it can under median cut.
+     */
+    K_MEANS("k-means"),
+}
+
 object ColorQuantizer {
+
+    /** The entry point the app uses; the GIF encoder still calls [palette] directly. */
+    fun extract(
+        pixels: IntArray,
+        maxColors: Int,
+        method: QuantizeMethod,
+        seed: Int = 1,
+    ): IntArray = when (method) {
+        QuantizeMethod.MEDIAN_CUT -> palette(listOf(pixels), maxColors)
+        QuantizeMethod.K_MEANS -> kMeans(pixels, maxColors, seed)
+    }
+
+    /**
+     * Lloyd's algorithm over the image's distinct colours, weighted by how often each occurs.
+     *
+     * The weighting is the whole reason to have this next to median cut. Median cut splits
+     * the colour *cube*, so a handful of vivid pixels in a corner of the space can claim a
+     * whole slot; k-means moves the centres towards where the pixels actually are, so a
+     * palette entry gets spent on a colour that covers real area.
+     *
+     * Seeded and run for a fixed number of passes, so the same image always gives the same
+     * palette — an extraction that shifted between runs would make a preset unreproducible.
+     */
+    fun kMeans(pixels: IntArray, maxColors: Int, seed: Int = 1): IntArray {
+        val counts = HashMap<Int, Int>()
+        pixels.forEach { pixel ->
+            if (isOpaque(pixel)) {
+                val rgb = pixel and 0xFFFFFF
+                counts[rgb] = (counts[rgb] ?: 0) + 1
+            }
+        }
+        if (counts.isEmpty()) return intArrayOf(0)
+        val distinct = counts.keys.toIntArray()
+        if (distinct.size <= maxColors) return distinct
+
+        // Seeded by spreading the picks across the distinct colours rather than clustering
+        // them: starting centres that sit on top of each other take many more passes to
+        // separate, and sometimes never do.
+        val random = kotlin.random.Random(seed)
+        val shuffled = distinct.toMutableList().also { it.shuffle(random) }
+        var centres = IntArray(maxColors) { shuffled[it * shuffled.size / maxColors] }
+
+        repeat(PASSES) {
+            val sumR = LongArray(maxColors)
+            val sumG = LongArray(maxColors)
+            val sumB = LongArray(maxColors)
+            val weight = LongArray(maxColors)
+
+            distinct.forEach { colour ->
+                val n = counts.getValue(colour).toLong()
+                val nearest = nearestIndex(centres, colour)
+                sumR[nearest] += ((colour shr 16) and 0xFF).toLong() * n
+                sumG[nearest] += ((colour shr 8) and 0xFF).toLong() * n
+                sumB[nearest] += (colour and 0xFF).toLong() * n
+                weight[nearest] += n
+            }
+
+            centres = IntArray(maxColors) { i ->
+                // A centre nothing chose keeps its place instead of collapsing to black.
+                if (weight[i] == 0L) {
+                    centres[i]
+                } else {
+                    (((sumR[i] / weight[i]).toInt()) shl 16) or
+                        (((sumG[i] / weight[i]).toInt()) shl 8) or
+                        ((sumB[i] / weight[i]).toInt())
+                }
+            }
+        }
+        return centres.distinct().toIntArray()
+    }
+
+    /** Enough for the centres to settle on a photograph; more makes no visible difference. */
+    private const val PASSES = 12
+
+    private fun nearestIndex(centres: IntArray, colour: Int): Int {
+        val r = (colour shr 16) and 0xFF
+        val g = (colour shr 8) and 0xFF
+        val b = colour and 0xFF
+        var best = 0
+        var bestDistance = Int.MAX_VALUE
+        centres.forEachIndexed { i, centre ->
+            val dr = r - ((centre shr 16) and 0xFF)
+            val dg = g - ((centre shr 8) and 0xFF)
+            val db = b - (centre and 0xFF)
+            val d = dr * dr + dg * dg + db * db
+            if (d < bestDistance) {
+                bestDistance = d
+                best = i
+            }
+        }
+        return best
+    }
 
     /** Builds one palette for *all* frames, so colours don't shift between them. */
     fun palette(frames: List<IntArray>, maxColors: Int): IntArray {

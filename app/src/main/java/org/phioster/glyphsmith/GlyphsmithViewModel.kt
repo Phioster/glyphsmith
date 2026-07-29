@@ -21,6 +21,7 @@ import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.Animator
 import org.phioster.glyphsmith.anim.ColorQuantizer
+import org.phioster.glyphsmith.anim.QuantizeMethod
 import org.phioster.glyphsmith.anim.GifEncoder
 import org.phioster.glyphsmith.anim.Mp4Encoder
 import org.phioster.glyphsmith.ascii.AsciiRenderer
@@ -188,10 +189,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * "the important colours in this image". The result is sorted darkest-first because
      * [Palettes.sample] maps luminance onto list position.
      */
-    fun extractPalette(count: Int) = runExport("palette") {
+    fun extractPalette(count: Int, method: QuantizeMethod = QuantizeMethod.MEDIAN_CUT) =
+        runExport("palette") {
         val pixels = currentPixels() ?: return@runExport "no image"
         val colors = withContext(Dispatchers.Default) {
-            Palettes.fromColors(ColorQuantizer.palette(listOf(pixels), count).toList())
+            Palettes.fromColors(ColorQuantizer.extract(pixels, count, method).toList())
         }
         if (colors.isEmpty()) return@runExport "no colours found"
         updateParams(
@@ -201,7 +203,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 paletteLocks = List(colors.size) { false },
             ),
         )
-        "extracted ${colors.size} colours"
+        "extracted ${colors.size} colours by ${method.label}"
     }
 
     /**
@@ -715,9 +717,17 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         if (uri != null) "mp4 saved to Download/Glyphsmith" else "save failed"
     }
 
-    fun savePreset(name: String) {
-        val presets = presetStore.upsert(name, _state.value.params)
+    fun savePreset(name: String, description: String = "") {
+        val presets = presetStore.upsert(name, _state.value.params, description)
         _state.value = _state.value.copy(presets = presets, status = "preset saved")
+        renderThumbs()
+    }
+
+    fun renamePreset(from: String, to: String, description: String) {
+        _state.value = _state.value.copy(
+            presets = presetStore.rename(from, to, description),
+            status = "preset renamed",
+        )
         renderThumbs()
     }
 

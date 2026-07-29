@@ -36,6 +36,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.anim.QuantizeMethod
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.export.ImageFormat
@@ -75,7 +76,7 @@ fun GlyphsmithScreen(
     onExportHtml: () -> Unit,
     onExportAnsi: () -> Unit,
     onRunBatch: (List<android.net.Uri>) -> Unit,
-    onExtractPalette: (Int) -> Unit,
+    onExtractPalette: (Int, QuantizeMethod) -> Unit,
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
     onShareText: () -> Unit,
