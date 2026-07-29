@@ -131,7 +131,35 @@ object TermThemes {
         light = true,
     )
 
-    val all = listOf(MATRIX, AMBER, ICE, HANDHELD, ROSE, PARCHMENT)
+    val MEDIEVAL = TermPalette(
+        id = "medieval",
+        name = "Medieval",
+        /*
+         * Vellum with steel fittings — the page and the armour that guarded it.
+         *
+         * The trick is that these are two different temperatures and neither one wins. The
+         * ground is vellum gone grey rather than gold: parchment kept indoors and out of the
+         * sun, so it holds a little warmth but none of the honey [PARCHMENT] has. Everything
+         * raised above it is plate — cold, hard, and *darker* than the page, because polished
+         * steel in flat light reads as a grey mass rather than a highlight.
+         *
+         * The ink is iron and takes a faint blue with it, which is what separates this from
+         * simply being a colder parchment. The two accents come off a shield rather than a
+         * screen: gilt for what is active, and the deep red heralds call gules for what is
+         * wrong.
+         */
+        background = Color(0xFFC8C0AC),
+        surface = Color(0xFFB0AB99),
+        surfaceHigh = Color(0xFF8E8C82),
+        ink = Color(0xFF23252A),
+        inkDim = Color(0xFF4E5158),
+        inkFaint = Color(0xFF83817A),
+        amber = Color(0xFF8C6A22),
+        danger = Color(0xFF6E1F1F),
+        light = true,
+    )
+
+    val all = listOf(MATRIX, AMBER, ICE, HANDHELD, ROSE, PARCHMENT, MEDIEVAL)
 
     fun byId(id: String): TermPalette = all.firstOrNull { it.id == id } ?: MATRIX
 }
