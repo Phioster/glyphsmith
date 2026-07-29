@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -17,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.anim.AnimCurve
 import org.phioster.glyphsmith.anim.AnimTarget
+import org.phioster.glyphsmith.anim.AnimSegment
 import org.phioster.glyphsmith.anim.AnimTrack
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
@@ -129,6 +131,8 @@ fun AnimPanel(
             }
         }
 
+        SegmentSection(animation) { next -> update { next } }
+
         SectionHeader("temporal variation")
 
         TemporalSection(params.temporal) { onChange(params.copy(temporal = it)) }
@@ -138,7 +142,7 @@ fun AnimPanel(
         val ready = state.hasImage && !state.working
         // Temporal noise is an animation in its own right, so it alone is enough to play.
         val moves = state.isVideo ||
-            (animation.enabled && animation.activeCount > 0) ||
+            (animation.enabled && (animation.activeCount > 0 || animation.segments.isNotEmpty())) ||
             params.temporal.enabled
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TerminalButton(
@@ -176,6 +180,136 @@ fun AnimPanel(
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+/**
+ * The segment list: one property moving across a slice of the loop.
+ *
+ * A track spans the whole loop and repeats; a segment occupies a range and stops. Three
+ * segments on one property — rise, hold, fall — is the only way to say "fade in, stay, fade
+ * out", and it is what the original's timeline is for.
+ *
+ * Numbers rather than a draggable timeline. On a phone a pair of percentage fields is more
+ * precise than a gesture, and precision is the entire point of butting two segments together.
+ */
+@Composable
+private fun SegmentSection(
+    animation: AnimationParams,
+    onChange: (AnimationParams) -> Unit,
+) {
+    SectionHeader("segments")
+
+    if (animation.segments.isEmpty()) {
+        Text(
+            "a track moves a parameter across the whole loop, over and over. a segment moves " +
+                "it across a slice and then stops — three of them make a fade in, a hold and " +
+                "a fade out.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 6.dp),
+        )
+    }
+
+    animation.segments.forEachIndexed { index, segment ->
+        fun edit(next: AnimSegment) {
+            // Refused rather than merged: two rules for one property at one instant have no
+            // sensible answer, so the change is simply dropped.
+            if (!animation.canPlace(next, ignoring = index)) return
+            onChange(
+                animation.copy(
+                    segments = animation.segments.mapIndexed { i, s -> if (i == index) next else s },
+                ),
+            )
+        }
+
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+                .border(1.dp, Term.InkDim, RectangleShape)
+                .background(Term.Surface)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+        ) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${index + 1}. ${segment.target.label}",
+                    color = Term.Ink,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                TerminalButton(
+                    label = "remove",
+                    accent = Term.Amber,
+                    onClick = {
+                        onChange(
+                            animation.copy(
+                                segments = animation.segments.filterIndexed { i, _ -> i != index },
+                            ),
+                        )
+                    },
+                )
+            }
+
+            StepperDropdown(
+                label = "property",
+                items = AnimTarget.entries.toList(),
+                selectedIndex = AnimTarget.entries.indexOf(segment.target),
+                onSelect = { edit(segment.copy(target = AnimTarget.entries[it])) },
+                itemLabel = { it.label },
+            )
+            TerminalSlider(
+                "from", segment.from.toFloat(),
+                segment.target.min.toFloat()..segment.target.max.toFloat(),
+                { edit(segment.copy(from = it.toInt())) },
+                valueText = "${segment.from}",
+            )
+            TerminalSlider(
+                "to", segment.to.toFloat(),
+                segment.target.min.toFloat()..segment.target.max.toFloat(),
+                { edit(segment.copy(to = it.toInt())) },
+                valueText = "${segment.to}",
+            )
+            TerminalSlider(
+                "starts at", segment.start.toFloat(), 0f..100f,
+                { edit(segment.copy(start = it.toInt())) },
+                valueText = "${segment.start}%",
+            )
+            TerminalSlider(
+                "ends at", segment.end.toFloat(), 0f..100f,
+                { edit(segment.copy(end = it.toInt())) },
+                valueText = "${segment.end}%",
+            )
+            StepperDropdown(
+                label = "curve",
+                items = AnimCurve.entries.toList(),
+                selectedIndex = AnimCurve.entries.indexOf(segment.curve),
+                onSelect = { edit(segment.copy(curve = AnimCurve.entries[it])) },
+                itemLabel = { it.label },
+            )
+        }
+    }
+
+    val candidate = AnimSegment(
+        target = AnimTarget.entries.firstOrNull { target ->
+            animation.segments.none { it.target == target }
+        } ?: AnimTarget.entries.first(),
+    )
+    TerminalButton(
+        label = "+ segment",
+        enabled = animation.canPlace(candidate),
+        onClick = { onChange(animation.copy(segments = animation.segments + candidate)) },
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+    )
+    if (animation.segments.isNotEmpty()) {
+        Text(
+            "segments may touch end to end but not overlap on the same property — a change " +
+                "that would overlap is simply refused. outside every segment the base value " +
+                "applies, so a hold has to be stated: from 100 to 100.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp),
         )
     }
 }
