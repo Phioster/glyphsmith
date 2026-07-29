@@ -105,21 +105,25 @@ Staying in `ascii/`: `AsciiEngine`, `AsciiRenderer`, `AsciiParams`, `CharacterSe
 
 ## Phase 3 — Performance and dither engine
 
-- [ ] Pixel-direct path: `levels = palette.size`, `cols/rows = width/height` at `cellSize 1`
+**Done:** the scrubbing preview. **Not done:** buffer pooling and per-channel error diffusion —
+see the status section at the bottom for what that means and why.
+
+
+- [x] Pixel-direct path: `levels = palette.size`, `cols/rows = width/height` at `cellSize 1`
+- [x] `isScrubbing` in `TerminalSlider` — via `LocalScrubReporter`, a composition local, so all
+      102 call sites are instrumented without one of them changing
+- [x] Low-res `maxSide` (480) while scrubbing, full-quality rebuild on release
 - [ ] Per-channel error diffusion for the pixel path (luminance-only error is wrong for RGB
-      palette reduction)
-- [ ] `core/pipeline/BufferPool.kt`, carried in `RenderContext`
+      palette reduction — `ColorMode.SOURCE` currently posterises rather than dithers)
+- [ ] `core/pipeline/BufferPool.kt`, carried in `RenderContext` (the slot exists, unused)
 - [ ] Hoist `PixelSort.kt:51` — `IntArray(length)` allocated inside the row loop
 - [ ] Pool the per-effect buffers: `PixelOps.kt:55/127/161/218`, `Chromatic.kt:59`,
       `DiffractionStars.kt:33`
-- [ ] Pool the grids in `AsciiEngine.kt:71/72/186/187`
+- [ ] Pool the grids in `CellSampler` and `QuantisePass`
 - [ ] Pool the pipeline-internal bitmap only — the one `EffectPipeline` already recycles.
       Never the one that reaches `_state`.
 - [ ] Double-buffer the live camera frame and its rotation copy
       (`LiveCamera.kt:128/129/159/168/171`)
-- [ ] `isScrubbing` in `TerminalSlider` via `onValueChangeFinished` + an `interactionSource`
-      watching `DragInteraction.Start/Stop` — one wrapper covers all 102 call sites
-- [ ] Low-res `maxSide` while scrubbing, full rebuild on release
 - [ ] Cancel the previous rebuild on the video preview-frame slider
 
 Keep the existing caches: `DitherMatrices` (synchronized), the 64 prebuilt variable kernels,
@@ -129,16 +133,17 @@ Keep the existing caches: `DitherMatrices` (synchronized), the 64 prebuilt varia
 
 ## Phase 4 — UI
 
-- [ ] `AsciiPanel` becomes "GLYPH / ASCII RENDERING" with a master toggle at the top
-- [ ] Glyph-only controls hide in pixel mode; `cell size` and `invert` stay in both
-- [ ] Hide the mapping tab in pixel mode
-- [ ] `OutputPanel`: disable the seven glyph-dependent exports with a reason — `save txt`,
-      `copy txt`, `share txt`, `svg text`, `svg outlines`, `save html`, `save ansi`
-- [ ] Keep always available: PNG/JPG/WEBP, `share img`, batch, GIF, MP4
-- [ ] Condition the two copy strings that only make sense for text output
-- [ ] Feed grid dimensions from the pixel path so the info rows are not `0 × 0`
+- [x] `AsciiPanel` is "glyph / ascii rendering" with the master toggle at the top
+- [x] Glyph-only controls hidden in pixel mode; block size and invert stay, plus a levels slider
+      for single-colour mode and the distance-metric picker for source-colour mode
+- [x] Mapping tab hidden in pixel mode, with the selection following the mode off it
+- [x] `OutputPanel`: the seven glyph-dependent exports disabled with a reason
+- [x] PNG/JPG/WEBP, `share img`, batch, GIF, MP4 available in both modes
+- [x] The two text-only copy strings are conditional
+- [x] Grid dimensions come from `Result.cols/rows`, so the readouts work in both modes
 
-`EffectsPanel` and the `Preview` composable need no changes.
+`EffectsPanel` and the `Preview` composable needed no changes, as predicted — the preview
+displays a bitmap and was already mode-agnostic.
 
 ---
 
@@ -174,8 +179,37 @@ render to the current build, and an existing preset still loads in glyph mode.
 
 ## Status
 
-Phase 1 complete. Phase 2 complete except the package move, which now runs after Phase 5.
-CI green on `pixel-dither-refactor` at each step, including `DitherRegressionTest` over all 78
-modes unchanged — the glyph path renders exactly as before.
+CI is green on `pixel-dither-refactor` and has been at every step, including
+`DitherRegressionTest` over all 78 modes with its expectations untouched — the glyph path
+renders exactly as it did before.
 
-Phase 3 next.
+**Complete:** Phase 1. Phase 2 except the package move. Phase 3's scrubbing preview. Phase 4.
+Phase 5's new tests.
+
+**Outstanding, in the order I would do it:**
+
+1. **Per-channel error diffusion** (Phase 3). `ColorMode.SOURCE` in pixel mode currently snaps
+   each cell to its nearest palette entry with no error carried anywhere, so it posterises. The
+   diffusion has to run on three channels instead of on luminance for this to be a colour
+   dither. This is the one item that is a missing *feature* rather than a missing optimisation.
+2. **Buffer pooling** (Phase 3). `RenderContext` has the slot; nothing fills it. The measured
+   target is ~5 MB of garbage per live-camera frame with four effects active, of which the
+   single worst offender is `PixelSort.kt:51` allocating inside the row loop.
+3. **Package move** (Phase 2f). Pure import churn across ~30 files. Deliberately last.
+4. **`anim/ColorQuantizer` onto `ColorDistance.EUCLIDEAN`**, so there is one nearest-colour
+   implementation rather than two.
+5. **`GlyphCoverage.cache` thread safety** — an unsynchronised `HashMap` read from
+   `Dispatchers.Default`. Pre-existing, not introduced here, but it is on the list.
+
+Two tests were written wrong before they were written right, and both are worth knowing about:
+
+- A flat white field does **not** come out as one colour in every mode. The threshold families
+  add a signed offset before quantising, so pure white picks up a faint texture, and the pattern
+  families (camouflage, orb fields, radial bursts) impose structure regardless of the input. That
+  is what those styles are for. The invariant only holds for the content-driven modes, which is
+  what the test now asserts.
+- The three colour metrics do not disagree about ranking for any pair you care to guess. The
+  test now proves the stronger and checkable thing: they are not proportional, so none of the
+  three is redundant.
+
+This file stays until items 1–4 are done. Deleting it now would say the refactor was finished.
