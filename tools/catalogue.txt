@@ -1,0 +1,173 @@
+# 76 Dither Boy transcripts catalogued
+
+
+## CONTROL  (18 terms seen 2+ times)
+   16  depth
+   13  threshold
+    5  max displace
+    4  effects
+    4  contrast
+    3  saturation
+    3  brightness
+    2  glow
+    2  epsilon
+    2  stop moving
+    2  epsilon glow
+    2  color depth
+    2  orb direction
+    2  scale
+    2  expression
+    2  fall-off
+    2  smoothness
+    2  luminance threshold
+
+## EFFECT  (50 terms seen 2+ times)
+   61  after
+   21  glitch
+   18  chromatic
+   14  dither
+   13  glow
+   10  new
+   10  dithering
+    7  show
+    6  all
+    5  favorite
+    5  lighting
+    5  waveform
+    4  diffusion
+    4  cool
+    3  halftone
+    3  special
+    3  better
+    3  tick
+    3  jpeg glitch
+    3  sure
+    2  demo
+    2  epsilon glow
+    2  button
+    2  re working
+    2  text
+    2  create
+    2  way
+    2  animation
+    2  apply
+    2  similar
+    2  chromatic aberration
+    2  rest
+    2  getting
+    2  type
+    2  love
+    2  adobe after
+    2  work
+    2  version
+    2  pixel art style
+    2  applying
+    2  enough
+    2  wavy glitchy text
+    2  come back
+    2  whatever
+    2  genre
+    2  uniform modulation
+    2  come
+    2  smooth diffuse
+    2  build
+    2  particular type
+
+## ALGO  (18 terms seen 2+ times)
+   29  dithering
+    5  diffusion
+    5  different
+    5  layer
+    4  change
+    3  diffusion dithering
+    3  different dithering
+    2  dither
+    2  heart grid
+    2  bayer
+    2  pop tone
+    2  particular
+    2  diffuse
+    2  modulated diffuse
+    2  pixel art
+    2  work
+    2  new
+    2  smooth diffuse
+
+## CATEGORY  (28 terms seen 2+ times)
+   10  acid graphics
+    6  new
+    6  halloween
+    4  dithering
+    4  adjustment
+    4  source
+    4  palette
+    3  come
+    3  help
+    3  name
+    3  select
+    3  community
+    3  bottom
+    3  settings
+    3  favorites
+    3  properties
+    3  extras
+    2  cyberpunk
+    2  abstract
+    2  them all
+    2  side
+    2  top
+    2  drop-own
+    2  glitch
+    2  palettes
+    2  project
+    2  error diffusion
+    2  adjustments
+
+## MODE  (15 terms seen 2+ times)
+   19  blend
+    4  radiant
+    4  light
+    4  darken blend
+    4  expert
+    3  screen blend
+    3  realistic
+    3  dark
+    2  rendered
+    2  slider update
+    2  halftone
+    2  render
+    2  create
+    2  lighten blend
+    2  enable expert
+
+## EXPORT  (15 terms seen 2+ times)
+    6  vector
+    5  lossless
+    5  video
+    3  new
+    3  come
+    3  regular
+    3  file export
+    3  show
+    2  import
+    2  file
+    2  scale
+    2  did
+    2  go file video
+    2  file video
+    2  go file
+
+## NAMED  (13 terms seen 2+ times)
+    5  deep glow
+    3  dither boy
+    3  color cat
+    3  photocopied
+    3  public
+    2  artefactor
+    2  epsilon glow
+    2  temporal
+    2  epsilon
+    2  flareware
+    2  equin
+    2  pixels
+    2  danny void
