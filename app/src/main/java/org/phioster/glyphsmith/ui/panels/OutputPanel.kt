@@ -34,6 +34,8 @@ fun OutputPanel(
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
     onExportSvg: (SvgMode) -> Unit,
+    onExportHtml: () -> Unit,
+    onExportAnsi: () -> Unit,
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
     onShareText: () -> Unit,
@@ -152,6 +154,21 @@ fun OutputPanel(
                 "svg outlines", { onExportSvg(SvgMode.OUTLINES) }, Modifier.weight(1f), enabled,
             )
         }
+        SectionHeader("text formats")
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TerminalButton("save html", onExportHtml, Modifier.weight(1f), enabled)
+            TerminalButton("save ansi", onExportAnsi, Modifier.weight(1f), enabled)
+        }
+        Text(
+            "the .txt export drops the colour, which is right for a README and wrong for " +
+                "everything else. html is a self-contained page; ansi is 24-bit escapes a " +
+                "terminal renders straight from cat.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+
         Text(
             "text keeps the glyphs editable but needs the font on the other machine; " +
                 "outlines are real paths and render anywhere — that is the one for print " +

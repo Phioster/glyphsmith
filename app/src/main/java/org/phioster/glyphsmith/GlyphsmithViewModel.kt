@@ -57,6 +57,7 @@ import org.phioster.glyphsmith.export.Exporter
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgExporter
 import org.phioster.glyphsmith.export.SvgMode
+import org.phioster.glyphsmith.export.TextExporters
 import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.ui.theme.TermThemes
 
@@ -430,6 +431,20 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             "save failed"
         }
+    }
+
+    fun exportHtml() = runExport("html") {
+        val grid = art ?: return@runExport "nothing to export"
+        val text = TextExporters.html(grid, _state.value.params)
+        val uri = withContext(Dispatchers.IO) { Exporter.saveHtml(context, text) }
+        if (uri != null) "html saved to Download/Glyphsmith" else "save failed"
+    }
+
+    fun exportAnsi() = runExport("ansi") {
+        val grid = art ?: return@runExport "nothing to export"
+        val text = TextExporters.ansi(grid, _state.value.params)
+        val uri = withContext(Dispatchers.IO) { Exporter.saveAnsi(context, text) }
+        if (uri != null) "ansi saved to Download/Glyphsmith" else "save failed"
     }
 
     fun copyText() = runExport("copy") {
