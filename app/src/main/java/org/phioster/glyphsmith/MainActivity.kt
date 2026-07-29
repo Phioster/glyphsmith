@@ -55,6 +55,8 @@ class MainActivity : ComponentActivity() {
                         onStopAnimation = viewModel::stopAnimation,
                         onExportGif = viewModel::exportGif,
                         onExportMp4 = viewModel::exportMp4,
+                        themeId = state.themeId,
+                        onThemeChange = viewModel::setTheme,
                     )
                 }
             }

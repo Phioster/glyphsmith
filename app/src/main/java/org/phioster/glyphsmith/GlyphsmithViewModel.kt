@@ -31,6 +31,7 @@ import org.phioster.glyphsmith.ascii.FontChoice
 import org.phioster.glyphsmith.data.ImageLoader
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
+import org.phioster.glyphsmith.data.Settings
 import org.phioster.glyphsmith.data.Source
 import org.phioster.glyphsmith.data.StillSource
 import org.phioster.glyphsmith.data.VideoSource
@@ -38,6 +39,8 @@ import org.phioster.glyphsmith.export.Exporter
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgExporter
 import org.phioster.glyphsmith.export.SvgMode
+import org.phioster.glyphsmith.ui.theme.Term
+import org.phioster.glyphsmith.ui.theme.TermThemes
 
 data class UiState(
     val params: AsciiParams = AsciiParams(),
@@ -61,6 +64,7 @@ data class UiState(
     val fontLabel: String = "",
     val missingGlyphs: String = "",
     val presets: List<Preset> = emptyList(),
+    val themeId: String = "matrix",
     val status: String = "no image loaded",
 )
 
@@ -69,8 +73,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private val context: Context get() = getApplication<Application>()
 
     private val presetStore = PresetStore(app)
+    private val settings = Settings(app)
 
-    private val _state = MutableStateFlow(UiState(presets = presetStore.load()))
+    private val _state = MutableStateFlow(
+        UiState(presets = presetStore.load(), themeId = settings.themeId),
+    )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private val paramsFlow = MutableStateFlow(AsciiParams())
@@ -87,6 +94,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private var art: AsciiArt? = null
 
     init {
+        // Applied before the first frame so the app never flashes the default theme on top
+        // of the one the user actually chose.
+        Term.palette = TermThemes.byId(settings.themeId)
         viewModelScope.launch {
             paramsFlow.collectLatest { params ->
                 // Coalesce slider spam: collectLatest cancels the previous pass, so a drag
@@ -103,6 +113,18 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 rebuild(params)
             }
         }
+    }
+
+    /**
+     * Switches the interface theme and remembers it.
+     *
+     * [Term] is Compose state, so assigning it repaints everything reading it; the id is
+     * mirrored into [UiState] purely so the picker can show which one is selected.
+     */
+    fun setTheme(id: String) {
+        settings.themeId = id
+        Term.palette = TermThemes.byId(id)
+        _state.value = _state.value.copy(themeId = id)
     }
 
     fun updateParams(params: AsciiParams) {

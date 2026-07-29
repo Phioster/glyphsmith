@@ -32,6 +32,7 @@ object EffectPipeline {
         EffectId.GLITCH -> JpegGlitch.apply(pixels, stack.jpegGlitch)
         EffectId.STARS -> DiffractionStars.apply(pixels, stack.stars)
         EffectId.SUBTEXTURE -> Subtexture.apply(pixels, stack.subtexture)
+        EffectId.CMYK -> CmykHalftone.apply(pixels, stack.cmyk)
         EffectId.GLOW -> EpsilonGlow.apply(pixels, stack.glow)
     }
 }

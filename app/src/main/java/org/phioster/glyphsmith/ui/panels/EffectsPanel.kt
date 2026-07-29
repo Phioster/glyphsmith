@@ -94,6 +94,8 @@ fun EffectsPanel(
                 EffectId.SUBTEXTURE ->
                     SubtextureSection(fx.subtexture, move) { p -> update { copy(subtexture = p) } }
 
+                EffectId.CMYK -> CmykSection(fx.cmyk, move) { p -> update { copy(cmyk = p) } }
+
                 EffectId.GLOW -> GlowSection(fx.glow, move) { p -> update { copy(glow = p) } }
             }
         }

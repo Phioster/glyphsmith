@@ -27,8 +27,10 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.ui.SectionHeader
+import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton
 import org.phioster.glyphsmith.ui.theme.Term
+import org.phioster.glyphsmith.ui.theme.TermThemes
 
 @Composable
 fun PresetPanel(
@@ -38,6 +40,8 @@ fun PresetPanel(
     onDelete: (String) -> Unit,
     onExport: () -> Unit,
     onImport: (Uri) -> Unit,
+    themeId: String,
+    onThemeChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var name by remember { mutableStateOf("") }
@@ -132,6 +136,24 @@ fun PresetPanel(
         }
         Text(
             "exports land in Download/Glyphsmith; importing merges by name",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+
+        SectionHeader("appearance")
+
+        StepperDropdown(
+            label = "theme",
+            items = TermThemes.all,
+            selectedIndex = TermThemes.all.indexOfFirst { it.id == themeId }.coerceAtLeast(0),
+            onSelect = { onThemeChange(TermThemes.all[it].id) },
+            itemLabel = { it.name },
+            itemDetail = { if (it.light) "light" else "dark" },
+        )
+        Text(
+            "the theme belongs to the app, not to a preset — loading someone else's preset " +
+                "should not repaint your interface",
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 6.dp),

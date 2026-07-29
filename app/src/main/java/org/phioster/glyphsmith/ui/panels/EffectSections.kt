@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
 import org.phioster.glyphsmith.effects.ChromaticParams
+import org.phioster.glyphsmith.effects.CmykHalftoneParams
 import org.phioster.glyphsmith.effects.DiffractionStarsParams
 import org.phioster.glyphsmith.effects.GlowParams
 import org.phioster.glyphsmith.effects.JpegGlitchParams
@@ -318,6 +319,56 @@ internal fun SubtextureSection(
             modifier = Modifier.padding(top = 4.dp),
         )
         SeedRow(params.seed) { onChange(params.copy(seed = it)) }
+    }
+}
+
+@Composable
+internal fun CmykSection(
+    params: CmykHalftoneParams,
+    move: MoveHandler,
+    onChange: (CmykHalftoneParams) -> Unit,
+) {
+    EffectSection("cmyk halftone", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "four screens at the classic printing angles — yellow 0°, cyan 15°, black 45°, " +
+                "magenta 75°. Thirty degrees between the strong inks is what stops their " +
+                "rosette collapsing into a moiré.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        TerminalSlider(
+            "screen", params.frequency.toFloat(), 2f..40f,
+            { onChange(params.copy(frequency = it.toInt())) },
+            valueText = "${params.frequency}px per dot",
+        )
+        TerminalSlider(
+            "angle", params.angle.toFloat(), 0f..90f,
+            { onChange(params.copy(angle = it.toInt())) },
+            valueText = "+${params.angle}°",
+        )
+        TerminalSlider(
+            "black ink", params.blackInk.toFloat(), 0f..100f,
+            { onChange(params.copy(blackInk = it.toInt())) },
+            valueText = "${params.blackInk}/100",
+        )
+        TerminalSlider(
+            "mid-tone gain", params.midtoneGain.toFloat(), 1f..200f,
+            { onChange(params.copy(midtoneGain = it.toInt())) },
+            valueText = "${params.midtoneGain}/200",
+        )
+        TerminalSlider(
+            "dot sharpness", params.sharpness.toFloat(), 0f..100f,
+            { onChange(params.copy(sharpness = it.toInt())) },
+            valueText = "${params.sharpness}/100",
+        )
+        Text(
+            "black ink pulls the grey component out of the three chromatic inks — at 0 a " +
+                "neutral is printed by all three at once, which goes muddy",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
 

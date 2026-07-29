@@ -84,6 +84,8 @@ fun GlyphsmithScreen(
     onStopAnimation: () -> Unit,
     onExportGif: () -> Unit,
     onExportMp4: () -> Unit,
+    themeId: String,
+    onThemeChange: (String) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -163,6 +165,8 @@ fun GlyphsmithScreen(
                     onDelete = onDeletePreset,
                     onExport = onExportPresets,
                     onImport = onImportPresets,
+                    themeId = themeId,
+                    onThemeChange = onThemeChange,
                 )
             }
         }

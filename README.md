@@ -72,9 +72,9 @@ categories, with individually editable stops, per-stop locks, a shuffle that res
 a palette depth independent of the glyph depth, and extraction straight from the loaded
 image. Transparent or hex-picked background.
 
-**Effects** — eight stackable passes over the rendered glyphs, in an order you can change:
+**Effects** — nine stackable passes over the rendered glyphs, in an order you can change:
 post processing, blur/sharpen, tint, chromatic aberration, JPEG databending, diffraction
-stars, subtexture, and Epsilon Glow. The order is not cosmetic — glitch before glow blooms,
+stars, subtexture, CMYK halftone, and Epsilon Glow. The order is not cosmetic — glitch before glow blooms,
 glitch after glow cuts the bloom apart.
 
 *Epsilon Glow* is a directional bloom: threshold with soft knee, radius with optional
@@ -86,7 +86,16 @@ halftone, paper grain and fibre, scanner streaks, static, VHS bands — with fou
 and an option to derive the texture from the picture's own local detail so it bites where
 there is structure and fades over flat areas.
 
+*CMYK halftone* screens the image the way process printing does: four separations at the
+classic angles (yellow 0°, cyan 15°, black 45°, magenta 75°), with grey component
+replacement on a black-ink slider and a mid-tone gain for dot spread.
+
 None of the effects touch the character grid, so `.txt` and `.svg` exports are unaffected.
+
+**Video** — load a clip instead of a still and the frames are sampled evenly across it,
+each one going through the same pipeline. Frames are decoded on demand rather than held, so
+a long clip costs about what a single image does. Parameter tracks and temporal noise still
+apply on top.
 
 **Animation** — a still image animated by moving the parameters, not the picture. Nine
 tracks, eight curves (three of them one-way ramps, marked as such because they do not close
@@ -96,6 +105,10 @@ the first.
 
 **Export** — PNG to `Pictures/Glyphsmith`; the character grid, GIF, MP4 and SVG to
 `Download/Glyphsmith`; clipboard; or the system share sheet. Presets are saved as JSON.
+
+**Themes** — six interface looks (Matrix, Amber CRT, Ice, Handheld, Rose, and the one light
+theme, Parchment). The theme is an app setting rather than part of a preset: loading someone
+else's preset should not repaint your interface.
 
 SVG comes in two modes. *Text* keeps the glyphs editable as type but needs the font at the
 other end. *Outlines* flattens each glyph to a real path — no font dependency, which is what
