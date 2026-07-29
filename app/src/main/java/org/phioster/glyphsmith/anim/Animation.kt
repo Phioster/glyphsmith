@@ -40,6 +40,40 @@ enum class AnimCurve(val label: String, val seamless: Boolean) {
     EASE_IN_OUT("Ease In-Out", false),
 }
 
+/**
+ * One parameter moving from [from] to [to] across a *slice* of the loop.
+ *
+ * The difference from [AnimTrack] is the whole reason both exist. A track is periodic and
+ * spans the entire loop, which is right for a pattern that should travel forever. A segment
+ * occupies a time range and then stops, which is the only way to say "fade in, hold, fade
+ * out" — three segments on one property, the middle one going from a value to itself.
+ *
+ * Outside every segment for a property, the base value applies. Holding is therefore stated
+ * rather than implied, which is more typing and far easier to reason about than a rule
+ * saying which neighbour a gap inherits from.
+ */
+@Serializable
+data class AnimSegment(
+    val target: AnimTarget,
+    val from: Int = 0,
+    val to: Int = 100,
+    /** 0..100 % of the loop. [start] is inclusive, [end] exclusive at the far edge. */
+    val start: Int = 0,
+    val end: Int = 100,
+    val curve: AnimCurve = AnimCurve.EASE_IN_OUT,
+) {
+    val span: IntRange get() = minOf(start, end)..maxOf(start, end)
+
+    /** True when both cover the same property and their ranges genuinely intersect. */
+    fun collidesWith(other: AnimSegment): Boolean {
+        if (target != other.target) return false
+        val a = span
+        val b = other.span
+        // Touching end to end is allowed — that is how one segment runs into the next.
+        return a.first < b.last && b.first < a.last
+    }
+}
+
 @Serializable
 data class AnimTrack(
     val target: AnimTarget,
@@ -65,7 +99,26 @@ data class AnimationParams(
     val frames: Int = 24,
     val fps: Int = 12,
     val tracks: List<AnimTrack> = AnimTarget.entries.map { AnimTrack(target = it, from = it.min, to = it.max) },
+    /** Empty by default, so an animation built before these existed behaves identically. */
+    val segments: List<AnimSegment> = emptyList(),
 ) {
+    /**
+     * Whether [segment] can be added without overlapping an existing one on the same
+     * property. Refused rather than merged, the way the original refuses it — two rules for
+     * one property at one instant has no sensible answer.
+     */
+    fun canPlace(segment: AnimSegment, ignoring: Int = -1): Boolean =
+        segments.filterIndexed { i, _ -> i != ignoring }.none { it.collidesWith(segment) }
+
+    /** The segment covering [position] (0..1) for [target], or null where none does. */
+    fun segmentAt(target: AnimTarget, position: Float): AnimSegment? {
+        val percent = (position * 100f)
+        return segments.firstOrNull {
+            it.target == target && percent >= it.span.first && percent <= it.span.last
+        }
+    }
+
+    val segmentCount: Int get() = segments.size
     fun track(target: AnimTarget): AnimTrack =
         tracks.firstOrNull { it.target == target } ?: AnimTrack(target, from = target.min, to = target.max)
 
@@ -135,7 +188,29 @@ object Animator {
             val value = valueAt(track, frame, animation.frames)
             params = apply(params, track.target, value)
         }
+
+        // Segments run after the tracks and win where they cover, because a segment is an
+        // explicit statement about one stretch of time and a track is a standing rule.
+        val position = if (animation.frames <= 0) 0f else frame.toFloat() / animation.frames
+        animation.segments.forEach { segment ->
+            val value = valueIn(segment, position) ?: return@forEach
+            params = apply(params, segment.target, value)
+        }
         return params
+    }
+
+    /** The segment's value at [position] in 0..1, or null when it does not reach that far. */
+    fun valueIn(segment: AnimSegment, position: Float): Int? {
+        val span = segment.span
+        val percent = position * 100f
+        if (percent < span.first || percent > span.last) return null
+        val width = (span.last - span.first).toFloat()
+        // A zero-width segment is a single instant; it reports its end value rather than
+        // dividing by nothing.
+        val local = if (width <= 0f) 1f else (percent - span.first) / width
+        val shaped = sample(segment.curve, local, (percent).toInt(), segment.target.ordinal + 1)
+        return (segment.from + (segment.to - segment.from) * shaped).roundToInt()
+            .coerceIn(minOf(segment.from, segment.to), maxOf(segment.from, segment.to))
     }
 
     private fun apply(params: AsciiParams, target: AnimTarget, value: Int): AsciiParams =
