@@ -34,6 +34,8 @@ import org.phioster.glyphsmith.ascii.FontChoice
 import org.phioster.glyphsmith.ascii.GlyphCoverage
 import org.phioster.glyphsmith.data.CameraCapture
 import org.phioster.glyphsmith.data.ImageLoader
+import org.phioster.glyphsmith.data.LiveCamera
+import org.phioster.glyphsmith.data.LiveFrame
 import org.phioster.glyphsmith.data.PaletteFile
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
@@ -98,6 +100,9 @@ data class UiState(
     val looped: Boolean = true,
     val playbackQuality: PlaybackQuality = PlaybackQuality.RENDERED,
     val favouritePalettes: Set<String> = emptySet(),
+    /** The live camera is running and the preview is showing what it sees. */
+    val liveCamera: Boolean = false,
+    val frontCamera: Boolean = false,
     /** How far a batch run has got, as done/total. Zero total means nothing is running. */
     val batchDone: Int = 0,
     val batchTotal: Int = 0,
@@ -409,6 +414,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         source?.pixelsAt(_state.value.previewPosition)
 
     override fun onCleared() {
+        live?.release()
+        live = null
         source?.close()
         source = null
         super.onCleared()
@@ -890,6 +897,81 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             ),
         )
         _state.value = _state.value.copy(status = "rolled ${set.name} · ${dither.label}")
+    }
+
+    private var live: LiveCamera? = null
+    /** The last frame the camera delivered, kept so it can be frozen into a still. */
+    private var lastLive: LiveFrame? = null
+
+    /**
+     * Starts the live preview. The caller has already secured the camera permission.
+     *
+     * Frames are rendered on the delivering thread — [LiveCamera] treats the callback
+     * returning as the signal to accept the next one, so handing the work elsewhere would
+     * uncap the rate and put the preview permanently behind.
+     */
+    fun startLive(owner: androidx.lifecycle.LifecycleOwner) {
+        if (live != null) return
+        val camera = LiveCamera(context)
+        live = camera
+        _state.value = _state.value.copy(liveCamera = true, status = "live")
+        camera.start(owner, _state.value.frontCamera) { frame ->
+            lastLive = frame
+            val result = runCatching {
+                Pipeline.run(frame.pixels, frame.width, frame.height, _state.value.params, LiveCamera.MAX_SIDE)
+            }.getOrNull() ?: return@start
+            art = result.art
+            _state.value = _state.value.copy(
+                preview = result.bitmap,
+                hasImage = true,
+                cols = result.art.cols,
+                rows = result.art.rows,
+                status = "live · ${result.art.cols}×${result.art.rows}",
+            )
+        }
+    }
+
+    fun stopLive() {
+        live?.release()
+        live = null
+        _state.value = _state.value.copy(liveCamera = false, status = "live stopped")
+    }
+
+    fun flipCamera() {
+        val front = !_state.value.frontCamera
+        _state.value = _state.value.copy(frontCamera = front)
+        val owner = liveOwner ?: return
+        stopLive()
+        startLive(owner)
+    }
+
+    private var liveOwner: androidx.lifecycle.LifecycleOwner? = null
+
+    fun rememberLiveOwner(owner: androidx.lifecycle.LifecycleOwner) {
+        liveOwner = owner
+    }
+
+    /**
+     * Freezes what the camera is showing into an ordinary still.
+     *
+     * This is what the live view is *for*: everything downstream — export, presets, the
+     * effect chain — works on a source, and the frozen frame becomes one indistinguishable
+     * from a loaded photograph.
+     */
+    fun freezeLive() {
+        val frame = lastLive ?: return
+        stopLive()
+        adopt(StillSource(frame.pixels, frame.width, frame.height))
+        _state.value = _state.value.copy(
+            hasImage = true,
+            isVideo = false,
+            previewPosition = 0f,
+            status = "frozen ${frame.width}×${frame.height}",
+        )
+        viewModelScope.launch {
+            rebuild(_state.value.params)
+            renderThumbs()
+        }
     }
 
     private var thumbJob: Job? = null

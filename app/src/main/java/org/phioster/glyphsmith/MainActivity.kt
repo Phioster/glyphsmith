@@ -36,6 +36,15 @@ class MainActivity : ComponentActivity() {
                         onPickImage = viewModel::loadImage,
                         onPickVideo = viewModel::loadVideo,
                         onCapture = viewModel::loadCapture,
+                        onStartLive = {
+                            // The camera is bound to the activity's lifecycle, so flipping
+                            // it later needs the same owner rather than a new one.
+                            viewModel.rememberLiveOwner(this@MainActivity)
+                            viewModel.startLive(this@MainActivity)
+                        },
+                        onStopLive = viewModel::stopLive,
+                        onFreezeLive = viewModel::freezeLive,
+                        onFlipCamera = viewModel::flipCamera,
                         onPreviewPosition = viewModel::setPreviewPosition,
                         onFormatChange = viewModel::setExportFormat,
                         onExportPng = viewModel::exportImage,
