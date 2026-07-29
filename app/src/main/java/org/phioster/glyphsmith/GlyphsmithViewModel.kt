@@ -100,6 +100,7 @@ data class UiState(
     val looped: Boolean = true,
     val playbackQuality: PlaybackQuality = PlaybackQuality.RENDERED,
     val favouritePalettes: Set<String> = emptySet(),
+    val favouriteStyles: Set<String> = emptySet(),
     /** The live camera is running and the preview is showing what it sees. */
     val liveCamera: Boolean = false,
     val frontCamera: Boolean = false,
@@ -124,6 +125,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             looped = settings.looped,
             playbackQuality = settings.playbackQuality,
             favouritePalettes = settings.favouritePalettes,
+            favouriteStyles = settings.favouriteStyles,
         ),
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -192,6 +194,13 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         if (!next.remove(id)) next.add(id)
         settings.favouritePalettes = next
         _state.value = _state.value.copy(favouritePalettes = next)
+    }
+
+    fun toggleFavouriteStyle(name: String) {
+        val next = settings.favouriteStyles.toMutableSet()
+        if (!next.remove(name)) next.add(name)
+        settings.favouriteStyles = next
+        _state.value = _state.value.copy(favouriteStyles = next)
     }
 
     fun setLooped(looped: Boolean) {

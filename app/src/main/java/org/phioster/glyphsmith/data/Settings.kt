@@ -64,6 +64,17 @@ class Settings(context: Context) {
         get() = prefs.getStringSet(KEY_FAV_PALETTES, emptySet()) ?: emptySet()
         set(value) = prefs.edit().putStringSet(KEY_FAV_PALETTES, value).apply()
 
+    /**
+     * Names of [org.phioster.glyphsmith.ascii.DitherMode] entries the user starred.
+     *
+     * Stored by name rather than by ordinal: the list is going to keep growing, and a
+     * favourite that silently becomes a different style because something was inserted above
+     * it is worse than no favourites at all.
+     */
+    var favouriteStyles: Set<String>
+        get() = prefs.getStringSet(KEY_FAV_STYLES, emptySet()) ?: emptySet()
+        set(value) = prefs.edit().putStringSet(KEY_FAV_STYLES, value).apply()
+
     var looped: Boolean
         get() = prefs.getBoolean(KEY_LOOPED, true)
         set(value) = prefs.edit().putBoolean(KEY_LOOPED, value).apply()
@@ -74,6 +85,7 @@ class Settings(context: Context) {
         const val KEY_LOOPED = "looped"
         const val KEY_PLAYBACK = "playbackQuality"
         const val KEY_FAV_PALETTES = "favouritePalettes"
+        const val KEY_FAV_STYLES = "favouriteStyles"
         const val DEFAULT_THEME = "matrix"
     }
 }

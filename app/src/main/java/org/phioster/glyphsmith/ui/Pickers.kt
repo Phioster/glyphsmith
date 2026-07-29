@@ -31,6 +31,8 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.phioster.glyphsmith.ascii.DitherCategory
+import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.ui.theme.Term
 
 /**
@@ -127,7 +129,7 @@ fun <T> StepperDropdown(
 }
 
 @Composable
-private fun StepButton(glyph: String, enabled: Boolean, onClick: () -> Unit) {
+private fun StepButton(glyph: String, enabled: Boolean = true, onClick: () -> Unit) {
     Box(
         Modifier
             .size(width = 34.dp, height = 34.dp)
@@ -273,4 +275,187 @@ fun parseHex(raw: String): Int? {
     if (cleaned.length != 6) return null
     val value = cleaned.toIntOrNull(16) ?: return null
     return (0xFF shl 24) or value
+}
+
+/**
+ * The style picker: the same stepper-plus-dropdown shell, but the list inside is sorted.
+ *
+ * A flat list worked at thirty entries and stops working long before eighty. Three things
+ * make the difference, and none of them is cosmetic:
+ *
+ * **One section open at a time.** An accordion rather than a tree — with everything expanded
+ * the sorting buys nothing, because the wall of names is back.
+ *
+ * **The section holding the current style opens first.** Reopening the picker almost always
+ * means "something like this one, but not this one", so that is where the list should land.
+ *
+ * **Stars, kept apart from selection.** The arrows still step through every style in order,
+ * which is how you audition a category; the star is for the handful you return to.
+ */
+@Composable
+fun StylePicker(
+    label: String,
+    selected: DitherMode,
+    favourites: Set<String>,
+    onSelect: (DitherMode) -> Unit,
+    onToggleFavourite: (DitherMode) -> Unit,
+    modifier: Modifier = Modifier,
+    itemDetail: (DitherMode) -> String = { "" },
+) {
+    var expanded by remember { mutableStateOf(false) }
+    // Keyed to the selection so that picking a style in another section leaves that section
+    // open next time, instead of snapping back to wherever the user started.
+    var openCategory by remember(selected) { mutableStateOf(selected.category) }
+
+    val all = DitherMode.entries
+    val starred = all.filter { it.name in favourites }
+    val grouped = DitherCategory.entries.map { category ->
+        category to all.filter { it.category == category }
+    }.filter { it.second.isNotEmpty() }
+
+    Column(modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(label.uppercase(), color = Term.InkDim, style = MaterialTheme.typography.bodySmall)
+        Row(
+            Modifier.fillMaxWidth().padding(top = 3.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.weight(1f)) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, Term.InkDim, RectangleShape)
+                        .background(Term.SurfaceHigh)
+                        .clickable { expanded = true }
+                        .padding(horizontal = 8.dp, vertical = 7.dp),
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            selected.label,
+                            color = Term.Ink,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            "${selected.category.label.lowercase()} ▾",
+                            color = Term.InkDim,
+                            maxLines = 1,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.background(Term.Surface).heightIn(max = 420.dp),
+                ) {
+                    if (starred.isNotEmpty()) {
+                        SectionRow(
+                            title = "★ favourites",
+                            count = starred.size,
+                            open = openCategory == null,
+                            onClick = { openCategory = if (openCategory == null) selected.category else null },
+                        )
+                        if (openCategory == null) {
+                            starred.forEach { mode ->
+                                StyleRow(mode, selected, favourites, itemDetail, onToggleFavourite) {
+                                    expanded = false
+                                    onSelect(mode)
+                                }
+                            }
+                        }
+                    }
+                    grouped.forEach { (category, modes) ->
+                        SectionRow(
+                            title = category.label,
+                            count = modes.size,
+                            open = openCategory == category,
+                            onClick = { openCategory = if (openCategory == category) null else category },
+                        )
+                        if (openCategory == category) {
+                            modes.forEach { mode ->
+                                StyleRow(mode, selected, favourites, itemDetail, onToggleFavourite) {
+                                    expanded = false
+                                    onSelect(mode)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            StepButton("<") {
+                onSelect(all[(all.indexOf(selected) - 1 + all.size) % all.size])
+            }
+            StepButton(">") {
+                onSelect(all[(all.indexOf(selected) + 1) % all.size])
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionRow(title: String, count: Int, open: Boolean, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${if (open) "▾" else "▸"} ${title.lowercase()}",
+                    color = if (open) Term.Ink else Term.InkDim,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text("$count", color = Term.InkFaint, style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        onClick = onClick,
+    )
+}
+
+@Composable
+private fun StyleRow(
+    mode: DitherMode,
+    selected: DitherMode,
+    favourites: Set<String>,
+    itemDetail: (DitherMode) -> String,
+    onToggleFavourite: (DitherMode) -> Unit,
+    onClick: () -> Unit,
+) {
+    val isFavourite = mode.name in favourites
+    DropdownMenuItem(
+        text = {
+            Column(Modifier.padding(start = 12.dp)) {
+                Text(
+                    mode.label,
+                    color = if (mode == selected) Term.Ink else Term.InkDim,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                itemDetail(mode).takeIf { it.isNotEmpty() }?.let {
+                    Text(
+                        it,
+                        color = Term.InkFaint,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+        },
+        trailingIcon = {
+            Text(
+                if (isFavourite) "★" else "☆",
+                color = if (isFavourite) Term.Amber else Term.InkFaint,
+                modifier = Modifier
+                    .clickable { onToggleFavourite(mode) }
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        },
+        onClick = onClick,
+    )
 }

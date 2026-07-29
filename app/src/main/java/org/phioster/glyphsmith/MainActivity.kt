@@ -79,6 +79,7 @@ class MainActivity : ComponentActivity() {
                         onPreviewQualityChange = viewModel::setPreviewQuality,
                         onPlaybackQualityChange = viewModel::setPlaybackQuality,
                         onToggleFavouritePalette = viewModel::toggleFavouritePalette,
+                        onToggleFavouriteStyle = viewModel::toggleFavouriteStyle,
                         onLoopedChange = viewModel::setLooped,
                     )
                 }
