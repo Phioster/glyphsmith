@@ -555,7 +555,7 @@ class PresetStore(context: Context) {
                 ),
             ),
             preset(
-                "waveform", CATEGORY_SIGNATURE,
+                "waveform glitch", CATEGORY_SIGNATURE,
                 AsciiParams(
                     charSetId = "block-shade",
                     cellSize = 5,
