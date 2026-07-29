@@ -197,6 +197,7 @@ object AsciiEngine {
             phase = params.modPhase / 100f,
             centerX = cols / 2f,
             centerY = rows / 2f,
+            density = params.patternDensity,
             orb = params.orbOptions(),
         )
         val kernel = Dither.diffusionKernel(mode)

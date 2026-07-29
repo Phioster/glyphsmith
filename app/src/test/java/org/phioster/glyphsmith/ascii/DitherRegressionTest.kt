@@ -45,9 +45,11 @@ class DitherRegressionTest {
      * looks the way it did.
      */
     @Test
-    fun `the styles that predate the brightness argument ignore it`() {
+    fun `every style that is not content aware ignores brightness`() {
         val options = PatternOptions()
-        DitherMode.entries.filter { Dither.isThresholdBased(it) }.forEach { mode ->
+        DitherMode.entries
+            .filter { Dither.isThresholdBased(it) && !Dither.isContentAware(it) }
+            .forEach { mode ->
             for (x in 0 until 17) {
                 for (y in 0 until 17) {
                     val dark = Dither.threshold(mode, x, y, 0f, options)
@@ -57,6 +59,26 @@ class DitherRegressionTest {
                     assertEquals("$mode reacted to brightness at ($x,$y)", dark, light, 0f)
                 }
             }
+        }
+    }
+
+    /**
+     * And the other half of that split: a style that claims to read the picture must actually
+     * do so. A crosshatch that ignores brightness is a grid of lines.
+     */
+    @Test
+    fun `every content aware style reacts to brightness`() {
+        val options = PatternOptions()
+        val aware = DitherMode.entries.filter { Dither.isContentAware(it) }
+        assertTrue("nothing claims to be content aware", aware.isNotEmpty())
+        aware.forEach { mode ->
+            val differs = (0 until 24).any { x ->
+                (0 until 24).any { y ->
+                    Dither.threshold(mode, x, y, 0.05f, options) !=
+                        Dither.threshold(mode, x, y, 0.95f, options)
+                }
+            }
+            assertTrue("$mode ignores the brightness it asked for", differs)
         }
     }
 
