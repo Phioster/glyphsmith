@@ -14,6 +14,12 @@ enum class AnimTarget(val label: String, val min: Int, val max: Int) {
     DITHER_STRENGTH("Dither Strength", 0, 100),
     /** A full sweep of a modulation period, so a sawtooth over 0..100 travels seamlessly. */
     MOD_PHASE("Modulation Phase", 0, 100),
+    /**
+     * The pattern's second axis — a vortex's twist, a topography's warp, a wave's frequency
+     * range. Worth animating precisely because its meaning changes with the style: one track
+     * makes a spiral wind up, a contour map breathe, or a moiré drift through its beat.
+     */
+    PATTERN_DENSITY("Pattern Density", 0, 100),
     EDGE_THRESHOLD("Edge Threshold", 0, 100),
     GLITCH_SEED("Glitch Seed", 1, 9999),
     CHROMATIC_OFFSET("Chromatic Offset", 0, 50),
@@ -253,6 +259,7 @@ object Animator {
             // Left unclamped: the phase wraps inside the pattern, so a track that runs past
             // 100 simply keeps travelling instead of stalling at the end of its range.
             AnimTarget.MOD_PHASE -> params.copy(modPhase = value)
+            AnimTarget.PATTERN_DENSITY -> params.copy(patternDensity = value.coerceIn(0, 100))
             AnimTarget.EDGE_THRESHOLD -> params.copy(edgeThreshold = value.coerceIn(0, 100))
             AnimTarget.GLITCH_SEED -> params.copy(
                 effects = params.effects.copy(

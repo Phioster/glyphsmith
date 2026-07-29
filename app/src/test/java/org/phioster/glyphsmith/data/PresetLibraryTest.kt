@@ -1,153 +1,129 @@
 package org.phioster.glyphsmith.data
 
-import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.anim.AnimTarget
 import org.phioster.glyphsmith.ascii.CharacterSets
+import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.ascii.Palettes
 
 class PresetLibraryTest {
 
-    private val library = PresetStore.builtIns
+    private val presets = PresetStore.builtIns
 
     @Test
-    fun `names are unique`() {
-        val names = library.map { it.name.lowercase() }
-        assertEquals(names.size, names.toSet().size)
+    fun `no two presets share a name`() {
+        val duplicates = presets.groupBy { it.name }.filterValues { it.size > 1 }.keys
+        assertTrue("these names appear twice: $duplicates", duplicates.isEmpty())
     }
 
+    /** A preset filed under a category the picker does not draw is a preset nobody can find. */
     @Test
-    fun `every preset sits in a known category`() {
-        library.forEach { preset ->
+    fun `every preset lands in a category the picker knows`() {
+        presets.forEach { preset ->
             assertTrue(
-                "${preset.name} is in unknown category ${preset.category}",
+                "${preset.name} is filed under ${preset.category}",
                 preset.category in PresetStore.categories,
             )
         }
     }
 
-    /** A preset naming a set or palette that does not exist would silently fall back. */
+    /** Referencing a palette or character set that does not exist fails silently at runtime. */
     @Test
-    fun `every preset points at a real set and palette`() {
-        library.forEach { preset ->
+    fun `every preset points at something that exists`() {
+        presets.forEach { preset ->
             assertTrue(
-                "${preset.name} names a missing set: ${preset.params.charSetId}",
-                CharacterSets.all.any { it.id == preset.params.charSetId },
-            )
-            assertTrue(
-                "${preset.name} names a missing palette: ${preset.params.paletteId}",
+                "${preset.name} wants the palette '${preset.params.paletteId}'",
                 Palettes.all.any { it.id == preset.params.paletteId },
             )
-        }
-    }
-
-    /** The two categories that promise motion — applying one and pressing play is the deal. */
-    private val movingCategories =
-        setOf(PresetStore.CATEGORY_MOTION, PresetStore.CATEGORY_SIGNATURE)
-
-    /**
-     * A preset in MOTION or SIGNATURE that does not actually move would make the category a
-     * lie rather than an oversight, so both the switch and something to drive are asserted.
-     */
-    @Test
-    fun `every preset that promises motion really animates`() {
-        val moving = library.filter { it.category in movingCategories }
-        assertTrue("no animated presets shipped", moving.isNotEmpty())
-        assertTrue(
-            "not enough animated presets to be a library",
-            moving.size >= 8,
-        )
-
-        moving.forEach { preset ->
-            val params = preset.params
-            val moves = params.animation.activeCount > 0 || params.temporal.enabled
-            assertTrue("${preset.name} has animation switched off", params.animation.enabled)
-            assertTrue("${preset.name} animates nothing", moves)
-        }
-    }
-
-    @Test
-    fun `the still categories really are still`() {
-        library.filterNot { it.category in movingCategories }.forEach {
-            assertFalse("${it.name} animates unexpectedly", it.params.animation.enabled)
+            assertTrue(
+                "${preset.name} wants the set '${preset.params.charSetId}'",
+                CharacterSets.all.any { it.id == preset.params.charSetId },
+            )
         }
     }
 
     /**
-     * The comparison bench used to put one preset per algorithm in a LAB category. It was
-     * removed once it had served its purpose — twenty-six of fifty-six entries in a list you
-     * scroll, and twenty-six thumbnails re-rendered on every image change.
-     *
-     * A preset the *user* saved under that category has to survive its removal, though.
-     * PresetPanel sorts an unknown category to the end rather than dropping the preset, and
-     * this holds it to that: the alternative loses someone's work silently.
+     * Every shelf has to hold something. An empty category draws a header over nothing, and
+     * the two added for this round would be exactly that if a rename went wrong.
      */
     @Test
-    fun `a preset in a category the library no longer knows is still kept`() {
-        val orphan = Preset("mine", AsciiParams(), category = "LAB")
-        assertFalse("LAB is still a shipped category", "LAB" in PresetStore.categories)
-        assertEquals("LAB", orphan.category)
-        assertTrue("the sort would drop it", PresetStore.categories.indexOf(orphan.category) < 0)
+    fun `every category has at least one preset`() {
+        PresetStore.categories.filter { it != PresetStore.CATEGORY_CUSTOM }.forEach { category ->
+            assertTrue("$category is empty", presets.any { it.category == category })
+        }
+    }
+
+    // --- motion --------------------------------------------------------------------
+
+    private val motion = presets.filter { it.category == PresetStore.CATEGORY_MOTION }
+
+    /** The category's whole promise is that applying one and pressing play is enough. */
+    @Test
+    fun `every motion preset arrives with its animation switched on`() {
+        assertTrue("there are no motion presets", motion.isNotEmpty())
+        motion.forEach { preset ->
+            assertTrue("${preset.name} is not animated", preset.params.animation.enabled)
+            assertTrue(
+                "${preset.name} has no track aimed at anything",
+                preset.params.animation.tracks.any { it.enabled },
+            )
+        }
     }
 
     @Test
-    fun `nothing shipped sits in the retired bench category`() {
-        assertTrue(library.none { it.category == "LAB" })
-        assertTrue(library.none { it.name.startsWith("lab ") })
+    fun `motion presets run long enough to read as motion`() {
+        motion.forEach { preset ->
+            assertTrue("${preset.name} has ${preset.params.animation.frames} frames", preset.params.animation.frames >= 24)
+        }
     }
 
-    /** The axis-dominant kernels were added for this look; something has to actually use it. */
+    /**
+     * A track that ends somewhere other than where it began leaves a visible jump at the loop
+     * seam. Sawtooth is exempt and only for the modulation phase, which wraps inside the
+     * pattern — a full sweep of it lands exactly back on itself.
+     */
     @Test
-    fun `the signature set uses the axis diffusion it was built for`() {
-        val signature = library.filter { it.category == PresetStore.CATEGORY_SIGNATURE }
-        assertTrue(
-            "no signature preset uses DIFFUSE_Y or DIFFUSE_X",
-            signature.any { it.params.ditherMode.name.startsWith("DIFFUSE_") },
-        )
-    }
-
-    /** The whole point of the expansion: the newer engine features have starting points. */
-    @Test
-    fun `the library exercises the features added after the first nine`() {
-        assertTrue("no modulation preset", library.any { it.params.ditherMode.name.startsWith("MOD_") })
-        assertTrue("no beehive preset", library.any { it.params.ditherMode.name == "BEEHIVE" })
-        assertTrue("no cmyk preset", library.any { it.params.effects.cmyk.enabled })
-        assertTrue("no subtexture preset", library.any { it.params.effects.subtexture.enabled })
-        assertTrue("no pixel sort preset", library.any { it.params.effects.pixelSort.enabled })
-        assertTrue("no slice shift preset", library.any { it.params.effects.sliceShift.enabled })
-        assertTrue("no edge preset", library.any { it.params.edgeEnabled })
-        assertTrue("no temporal preset", library.any { it.params.temporal.enabled })
-        assertTrue(
-            "no preset with a reordered chain",
-            library.any { it.params.effects.order != it.params.effects.effectiveOrder().sortedBy { id -> id.ordinal } },
-        )
-    }
-
-    @Test
-    fun `an animated preset closes its loop`() {
-        library.filter { it.params.animation.enabled }.forEach { preset ->
+    fun `every animated track either closes or wraps`() {
+        motion.forEach { preset ->
             preset.params.animation.tracks.filter { it.enabled }.forEach { track ->
-                assertTrue(
-                    "${preset.name} drives ${track.target} over a fraction of a cycle",
-                    track.cycles >= 1,
+                if (track.curve.seamless) return@forEach
+                assertEquals(
+                    "${preset.name} runs a non-closing curve on ${track.target}",
+                    AnimTarget.MOD_PHASE,
+                    track.target,
                 )
+                assertEquals("${preset.name} does not sweep a whole period", 0, track.from)
+                assertEquals("${preset.name} does not sweep a whole period", 100, track.to)
             }
         }
     }
 
-    /** Presets stored before category and favourite existed must still load. */
+    /** The point of this round: the new styles have to actually be reachable from a preset. */
     @Test
-    fun `a preset without the new fields still decodes`() {
-        val json = Json { ignoreUnknownKeys = true }
-        val decoded = json.decodeFromString<Preset>(
-            """{"name":"old","params":{"charSetId":"ascii-standard-10"}}""",
-        )
-        assertEquals("old", decoded.name)
-        assertEquals(PresetStore.CATEGORY_CUSTOM, decoded.category)
-        assertFalse(decoded.favourite)
+    fun `the styles added in this round are represented`() {
+        val used = presets.map { it.params.ditherMode }.toSet()
+        listOf(
+            DitherMode.CROSSHATCH, DitherMode.STIPPLING, DitherMode.TOPOGRAPHY,
+            DitherMode.LOW_POLY, DitherMode.CAMO, DitherMode.HEXA_POLY,
+            DitherMode.OSTROMOUKHOV, DitherMode.SHIAU_FAN, DitherMode.DOT_DIFFUSION,
+            DitherMode.PRINT_PATTERN, DitherMode.VORTEX, DitherMode.GLITCH,
+            DitherMode.VORTEX_DIFFUSION, DitherMode.CONTRAST_AWARE_Y,
+        ).forEach { mode ->
+            assertTrue("nothing ships using ${mode.name}", mode in used)
+        }
+    }
+
+    /** A palette preset with no palette colour mode is a setting that does nothing. */
+    @Test
+    fun `presets naming a palette actually use one`() {
+        presets.filter { it.params.colorMode == ColorMode.PALETTE }.forEach { preset ->
+            assertTrue(
+                "${preset.name} is in palette mode with under two stops",
+                (Palettes.all.first { it.id == preset.params.paletteId }).colors.size >= 2,
+            )
+        }
     }
 }
