@@ -19,6 +19,7 @@ enum class DitherMode {
     SIERRA_TWO_ROW,
     FALSE_FLOYD,
     STEVENSON_ARCE,
+    SMOOTH_DIFFUSE,
     RIEMERSMA,
     DIFFUSE_Y,
     DIFFUSE_X,
@@ -35,6 +36,9 @@ enum class DitherMode {
     MOD_RINGS,
     MOD_ORB,
     BEEHIVE,
+    UNIFORM_MODULATION,
+    HEART_GRID,
+    POP_TONE,
     ;
 
     val label: String
@@ -50,6 +54,7 @@ enum class DitherMode {
             SIERRA_TWO_ROW -> "Sierra Two-Row"
             FALSE_FLOYD -> "False Floyd-Steinberg"
             STEVENSON_ARCE -> "Stevenson-Arce"
+            SMOOTH_DIFFUSE -> "Smooth Diffuse"
             RIEMERSMA -> "Riemersma"
             DIFFUSE_Y -> "Diffuse Y"
             DIFFUSE_X -> "Diffuse X"
@@ -66,6 +71,9 @@ enum class DitherMode {
             MOD_RINGS -> "Modulation Rings"
             MOD_ORB -> "Orb"
             BEEHIVE -> "Beehive"
+            UNIFORM_MODULATION -> "Uniform Modulation"
+            HEART_GRID -> "Heart Grid"
+            POP_TONE -> "Pop Tone"
         }
 }
 
@@ -153,7 +161,8 @@ object Dither {
     /** Modes whose threshold is a continuous function of position rather than a tile. */
     fun isModulation(mode: DitherMode): Boolean = when (mode) {
         DitherMode.MOD_LINES, DitherMode.MOD_WAVE, DitherMode.MOD_RINGS,
-        DitherMode.MOD_ORB, DitherMode.BEEHIVE,
+        DitherMode.MOD_ORB, DitherMode.BEEHIVE, DitherMode.UNIFORM_MODULATION,
+        DitherMode.HEART_GRID, DitherMode.POP_TONE,
         -> true
 
         else -> false
@@ -270,6 +279,33 @@ object Dither {
             DitherMode.MOD_RINGS -> {
                 val r = hypot(x - options.centerX, y - options.centerY) / period
                 0.5f + 0.5f * sin(TAU * (r + phase)).toFloat()
+            }
+
+            // Square wave instead of a sine: bands of equal width with a hard step between
+            // them, where MOD_LINES ramps and MOD_WAVE eases. "Uniform" is theirs and it is
+            // a fair description — every band gets the same weight.
+            DitherMode.UNIFORM_MODULATION -> if (frac(u + phase) < 0.5f) 0.25f else 0.75f
+
+            // The implicit heart curve (x²+y²−1)³ − x²y³, evaluated per cell of the lattice.
+            // Inside the curve the value is negative, so the sign becomes the threshold and
+            // the shape falls out of the arithmetic rather than being drawn.
+            DitherMode.HEART_GRID -> {
+                val hx = (frac(u + phase) - 0.5f) * 2.6f
+                val hy = -(frac(v) - 0.5f) * 2.6f
+                val t = hx * hx + hy * hy - 1f
+                val inside = t * t * t - hx * hx * hy * hy * hy
+                if (inside <= 0f) 0f else (inside * 0.9f).coerceIn(0f, 1f)
+            }
+
+            // Pop Tone. Named in their tutorials but never demonstrated, so this is a guess:
+            // a coarse dot with a very hard rim, which is the pop-art screen look and the
+            // only reading of the name I can defend. Marked as such rather than presented
+            // as a reconstruction.
+            DitherMode.POP_TONE -> {
+                val dx = frac(u + phase) - 0.5f
+                val dy = frac(v) - 0.5f
+                val d = hypot(dx, dy) / 0.70710678f
+                if (d < 0.62f) 0.08f else 0.92f
             }
 
             DitherMode.MOD_ORB -> orbField(u + phase, v, options.orb, 0f)
@@ -456,6 +492,32 @@ object Dither {
             DiffusionTap(-1, 3, 12 / 200f),
             DiffusionTap(1, 3, 12 / 200f),
             DiffusionTap(3, 3, 5 / 200f),
+        )
+
+        /*
+         * Smooth Diffuse. Named in their tutorials; the weights are this app's own reading.
+         *
+         * The classic kernels concentrate most of the error on the two or three cells
+         * nearest the current one, which is what gives their grain its bite. Spreading it
+         * thinly and evenly over a wider neighbourhood instead trades that bite for a much
+         * finer, more even texture — the same total error, simply shared further.
+         */
+        DitherMode.SMOOTH_DIFFUSE -> listOf(
+            DiffusionTap(1, 0, 4 / 32f),
+            DiffusionTap(2, 0, 3 / 32f),
+            DiffusionTap(3, 0, 2 / 32f),
+            DiffusionTap(-3, 1, 1 / 32f),
+            DiffusionTap(-2, 1, 2 / 32f),
+            DiffusionTap(-1, 1, 3 / 32f),
+            DiffusionTap(0, 1, 4 / 32f),
+            DiffusionTap(1, 1, 3 / 32f),
+            DiffusionTap(2, 1, 2 / 32f),
+            DiffusionTap(3, 1, 1 / 32f),
+            DiffusionTap(-2, 2, 1 / 32f),
+            DiffusionTap(-1, 2, 2 / 32f),
+            DiffusionTap(0, 2, 2 / 32f),
+            DiffusionTap(1, 2, 2 / 32f),
+            DiffusionTap(2, 2, 0 / 32f),
         )
 
         // Axis-dominant diffusion. The four classic kernels all spread the error roughly
