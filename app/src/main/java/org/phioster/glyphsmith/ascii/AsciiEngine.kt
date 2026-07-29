@@ -312,6 +312,12 @@ object AsciiEngine {
             Temporal.offset(params.temporal, x, y) / max(1, levels - 1)
         }
 
+        DitherMode.DOT_DIFFUSION ->
+            DotDiffusion.quantise(lumaGrid, cols, rows, levels, strength)
+
+        DitherMode.FRACTAL_DIFFUSE ->
+            FractalDiffuse.quantise(lumaGrid, cols, rows, levels, strength)
+
         else -> Regions.quantise(mode, lumaGrid, cols, rows, levels, pattern)
     }
 

@@ -73,6 +73,13 @@ enum class DitherMode {
     PENTA_POLY,
     LOW_POLY,
     CAMO,
+    OSTROMOUKHOV,
+    SHIAU_FAN,
+    DOT_DIFFUSION,
+    GAUSSIAN,
+    ARTIFACT_MODULATION,
+    VARIABLE_ERROR,
+    FRACTAL_DIFFUSE,
     ;
 
     val label: String
@@ -130,6 +137,13 @@ enum class DitherMode {
             PENTA_POLY -> "Penta-Poly"
             LOW_POLY -> "Low-Poly"
             CAMO -> "Camo"
+            OSTROMOUKHOV -> "Ostromoukhov"
+            SHIAU_FAN -> "Shiau-Fan"
+            DOT_DIFFUSION -> "Dot Diffusion"
+            GAUSSIAN -> "Gaussian"
+            ARTIFACT_MODULATION -> "Artifact Modulation"
+            VARIABLE_ERROR -> "Variable Error"
+            FRACTAL_DIFFUSE -> "Fractal Diffuse"
         }
 
     /**
@@ -145,6 +159,8 @@ enum class DitherMode {
 
             FLOYD_STEINBERG, ATKINSON, JARVIS, SIERRA_LITE, STUCKI, BURKES, SIERRA,
             SIERRA_TWO_ROW, FALSE_FLOYD, STEVENSON_ARCE, SMOOTH_DIFFUSE, RIEMERSMA,
+            OSTROMOUKHOV, SHIAU_FAN, DOT_DIFFUSION, GAUSSIAN, ARTIFACT_MODULATION,
+            VARIABLE_ERROR, FRACTAL_DIFFUSE,
             -> DitherCategory.ERROR_DIFFUSION
 
             BAYER_2, BAYER_4, BAYER_8, BAYER_16, CLUSTER_4, CLUSTER_8,
