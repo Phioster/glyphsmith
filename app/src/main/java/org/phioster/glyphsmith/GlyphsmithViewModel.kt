@@ -439,23 +439,29 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         }
         art = result.art
         // Measured once per rebuild and cached inside GlyphCoverage, so a slider drag pays
-        // for the rasterisation only the first time a glyph is seen in this face.
-        val coverage = withContext(Dispatchers.Default) {
-            GlyphCoverage.profile(params.baseGlyphs(), result.face.typeface).map { it.second }
+        // for the rasterisation only the first time a glyph is seen in this face. The pixel
+        // mode has no face to profile, so there is nothing to measure and nothing to show.
+        val face = result.face
+        val coverage = if (face == null) {
+            emptyList()
+        } else {
+            withContext(Dispatchers.Default) {
+                GlyphCoverage.profile(params.baseGlyphs(), face.typeface).map { it.second }
+            }
         }
         // The old preview is deliberately not recycled: Compose may still be drawing it
         // this frame, and a recycled bitmap under the canvas is an instant crash.
         _state.value = _state.value.copy(
             preview = result.bitmap,
-            cols = result.art.cols,
-            rows = result.art.rows,
+            cols = result.cols,
+            rows = result.rows,
             outputWidth = result.outputWidth,
             outputHeight = result.outputHeight,
-            fontLabel = result.face.label,
-            missingGlyphs = result.face.missing,
+            fontLabel = face?.label ?: "",
+            missingGlyphs = face?.missing ?: "",
             rampCoverage = coverage,
             working = false,
-            status = "${result.art.cols}×${result.art.rows} cells",
+            status = "${result.cols}×${result.rows} ${if (face == null) "px" else "cells"}",
         )
     }
 
@@ -933,9 +939,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(
                 preview = result.bitmap,
                 hasImage = true,
-                cols = result.art.cols,
-                rows = result.art.rows,
-                status = "live · ${result.art.cols}×${result.art.rows}",
+                cols = result.cols,
+                rows = result.rows,
+                status = "live · ${result.cols}×${result.rows}",
             )
         }
     }

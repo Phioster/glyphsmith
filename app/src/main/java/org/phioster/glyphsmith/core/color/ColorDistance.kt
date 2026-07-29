@@ -1,5 +1,6 @@
 package org.phioster.glyphsmith.core.color
 
+import kotlinx.serialization.Serializable
 import kotlin.math.cbrt
 import kotlin.math.pow
 import kotlin.math.sqrt
@@ -25,6 +26,7 @@ import kotlin.math.sqrt
  * matters to a nearest-colour search, never the absolute value, so the three do not need to
  * agree on units.
  */
+@Serializable
 enum class ColorDistance {
     EUCLIDEAN,
     CIELAB,
