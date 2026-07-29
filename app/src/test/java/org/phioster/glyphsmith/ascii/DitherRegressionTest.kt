@@ -14,10 +14,18 @@ import org.junit.Test
  */
 class DitherRegressionTest {
 
-    private val params = AsciiParams(charSetId = "ascii-standard-10", depth = 10, cellSize = 4)
+    /**
+     * Small cells on a large image, giving a 64×32 grid.
+     *
+     * The size is load-bearing, which is not obvious. A 16×16 Bayer tile needs sixteen rows
+     * before it differs from the 8×8 one it contains, and a staggered orb lattice needs two
+     * lattice rows before the stagger exists at all. On a coarser grid those pairs render
+     * identically — correctly so — and the test below would call it a collision.
+     */
+    private val params = AsciiParams(charSetId = "ascii-standard-10", depth = 10, cellSize = 2)
 
     /** A gradient with a hard diagonal through it — flat fields alone hide most mistakes. */
-    private fun testImage(width: Int = 64, height: Int = 64): IntArray = IntArray(width * height) { i ->
+    private fun testImage(width: Int = SIDE, height: Int = SIDE): IntArray = IntArray(width * height) { i ->
         val x = i % width
         val y = i / width
         val ramp = (x * 255 / (width - 1))
@@ -26,7 +34,7 @@ class DitherRegressionTest {
     }
 
     private fun render(mode: DitherMode): String =
-        AsciiEngine.convert(testImage(), 64, 64, params.copy(ditherMode = mode)).toText()
+        AsciiEngine.convert(testImage(), SIDE, SIDE, params.copy(ditherMode = mode)).toText()
 
     /**
      * The one property this phase can actually prove about itself.
@@ -55,7 +63,7 @@ class DitherRegressionTest {
     @Test
     fun `every style produces a full grid of glyphs`() {
         DitherMode.entries.forEach { mode ->
-            val art = AsciiEngine.convert(testImage(), 64, 64, params.copy(ditherMode = mode))
+            val art = AsciiEngine.convert(testImage(), SIDE, SIDE, params.copy(ditherMode = mode))
             assertEquals("$mode returned the wrong size", art.cols * art.rows, art.glyphs.size)
             assertTrue("$mode produced no glyphs", art.glyphs.isNotEmpty())
         }
@@ -87,8 +95,9 @@ class DitherRegressionTest {
      * Two different styles must not render identically.
      *
      * This is what catches a new style wired to the wrong branch — it compiles, it appears in
-     * the picker, and it silently draws what Floyd–Steinberg drew. Excluded from the
-     * comparison are the pairs that genuinely agree on this particular image.
+     * the picker, and it silently draws what Floyd–Steinberg drew. No pair is exempt: if two
+     * styles agree on this image, either one of them is misrouted or the grid is too coarse
+     * to tell them apart, and both are worth stopping for.
      */
     @Test
     fun `styles are distinguishable from one another`() {
@@ -98,5 +107,9 @@ class DitherRegressionTest {
             .filterValues { it.size > 1 }
             .map { group -> group.value.map { it.key.name } }
         assertTrue("these styles render identically: $collisions", collisions.isEmpty())
+    }
+
+    private companion object {
+        const val SIDE = 128
     }
 }
