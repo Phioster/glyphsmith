@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
                         onFormatChange = viewModel::setExportFormat,
                         onExportPng = viewModel::exportImage,
                         onExportTxt = viewModel::exportText,
+                        onExportSvg = viewModel::exportSvg,
                         onCopy = viewModel::copyText,
                         onShareImage = viewModel::shareImage,
                         onShareText = viewModel::shareText,

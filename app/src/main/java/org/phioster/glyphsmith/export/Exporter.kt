@@ -113,6 +113,10 @@ object Exporter {
     fun saveJson(context: Context, text: String, name: String = timestampedName("json")): Uri? =
         saveDocument(context, text, name, "application/json")
 
+    /** Vector exports land beside the .txt, since neither is an image to the gallery. */
+    fun saveSvg(context: Context, text: String, name: String = timestampedName("svg")): Uri? =
+        saveDocument(context, text, name, "image/svg+xml")
+
     /** Animations are binary, so they go through the same folder but as raw bytes. */
     fun saveBytes(context: Context, bytes: ByteArray, name: String, mimeType: String): Uri? =
         saveDownload(context, name, mimeType) { it.write(bytes) }

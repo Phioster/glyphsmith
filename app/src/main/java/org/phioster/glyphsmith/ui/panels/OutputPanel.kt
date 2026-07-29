@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.export.ImageFormat
+import org.phioster.glyphsmith.export.SvgMode
 import org.phioster.glyphsmith.ui.NumberField
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
@@ -32,6 +33,7 @@ fun OutputPanel(
     onFormatChange: (ImageFormat) -> Unit,
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
+    onExportSvg: (SvgMode) -> Unit,
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
     onShareText: () -> Unit,
@@ -139,6 +141,25 @@ fun OutputPanel(
             TerminalButton("share img", onShareImage, Modifier.weight(1f), enabled)
             TerminalButton("share txt", onShareText, Modifier.weight(1f), enabled)
         }
+
+        SectionHeader("vector")
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TerminalButton(
+                "svg text", { onExportSvg(SvgMode.TEXT) }, Modifier.weight(1f), enabled,
+            )
+            TerminalButton(
+                "svg outlines", { onExportSvg(SvgMode.OUTLINES) }, Modifier.weight(1f), enabled,
+            )
+        }
+        Text(
+            "text keeps the glyphs editable but needs the font on the other machine; " +
+                "outlines are real paths and render anywhere — that is the one for print " +
+                "and embroidery. Effects are not included: they work on pixels.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 6.dp),
+        )
     }
 }
 

@@ -38,6 +38,7 @@ import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.export.ImageFormat
+import org.phioster.glyphsmith.export.SvgMode
 import org.phioster.glyphsmith.ui.panels.AnimPanel
 import org.phioster.glyphsmith.ui.panels.AsciiPanel
 import org.phioster.glyphsmith.ui.panels.ColorPanel
@@ -65,6 +66,7 @@ fun GlyphsmithScreen(
     onFormatChange: (ImageFormat) -> Unit,
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
+    onExportSvg: (SvgMode) -> Unit,
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
     onShareText: () -> Unit,
@@ -136,6 +138,7 @@ fun GlyphsmithScreen(
                     onFormatChange = onFormatChange,
                     onExportPng = onExportPng,
                     onExportTxt = onExportTxt,
+                    onExportSvg = onExportSvg,
                     onCopy = onCopy,
                     onShareImage = onShareImage,
                     onShareText = onShareText,
