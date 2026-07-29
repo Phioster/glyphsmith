@@ -12,7 +12,7 @@ import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
 import org.phioster.glyphsmith.anim.TemporalPattern
 import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.Dither
+import org.phioster.glyphsmith.ascii.DitherCategory
 import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
@@ -166,11 +166,20 @@ class PresetStore(context: Context) {
          * that is the better idea: the family is a fact about the preset, whereas a typed
          * category is a second thing to keep consistent.
          */
-        fun familyOf(mode: DitherMode): String = when {
-            mode == DitherMode.NONE -> CATEGORY_CUSTOM
-            Dither.isModulation(mode) -> CATEGORY_DITHER
-            Dither.isOrdered(mode) -> CATEGORY_DITHER
-            else -> CATEGORY_CUSTOM
+        fun familyOf(mode: DitherMode): String = when (mode.category) {
+            DitherCategory.ORDERED,
+            DitherCategory.PATTERNED,
+            DitherCategory.SPECIAL,
+            DitherCategory.POLYGON,
+            -> CATEGORY_DITHER
+
+            // Basic, error diffusion and glitch land in CUSTOM, which is where they landed
+            // before this read the category instead of asking three questions. Rerouting them
+            // would quietly move presets people have already saved and filed.
+            DitherCategory.BASIC,
+            DitherCategory.ERROR_DIFFUSION,
+            DitherCategory.GLITCH,
+            -> CATEGORY_CUSTOM
         }
 
         private fun preset(name: String, category: String, params: AsciiParams) =

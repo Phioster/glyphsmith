@@ -6,77 +6,6 @@ import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.sin
 
-/** How the quantisation error is dealt with when a cell picks its glyph. */
-enum class DitherMode {
-    NONE,
-    FLOYD_STEINBERG,
-    ATKINSON,
-    JARVIS,
-    SIERRA_LITE,
-    STUCKI,
-    BURKES,
-    SIERRA,
-    SIERRA_TWO_ROW,
-    FALSE_FLOYD,
-    STEVENSON_ARCE,
-    SMOOTH_DIFFUSE,
-    RIEMERSMA,
-    DIFFUSE_Y,
-    DIFFUSE_X,
-    BAYER_2,
-    BAYER_4,
-    BAYER_8,
-    BAYER_16,
-    CLUSTER_4,
-    CLUSTER_8,
-    BLUE_NOISE_16,
-    BLUE_NOISE_32,
-    MOD_LINES,
-    MOD_WAVE,
-    MOD_RINGS,
-    MOD_ORB,
-    BEEHIVE,
-    UNIFORM_MODULATION,
-    HEART_GRID,
-    POP_TONE,
-    ;
-
-    val label: String
-        get() = when (this) {
-            NONE -> "None"
-            FLOYD_STEINBERG -> "Floyd-Steinberg"
-            ATKINSON -> "Atkinson"
-            JARVIS -> "Jarvis"
-            SIERRA_LITE -> "Sierra Lite"
-            STUCKI -> "Stucki"
-            BURKES -> "Burkes"
-            SIERRA -> "Sierra"
-            SIERRA_TWO_ROW -> "Sierra Two-Row"
-            FALSE_FLOYD -> "False Floyd-Steinberg"
-            STEVENSON_ARCE -> "Stevenson-Arce"
-            SMOOTH_DIFFUSE -> "Smooth Diffuse"
-            RIEMERSMA -> "Riemersma"
-            DIFFUSE_Y -> "Diffuse Y"
-            DIFFUSE_X -> "Diffuse X"
-            BAYER_2 -> "Bayer 2×2"
-            BAYER_4 -> "Bayer 4×4"
-            BAYER_8 -> "Bayer 8×8"
-            BAYER_16 -> "Bayer 16×16"
-            CLUSTER_4 -> "Clustered Dot 4×4"
-            CLUSTER_8 -> "Clustered Dot 8×8"
-            BLUE_NOISE_16 -> "Blue Noise 16×16"
-            BLUE_NOISE_32 -> "Blue Noise 32×32"
-            MOD_LINES -> "Modulation Lines"
-            MOD_WAVE -> "Modulation Wave"
-            MOD_RINGS -> "Modulation Rings"
-            MOD_ORB -> "Orb"
-            BEEHIVE -> "Beehive"
-            UNIFORM_MODULATION -> "Uniform Modulation"
-            HEART_GRID -> "Heart Grid"
-            POP_TONE -> "Pop Tone"
-        }
-}
-
 /**
  * Everything the position-dependent modes need beyond a cell's coordinates.
  *
@@ -230,8 +159,20 @@ object Dither {
      *
      * Both families go through here so that [PatternOptions.scale] — the pattern-size
      * control that is deliberately independent of the cell size — reaches Bayer too.
+     *
+     * [value] is the cell's own brightness in 0..1. Every mode that existed before the
+     * catalogue arrived ignores it, and a test holds them to that. It is here for the styles
+     * that cannot work without it: a crosshatch whose lines thicken in the shadows, a stipple
+     * whose dots crowd where the image is dark. Those read the picture as well as the
+     * position, which is precisely what separates them from a repeating tile.
      */
-    fun threshold(mode: DitherMode, x: Int, y: Int, options: PatternOptions): Float {
+    fun threshold(
+        mode: DitherMode,
+        x: Int,
+        y: Int,
+        value: Float,
+        options: PatternOptions,
+    ): Float {
         val factor = (options.scale / 100f).coerceAtLeast(0.01f)
         if (isOrdered(mode)) {
             // Floored rather than rounded: rounding would make the tile stutter by a cell
@@ -245,6 +186,7 @@ object Dither {
             mode,
             x / factor,
             y / factor,
+            value,
             options.copy(centerX = options.centerX / factor, centerY = options.centerY / factor),
         )
     }
@@ -256,7 +198,14 @@ object Dither {
      * category — only that "Modulation Lines", "Waveform" and "Beehive" exist. These five
      * are this app's own reading of that category, not a reconstruction of theirs.
      */
-    fun modulatedThreshold(mode: DitherMode, x: Float, y: Float, options: PatternOptions): Float {
+    @Suppress("UNUSED_PARAMETER")
+    fun modulatedThreshold(
+        mode: DitherMode,
+        x: Float,
+        y: Float,
+        value: Float,
+        options: PatternOptions,
+    ): Float {
         val period = options.period.coerceAtLeast(1).toFloat()
         val radians = options.angle * PI / 180.0
         val c = cos(radians).toFloat()
@@ -545,4 +494,37 @@ object Dither {
     /** How many rows below the current one a kernel reaches — the error buffer's depth. */
     fun kernelDepth(mode: DitherMode): Int =
         (diffusionKernel(mode).maxOfOrNull { it.dy } ?: 0) + 1
+
+    /**
+     * Whether this mode's weights change with the value being quantised.
+     *
+     * Every classic kernel is a constant: Floyd–Steinberg spreads 7/16 to the right whether
+     * the cell is nearly white or nearly black. Ostromoukhov's does not — his whole result
+     * comes from picking different weights per input level, so his kernel cannot be hoisted
+     * out of the loop the way the others are.
+     */
+    fun hasVariableKernel(mode: DitherMode): Boolean = false
+
+    /**
+     * The kernel for a cell of brightness [value] in 0..1, or null if [mode] uses a constant.
+     *
+     * **Implementations must return a cached list, never build one.** This is asked once per
+     * cell, and a megapixel image is a million allocations if it is answered carelessly.
+     *
+     * A mode with a variable kernel must still declare a representative one in
+     * [diffusionKernel] — that is what [kernelDepth] measures to size the error buffer, and
+     * what the loop falls back on.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    fun variableKernel(mode: DitherMode, value: Float): List<DiffusionTap>? = null
+
+    /**
+     * Whether this mode decides every cell up front instead of along the rows.
+     *
+     * Some algorithms simply do not visit pixels in reading order. Riemersma follows a
+     * space-filling curve; dot diffusion goes by class number, so it may touch the bottom
+     * right corner before the top left. Rather than bend the main loop around them, they
+     * hand back a finished grid of glyph indices and the loop just reads it.
+     */
+    fun isPrecomputed(mode: DitherMode): Boolean = mode == DitherMode.RIEMERSMA
 }

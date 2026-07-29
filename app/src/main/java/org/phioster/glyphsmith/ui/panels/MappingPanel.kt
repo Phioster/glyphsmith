@@ -14,6 +14,7 @@ import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.ascii.EdgeDetect
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
+import org.phioster.glyphsmith.ui.StylePicker
 import org.phioster.glyphsmith.ui.TerminalButton
 import org.phioster.glyphsmith.ui.TerminalSlider
 import org.phioster.glyphsmith.ui.TerminalToggle
@@ -29,6 +30,8 @@ import java.util.Locale
 fun MappingPanel(
     params: AsciiParams,
     onChange: (AsciiParams) -> Unit,
+    favourites: Set<String>,
+    onToggleFavourite: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
@@ -120,18 +123,18 @@ fun MappingPanel(
 
         SectionHeader("dither")
 
-        StepperDropdown(
+        StylePicker(
             label = "mode",
-            items = DitherMode.entries.toList(),
-            selectedIndex = DitherMode.entries.indexOf(params.ditherMode),
-            onSelect = { onChange(params.copy(ditherMode = DitherMode.entries[it])) },
-            itemLabel = { it.label },
+            selected = params.ditherMode,
+            favourites = favourites,
+            onSelect = { onChange(params.copy(ditherMode = it)) },
+            onToggleFavourite = { onToggleFavourite(it.name) },
             itemDetail = {
                 when {
                     it == DitherMode.NONE -> "nearest glyph, error discarded"
-                    Dither.isModulation(it) -> "modulation — a pattern drives the threshold"
-                    Dither.isOrdered(it) -> "ordered matrix — regular, repeating texture"
-                    else -> "error diffusion — noisy, photographic"
+                    Dither.isModulation(it) -> "a pattern drives the threshold"
+                    Dither.isOrdered(it) -> "regular, repeating texture"
+                    else -> "noisy, photographic"
                 }
             },
         )

@@ -227,7 +227,7 @@ class DitherTest {
         modulationModes.forEach { mode ->
             for (y in -20..40) {
                 for (x in -20..40) {
-                    val t = Dither.threshold(mode, x, y, options)
+                    val t = Dither.threshold(mode, x, y, 0.5f, options)
                     assertTrue("$mode gave $t at ($x,$y)", t in 0f..1f)
                 }
             }
@@ -248,8 +248,8 @@ class DitherTest {
                 for (x in 0 until 12) {
                     assertEquals(
                         "$mode at ($x,$y)",
-                        Dither.threshold(mode, x, y, normal),
-                        Dither.threshold(mode, 2 * x, 2 * y, doubled),
+                        Dither.threshold(mode, x, y, 0.5f, normal),
+                        Dither.threshold(mode, 2 * x, 2 * y, 0.5f, doubled),
                         1e-5f,
                     )
                 }
@@ -265,12 +265,12 @@ class DitherTest {
         for (x in 0 until 24) {
             // Row 0 sits in the first band of v, row 6 in the second — one shifted, one not.
             assertEquals(
-                Dither.threshold(DitherMode.MOD_ORB, x, 0, options),
-                Dither.threshold(DitherMode.BEEHIVE, x, 0, options),
+                Dither.threshold(DitherMode.MOD_ORB, x, 0, 0.5f, options),
+                Dither.threshold(DitherMode.BEEHIVE, x, 0, 0.5f, options),
                 1e-5f,
             )
-            val orb = Dither.threshold(DitherMode.MOD_ORB, x, 6, options)
-            val hive = Dither.threshold(DitherMode.BEEHIVE, x, 6, options)
+            val orb = Dither.threshold(DitherMode.MOD_ORB, x, 6, 0.5f, options)
+            val hive = Dither.threshold(DitherMode.BEEHIVE, x, 6, 0.5f, options)
             if (kotlin.math.abs(orb - hive) > 1e-3f) differences++
         }
         assertTrue("odd band is not offset at all", differences > 0)
@@ -294,7 +294,7 @@ class DitherTest {
                 assertEquals(
                     "orb default drifted at ($x,$y)",
                     expected,
-                    Dither.threshold(DitherMode.MOD_ORB, x, y, options),
+                    Dither.threshold(DitherMode.MOD_ORB, x, y, 0.5f, options),
                     1e-5f,
                 )
             }
@@ -305,7 +305,7 @@ class DitherTest {
     fun `each orb control changes the field`() {
         val base = PatternOptions(period = 8)
         fun sample(options: PatternOptions) =
-            (0 until 24).flatMap { y -> (0 until 24).map { x -> Dither.threshold(DitherMode.MOD_ORB, x, y, options) } }
+            (0 until 24).flatMap { y -> (0 until 24).map { x -> Dither.threshold(DitherMode.MOD_ORB, x, y, 0.5f, options) } }
 
         val reference = sample(base)
         val variants = mapOf(
@@ -329,11 +329,12 @@ class DitherTest {
             for (x in 0 until 18) {
                 assertEquals(
                     "at ($x,$y)",
-                    Dither.threshold(DitherMode.BEEHIVE, x, y, options),
+                    Dither.threshold(DitherMode.BEEHIVE, x, y, 0.5f, options),
                     Dither.threshold(
                         DitherMode.MOD_ORB,
                         x,
                         y,
+                        0.5f,
                         options.copy(orb = options.orb.copy(offset = 50)),
                     ),
                     1e-5f,
@@ -349,8 +350,8 @@ class DitherTest {
             for (x in 0 until 10) {
                 assertEquals(
                     "$mode does not close at ($x)",
-                    Dither.threshold(mode, x, 3, options.copy(phase = 0f)),
-                    Dither.threshold(mode, x, 3, options.copy(phase = 1f)),
+                    Dither.threshold(mode, x, 3, 0.5f, options.copy(phase = 0f)),
+                    Dither.threshold(mode, x, 3, 0.5f, options.copy(phase = 1f)),
                     1e-4f,
                 )
             }

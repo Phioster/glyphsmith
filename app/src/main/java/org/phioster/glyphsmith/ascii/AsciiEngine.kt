@@ -200,13 +200,12 @@ object AsciiEngine {
             orb = params.orbOptions(),
         )
         val kernel = Dither.diffusionKernel(mode)
-        // Riemersma walks a space-filling curve, so its visiting order has nothing to do
-        // with rows and it cannot share this loop. It is resolved up front instead, and the
-        // loop below simply reads the index it decided on.
-        val curve = if (mode == DitherMode.RIEMERSMA) {
-            Riemersma.quantise(lumaGrid, cols, rows, levels, strength) { x, y ->
-                Temporal.offset(params.temporal, x, y) / max(1, levels - 1)
-            }
+        val variableKernel = Dither.hasVariableKernel(mode)
+        // Some modes do not visit cells in reading order at all, so they cannot share this
+        // loop. They resolve the whole grid up front and the loop below simply reads the
+        // index each cell was given.
+        val precomputed = if (Dither.isPrecomputed(mode)) {
+            precomputedIndices(mode, params, lumaGrid, cols, rows, levels, strength)
         } else {
             null
         }
@@ -235,19 +234,26 @@ object AsciiEngine {
                 val jitter = Temporal.offset(params.temporal, col, row) / max(1, levels - 1)
 
                 val target = jitter + when {
-                    ordered -> base + (Dither.threshold(mode, col, row, pattern) - 0.5f) *
+                    ordered -> base + (Dither.threshold(mode, col, row, base, pattern) - 0.5f) *
                         strength / max(1, levels - 1)
 
                     kernel.isNotEmpty() -> base + currentError[col]
                     else -> base
                 }
 
-                val index = curve?.get(cell) ?: quantize(target, levels)
+                val index = precomputed?.get(cell) ?: quantize(target, levels)
 
                 if (!ordered && kernel.isNotEmpty()) {
                     val reproduced = if (levels <= 1) 0f else index.toFloat() / (levels - 1)
                     val error = (target - reproduced) * strength
-                    for (tap in kernel) {
+                    // A variable kernel is chosen from the value being quantised, so it can
+                    // only be asked for here — after the cell is known, not before the loop.
+                    val taps = if (variableKernel) {
+                        Dither.variableKernel(mode, target.coerceIn(0f, 1f)) ?: kernel
+                    } else {
+                        kernel
+                    }
+                    for (tap in taps) {
                         val dx = if (leftToRight) tap.dx else -tap.dx
                         val tx = col + dx
                         val ty = row + tap.dy
@@ -282,6 +288,29 @@ object AsciiEngine {
             currentError.fill(0f)
         }
         return AsciiArt(cols, rows, glyphs, colors)
+    }
+
+    /**
+     * A finished grid of glyph indices, for the modes that refuse to be walked row by row.
+     *
+     * They share nothing but that refusal, so this is a dispatch and not an abstraction: each
+     * one gets its whole grid to itself and hands back what every cell should be. The caller
+     * only has to know that an answer arrived.
+     */
+    private fun precomputedIndices(
+        mode: DitherMode,
+        params: AsciiParams,
+        lumaGrid: FloatArray,
+        cols: Int,
+        rows: Int,
+        levels: Int,
+        strength: Float,
+    ): IntArray? = when (mode) {
+        DitherMode.RIEMERSMA -> Riemersma.quantise(lumaGrid, cols, rows, levels, strength) { x, y ->
+            Temporal.offset(params.temporal, x, y) / max(1, levels - 1)
+        }
+
+        else -> null
     }
 
     /** Rec. 709 luminance, normalised to 0..1. */

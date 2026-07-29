@@ -113,6 +113,7 @@ fun GlyphsmithScreen(
     onPreviewQualityChange: (PreviewQuality) -> Unit,
     onPlaybackQualityChange: (PlaybackQuality) -> Unit,
     onToggleFavouritePalette: (String) -> Unit,
+    onToggleFavouriteStyle: (String) -> Unit,
     onLoopedChange: (Boolean) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
@@ -244,7 +245,12 @@ fun GlyphsmithScreen(
                     rampCoverage = state.rampCoverage,
                     onAutoOrder = onAutoOrderRamp,
                 )
-                Tab.MAPPING -> MappingPanel(state.params, onParamsChange)
+                Tab.MAPPING -> MappingPanel(
+                    params = state.params,
+                    onChange = onParamsChange,
+                    favourites = state.favouriteStyles,
+                    onToggleFavourite = onToggleFavouriteStyle,
+                )
                 Tab.COLOR -> ColorPanel(
                     params = state.params,
                     onChange = onParamsChange,
