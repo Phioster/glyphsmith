@@ -8,6 +8,7 @@ import kotlin.math.min
 import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.sin
+import kotlin.math.roundToInt
 
 /**
  * Everything the position-dependent modes need beyond a cell's coordinates.
@@ -82,6 +83,18 @@ data class DiffusionTap(val dx: Int, val dy: Int, val weight: Float)
  * error has to be spread across.
  */
 object Dither {
+
+    /**
+     * A normalised value to a level index, before any offset.
+     *
+     * Lives here rather than in a renderer because every algorithm in this package needs it and
+     * none of them should have to reach into a render path to get it — that was the import that
+     * used to tie the dither core to the glyph engine.
+     */
+    fun quantise(value: Float, levels: Int): Int {
+        if (levels <= 1) return 0
+        return (value.coerceIn(0f, 1f) * (levels - 1)).roundToInt()
+    }
 
     /** Matrix-driven modes: the threshold comes from a fixed tile. */
     /**

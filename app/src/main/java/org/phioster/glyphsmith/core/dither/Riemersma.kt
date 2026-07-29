@@ -71,7 +71,7 @@ object Riemersma {
 
             val cell = y * cols + x
             val target = luma[cell] + jitter(x, y) + (accumulated / RATIO) * strength
-            val index = AsciiEngine.quantize(target, levels)
+            val index = Dither.quantise(target, levels)
             out[cell] = index
 
             val reproduced = index.toFloat() / (levels - 1)

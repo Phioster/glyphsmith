@@ -5,7 +5,6 @@ import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.EdgeDetect
 import org.phioster.glyphsmith.ascii.EdgeField
 import kotlin.math.max
-import kotlin.math.roundToInt
 import org.phioster.glyphsmith.core.dither.Riemersma
 import org.phioster.glyphsmith.core.dither.Regions
 import org.phioster.glyphsmith.core.dither.PatternOptions
@@ -184,8 +183,5 @@ object QuantisePass {
      * is the difference between the requested tone and the tone actually reproduced, which only
      * means anything on the un-rotated scale.
      */
-    fun quantize(luma: Float, levels: Int): Int {
-        if (levels <= 1) return 0
-        return (luma.coerceIn(0f, 1f) * (levels - 1)).roundToInt()
-    }
+    fun quantize(luma: Float, levels: Int): Int = Dither.quantise(luma, levels)
 }
