@@ -97,7 +97,7 @@ data class AsciiParams(
     val edgeOnly: Boolean = false,
     val colorMode: ColorMode = ColorMode.SINGLE,
     val inkColor: Int = DEFAULT_INK,
-    val paletteId: String = "phosphor",
+    val paletteId: String = "grayscale",
     /** Edited palette stops. Non-empty means the UI has customised [paletteId]'s colours. */
     val paletteOverride: List<Int> = emptyList(),
     /** Per-stop locks; a locked stop survives a shuffle. Shorter than the palette means unlocked. */
@@ -202,8 +202,20 @@ data class AsciiParams(
     companion object {
         const val MAX_INJECTION = 10
         const val MAX_DEPTH = 64
-        const val DEFAULT_INK = 0xFF33FF66.toInt()
-        const val DEFAULT_BACKGROUND = 0xFF060A07.toInt()
+        /**
+         * White, not the phosphor green the interface wears.
+         *
+         * The theme is a choice about the app; the ink is part of the artwork. Starting a
+         * new image already tinted green meant every export carried a decision nobody had
+         * made, and undoing it took two taps before you could even see the picture straight.
+         */
+        const val DEFAULT_INK = 0xFFFFFFFF.toInt()
+        /**
+         * Neutral, not the faintly green black that used to sit under the green ink. It was
+         * chosen to sit under a colour that is no longer the default, and a green cast under
+         * white ink is visible on a large flat area.
+         */
+        const val DEFAULT_BACKGROUND = 0xFF0A0A0A.toInt()
         val CELL_SIZE_RANGE = 2..48
         val FONT_SIZE_RANGE = 6..48
         val CANVAS_SIZE_RANGE = 64..8192
