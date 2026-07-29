@@ -57,9 +57,10 @@ Both together are under 170 KB. See `app/src/main/assets/fonts/NOTICE.md`.
 **Tone** — gamma → contrast → brightness, applied to each cell's luminance before it picks a
 glyph. Without it a flat photo only ever reaches the middle third of the ramp.
 
-**Dithering** — 24 algorithms. Error diffusion with serpentine scanning: Floyd–Steinberg,
+**Dithering** — 26 algorithms. Error diffusion with serpentine scanning: Floyd–Steinberg,
 False Floyd–Steinberg, Jarvis–Judice–Ninke, Stucki, Burkes, Sierra, Sierra Two-Row, Sierra
-Lite and Atkinson from the halftoning literature, plus axis-dominant Diffuse Y and Diffuse X
+Lite, Atkinson and the hexagonal Stevenson–Arce from the halftoning literature, Riemersma
+walking a Hilbert curve with a decaying error queue instead of a kernel at all, plus axis-dominant Diffuse Y and Diffuse X
 that send the error down one axis so grain becomes streaks. Ordered: Bayer 2/4/8/16,
 clustered-dot screens that grow a dot from the centre the way a printing screen does, and
 blue-noise masks built by Ulichney's void-and-cluster method — the matrices are generated
@@ -121,13 +122,15 @@ a loop), and **Temporal Variation**: nine animated noise patterns that shift the
 threshold itself. Every pattern is periodic over the loop, so the last frame lands back on
 the first.
 
-**Presets** — 30 shipped starting points in six categories, plus whatever you save. A
+**Presets** — 56 shipped starting points in seven categories, plus whatever you save. A
 preset holds the *complete* state, effects and animation included, so applying one is a
 single tap. The MOTION and SIGNATURE sets arrive with animation already aimed: apply, press play.
 SIGNATURE is this app's own approximation of the looks Studio AAA show in their public
 preview clips — not their presets, which aren't published. Each one
 renders a thumbnail from your loaded image, favourites sort to the top, and `surprise me`
-rolls a look within ranges chosen to actually produce something.
+rolls a look within ranges chosen to actually produce something. The LAB category is a
+comparison bench: one preset per dithering algorithm at otherwise identical settings,
+generated from the enum so an algorithm added later cannot be left without one.
 
 **Export** — PNG to `Pictures/Glyphsmith`; the character grid, GIF, MP4 and SVG to
 `Download/Glyphsmith`; clipboard; or the system share sheet. Presets are saved as JSON.
