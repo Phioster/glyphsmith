@@ -90,6 +90,67 @@ class PalettesTest {
         assertEquals(2, params.renderPalette().colors.size)
     }
 
+    /**
+     * The one that guards every shipped palette at once.
+     *
+     * [Palettes.sample] maps a cell's luminance straight onto list position, so a palette
+     * whose stops are out of order paints bright areas dark. The nineteen originals were
+     * hand-sorted and never checked; this checks them along with everything added since.
+     */
+    @Test
+    fun `every shipped palette runs darkest to lightest`() {
+        Palettes.all.forEach { palette ->
+            val luminance = palette.colors.map { Palettes.luminanceOf(it) }
+            assertEquals(
+                "${palette.id} is not ordered darkest first: $luminance",
+                luminance.sorted(),
+                luminance,
+            )
+        }
+    }
+
+    @Test
+    fun `every shipped palette has enough stops to be a ramp`() {
+        Palettes.all.forEach { palette ->
+            assertTrue("${palette.id} has ${palette.colors.size} stops", palette.colors.size >= 2)
+        }
+    }
+
+    @Test
+    fun `shipped palette ids and names are unique`() {
+        val ids = Palettes.all.map { it.id }
+        val names = Palettes.all.map { it.name.lowercase() }
+        assertEquals(ids.size, ids.toSet().size)
+        assertEquals(names.size, names.toSet().size)
+    }
+
+    @Test
+    fun `every shipped stop is fully opaque`() {
+        Palettes.all.forEach { palette ->
+            palette.colors.forEach { colour ->
+                assertEquals(
+                    "${palette.id} has a translucent stop",
+                    0xFF,
+                    (colour ushr 24) and 0xFF,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `every category holds at least one palette and is reachable`() {
+        assertTrue(Palettes.categories.isNotEmpty())
+        Palettes.categories.forEach { category ->
+            assertTrue("$category is empty", Palettes.inCategory(category).isNotEmpty())
+        }
+        Palettes.all.forEach { palette ->
+            assertTrue(
+                "${palette.id} sits in ${palette.category}, which the picker never shows",
+                palette.category in Palettes.categories,
+            )
+        }
+    }
+
     @Test
     fun `locks default to unlocked past the end of the list`() {
         val params = AsciiParams(paletteLocks = listOf(true))
