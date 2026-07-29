@@ -30,7 +30,13 @@ object GlyphCoverage {
     private const val CELL = 48
     private const val TEXT_SIZE = 36f
 
-    private val cache = HashMap<Long, Float>()
+    /**
+     * Read from [kotlinx.coroutines.Dispatchers.Default] by the preview and the preset thumbnails
+     * at the same time, so a plain HashMap could resize under a concurrent read and lose an entry
+     * or spin. Concurrent because the work is idempotent: two threads measuring the same glyph
+     * get the same answer, and whichever stores it last is right.
+     */
+    private val cache = java.util.concurrent.ConcurrentHashMap<Long, Float>()
 
     /** Covered fraction of the cell, 0..1. Cached per face and character. */
     fun measure(glyph: Char, typeface: Typeface): Float {

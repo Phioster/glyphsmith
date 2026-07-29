@@ -21,11 +21,10 @@ import org.phioster.glyphsmith.effects.Pixels
  *   algorithms works on it unchanged.
  * - [ColorMode.SINGLE] interpolates between the background and the ink colour, which at two
  *   levels is classic 1-bit dithering.
- * - [ColorMode.SOURCE] keeps each cell's own colour and snaps it to the nearest palette entry.
- *   This is the mode the colour metric actually decides: the same image reduced through
- *   [ColorDistance.EUCLIDEAN] and [ColorDistance.OKLAB] picks visibly different entries. The
- *   error is not yet diffused per channel — that is the next step, and until then this mode
- *   posterises rather than dithers.
+ * - [ColorMode.SOURCE] keeps each cell's own colour and reduces it to the palette through
+ *   [ColorDiffusionPass], which carries the error per channel. This is the mode the colour metric
+ *   actually decides: the same image reduced through [ColorDistance.EUCLIDEAN] and
+ *   [ColorDistance.OKLAB] picks visibly different entries.
  */
 object PixelDitherRenderer {
 
@@ -93,14 +92,13 @@ object PixelDitherRenderer {
             }
 
             ColorMode.SOURCE -> {
-                val source = grid.colors
-                if (source == null || palette.isEmpty()) {
+                if (grid.colors == null || palette.isEmpty()) {
                     out.fill(params.inkColor)
                 } else {
+                    // A real colour dither: the error is carried per channel, which is the only
+                    // way a coloured palette can hold a tone it has no exact entry for.
                     val quantizer = PaletteQuantizer(palette.toIntArray(), params.colorDistance)
-                    for (i in out.indices) {
-                        out[i] = quantizer.nearest(source[i])
-                    }
+                    return ColorDiffusionPass.run(params, grid, quantizer)
                 }
             }
         }
