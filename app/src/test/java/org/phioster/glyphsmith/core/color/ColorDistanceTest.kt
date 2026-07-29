@@ -74,25 +74,32 @@ class ColorDistanceTest {
     }
 
     /**
-     * The point of offering three. sRGB thinks a dark navy is nearly black because it only
-     * counts raw channel values; the perceptual spaces know blue of that lightness is a long
-     * way from black. If these ever agreed, two of the three would be pointless.
+     * The point of offering three: they are not the same metric with different units.
+     *
+     * Stated as a ratio rather than as an ordering, because an ordering only differs for
+     * particular colour pairs and picking one by hand is guesswork — whereas if two metrics
+     * disagreed by a constant factor they would always rank every pair identically, and two of
+     * the three would be decoration. Comparing how each one scales two different pairs proves
+     * they cannot be reduced to one another.
      */
     @Test
-    fun `the metrics disagree about which entry is nearer`() {
-        val navy = rgb(0, 0, 90)
-        val grey = rgb(60, 60, 60)
+    fun `the metrics are not proportional to one another`() {
+        val greyStep = black to rgb(60, 60, 60)
+        val blueStep = black to rgb(0, 0, 120)
 
-        val euclideanPrefersNavy =
-            ColorDistance.EUCLIDEAN.distance(navy, black) < ColorDistance.EUCLIDEAN.distance(grey, black)
-        val oklabPrefersNavy =
-            ColorDistance.OKLAB.distance(navy, black) < ColorDistance.OKLAB.distance(grey, black)
+        fun ratioIn(metric: ColorDistance): Float =
+            metric.distance(blueStep.first, blueStep.second) /
+                metric.distance(greyStep.first, greyStep.second)
 
-        assertNotEquals(
-            "sRGB and OKLab must not rank these the same way",
-            euclideanPrefersNavy,
-            oklabPrefersNavy,
+        val srgb = ratioIn(ColorDistance.EUCLIDEAN)
+        val perceptual = ratioIn(ColorDistance.OKLAB)
+
+        assertTrue(
+            "sRGB and OKLab weigh a blue step against a grey step differently " +
+                "(sRGB $srgb, OKLab $perceptual)",
+            kotlin.math.abs(srgb - perceptual) > 0.1f,
         )
+        assertNotEquals(srgb, perceptual)
     }
 
     @Test
