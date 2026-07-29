@@ -13,11 +13,21 @@ enum class DitherMode {
     ATKINSON,
     JARVIS,
     SIERRA_LITE,
+    STUCKI,
+    BURKES,
+    SIERRA,
+    SIERRA_TWO_ROW,
+    FALSE_FLOYD,
     DIFFUSE_Y,
     DIFFUSE_X,
     BAYER_2,
     BAYER_4,
     BAYER_8,
+    BAYER_16,
+    CLUSTER_4,
+    CLUSTER_8,
+    BLUE_NOISE_16,
+    BLUE_NOISE_32,
     MOD_LINES,
     MOD_WAVE,
     MOD_RINGS,
@@ -32,11 +42,21 @@ enum class DitherMode {
             ATKINSON -> "Atkinson"
             JARVIS -> "Jarvis"
             SIERRA_LITE -> "Sierra Lite"
+            STUCKI -> "Stucki"
+            BURKES -> "Burkes"
+            SIERRA -> "Sierra"
+            SIERRA_TWO_ROW -> "Sierra Two-Row"
+            FALSE_FLOYD -> "False Floyd-Steinberg"
             DIFFUSE_Y -> "Diffuse Y"
             DIFFUSE_X -> "Diffuse X"
             BAYER_2 -> "Bayer 2×2"
             BAYER_4 -> "Bayer 4×4"
             BAYER_8 -> "Bayer 8×8"
+            BAYER_16 -> "Bayer 16×16"
+            CLUSTER_4 -> "Clustered Dot 4×4"
+            CLUSTER_8 -> "Clustered Dot 8×8"
+            BLUE_NOISE_16 -> "Blue Noise 16×16"
+            BLUE_NOISE_32 -> "Blue Noise 32×32"
             MOD_LINES -> "Modulation Lines"
             MOD_WAVE -> "Modulation Wave"
             MOD_RINGS -> "Modulation Rings"
@@ -76,8 +96,17 @@ data class DiffusionTap(val dx: Int, val dy: Int, val weight: Float)
 object Dither {
 
     /** Matrix-driven modes: the threshold comes from a fixed tile. */
+    /**
+     * Deliberately a plain `when` rather than `matrix(mode) != null`: the picker asks this
+     * for every mode as it draws, and the generated matrices are built on first use. Going
+     * through [matrix] would generate every blue-noise mask just to open a dropdown.
+     */
     fun isOrdered(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.BAYER_2, DitherMode.BAYER_4, DitherMode.BAYER_8 -> true
+        DitherMode.BAYER_2, DitherMode.BAYER_4, DitherMode.BAYER_8, DitherMode.BAYER_16,
+        DitherMode.CLUSTER_4, DitherMode.CLUSTER_8,
+        DitherMode.BLUE_NOISE_16, DitherMode.BLUE_NOISE_32,
+        -> true
+
         else -> false
     }
 
@@ -120,11 +149,17 @@ object Dither {
 
     private val BAYER_4X4 = grow(BAYER_2X2)
     private val BAYER_8X8 = grow(BAYER_4X4)
+    private val BAYER_16X16 = grow(BAYER_8X8)
 
     fun matrix(mode: DitherMode): Array<IntArray>? = when (mode) {
         DitherMode.BAYER_2 -> BAYER_2X2
         DitherMode.BAYER_4 -> BAYER_4X4
         DitherMode.BAYER_8 -> BAYER_8X8
+        DitherMode.BAYER_16 -> BAYER_16X16
+        DitherMode.CLUSTER_4 -> DitherMatrices.clusteredDot(4)
+        DitherMode.CLUSTER_8 -> DitherMatrices.clusteredDot(8)
+        DitherMode.BLUE_NOISE_16 -> DitherMatrices.blueNoise(16)
+        DitherMode.BLUE_NOISE_32 -> DitherMatrices.blueNoise(32)
         else -> null
     }
 
@@ -262,6 +297,68 @@ object Dither {
             DiffusionTap(1, 0, 2 / 4f),
             DiffusionTap(-1, 1, 1 / 4f),
             DiffusionTap(0, 1, 1 / 4f),
+        )
+
+        // The published kernels below are transcribed from the halftoning literature, where
+        // each is named after whoever proposed it. Their weights are the whole algorithm —
+        // what differs between them is only how far and how evenly the error is spread, and
+        // that is exactly what makes their grain look different.
+        DitherMode.STUCKI -> listOf(
+            DiffusionTap(1, 0, 8 / 42f),
+            DiffusionTap(2, 0, 4 / 42f),
+            DiffusionTap(-2, 1, 2 / 42f),
+            DiffusionTap(-1, 1, 4 / 42f),
+            DiffusionTap(0, 1, 8 / 42f),
+            DiffusionTap(1, 1, 4 / 42f),
+            DiffusionTap(2, 1, 2 / 42f),
+            DiffusionTap(-2, 2, 1 / 42f),
+            DiffusionTap(-1, 2, 2 / 42f),
+            DiffusionTap(0, 2, 4 / 42f),
+            DiffusionTap(1, 2, 2 / 42f),
+            DiffusionTap(2, 2, 1 / 42f),
+        )
+
+        // Stucki with the bottom row dropped — faster, and a touch sharper for it.
+        DitherMode.BURKES -> listOf(
+            DiffusionTap(1, 0, 8 / 32f),
+            DiffusionTap(2, 0, 4 / 32f),
+            DiffusionTap(-2, 1, 2 / 32f),
+            DiffusionTap(-1, 1, 4 / 32f),
+            DiffusionTap(0, 1, 8 / 32f),
+            DiffusionTap(1, 1, 4 / 32f),
+            DiffusionTap(2, 1, 2 / 32f),
+        )
+
+        DitherMode.SIERRA -> listOf(
+            DiffusionTap(1, 0, 5 / 32f),
+            DiffusionTap(2, 0, 3 / 32f),
+            DiffusionTap(-2, 1, 2 / 32f),
+            DiffusionTap(-1, 1, 4 / 32f),
+            DiffusionTap(0, 1, 5 / 32f),
+            DiffusionTap(1, 1, 4 / 32f),
+            DiffusionTap(2, 1, 2 / 32f),
+            DiffusionTap(-1, 2, 2 / 32f),
+            DiffusionTap(0, 2, 3 / 32f),
+            DiffusionTap(1, 2, 2 / 32f),
+        )
+
+        DitherMode.SIERRA_TWO_ROW -> listOf(
+            DiffusionTap(1, 0, 4 / 16f),
+            DiffusionTap(2, 0, 3 / 16f),
+            DiffusionTap(-2, 1, 1 / 16f),
+            DiffusionTap(-1, 1, 2 / 16f),
+            DiffusionTap(0, 1, 3 / 16f),
+            DiffusionTap(1, 1, 2 / 16f),
+            DiffusionTap(2, 1, 1 / 16f),
+        )
+
+        // A widely copied mistranscription of Floyd-Steinberg that took on a life of its own.
+        // It is included because it genuinely looks different — coarser, more directional —
+        // not because it is correct. The name says so.
+        DitherMode.FALSE_FLOYD -> listOf(
+            DiffusionTap(1, 0, 3 / 8f),
+            DiffusionTap(0, 1, 3 / 8f),
+            DiffusionTap(1, 1, 2 / 8f),
         )
 
         // Axis-dominant diffusion. The four classic kernels all spread the error roughly

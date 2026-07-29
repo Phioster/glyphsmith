@@ -6,14 +6,23 @@ import org.junit.Test
 
 class DitherTest {
 
-    private val diffusionModes = listOf(
-        DitherMode.FLOYD_STEINBERG,
-        DitherMode.ATKINSON,
-        DitherMode.JARVIS,
-        DitherMode.SIERRA_LITE,
-        DitherMode.DIFFUSE_Y,
-        DitherMode.DIFFUSE_X,
-    )
+    private val diffusionModes = DitherMode.entries.filter {
+        Dither.diffusionKernel(it).isNotEmpty()
+    }
+
+    private val orderedModes = DitherMode.entries.filter { Dither.isOrdered(it) }
+
+    @Test
+    fun `every mode is diffusion, threshold-based, or nothing at all`() {
+        DitherMode.entries.forEach { mode ->
+            val kinds = listOf(
+                Dither.diffusionKernel(mode).isNotEmpty(),
+                Dither.isThresholdBased(mode),
+            ).count { it }
+            val expected = if (mode == DitherMode.NONE) 0 else 1
+            assertEquals("$mode is $kinds kinds of dither at once", expected, kinds)
+        }
+    }
 
     @Test
     fun `diffusion kernels conserve the error, except Atkinson`() {
@@ -71,15 +80,62 @@ class DitherTest {
         assertEquals(3, Dither.kernelDepth(DitherMode.JARVIS))
     }
 
+    /**
+     * Every threshold matrix — written out, or generated — has to be a complete permutation
+     * of 0 until n². A generated one that repeats or skips a value has a bug in its
+     * construction, and the symptom is a tone that never appears rather than a crash.
+     */
     @Test
-    fun `bayer matrices are complete permutations`() {
-        listOf(DitherMode.BAYER_2, DitherMode.BAYER_4, DitherMode.BAYER_8).forEach { mode ->
-            val matrix = requireNotNull(Dither.matrix(mode))
+    fun `every ordered matrix is a complete permutation`() {
+        assertTrue("no ordered modes at all", orderedModes.isNotEmpty())
+        orderedModes.forEach { mode ->
+            val matrix = requireNotNull(Dither.matrix(mode)) { "$mode claims ordered but has no matrix" }
             val n = matrix.size
             val values = matrix.flatMap { it.asList() }.sorted()
+            assertEquals("$mode is not square", n, matrix[0].size)
             assertEquals("$mode is not $n×$n", n * n, values.size)
             assertEquals("$mode is not a permutation", (0 until n * n).toList(), values)
         }
+    }
+
+    /** The clustered screen grows a dot from the middle: the centre must threshold first. */
+    @Test
+    fun `a clustered dot screen puts its lowest threshold in the middle`() {
+        val matrix = DitherMatrices.clusteredDot(8)
+        val centre = matrix[3][3]
+        val corner = matrix[0][0]
+        assertTrue("centre $centre is not below corner $corner", centre < corner)
+    }
+
+    /**
+     * Blue noise must not clump. Bayer's whole character is its regular structure, so if the
+     * mask were merely random — or accidentally Bayer-like — neighbouring cells would often
+     * hold neighbouring ranks. Measuring the mean rank gap to the right-hand neighbour is a
+     * cheap proxy: a well-spread mask keeps it high.
+     */
+    @Test
+    fun `the blue noise mask is well spread`() {
+        val n = 16
+        val matrix = DitherMatrices.blueNoise(n)
+        var total = 0.0
+        for (y in 0 until n) {
+            for (x in 0 until n) {
+                total += kotlin.math.abs(matrix[y][x] - matrix[y][(x + 1) % n])
+            }
+        }
+        val mean = total / (n * n)
+        // Uniformly random ranks average n²/3 apart; anything near that is well scattered.
+        assertTrue("neighbouring ranks average only $mean apart", mean > n * n / 5.0)
+    }
+
+    @Test
+    fun `generated matrices are stable across calls`() {
+        assertTrue(
+            DitherMatrices.blueNoise(16).contentDeepEquals(DitherMatrices.blueNoise(16)),
+        )
+        assertTrue(
+            DitherMatrices.clusteredDot(8).contentDeepEquals(DitherMatrices.clusteredDot(8)),
+        )
     }
 
     @Test
