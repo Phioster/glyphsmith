@@ -57,9 +57,14 @@ Both together are under 170 KB. See `app/src/main/assets/fonts/NOTICE.md`.
 **Tone** — gamma → contrast → brightness, applied to each cell's luminance before it picks a
 glyph. Without it a flat photo only ever reaches the middle third of the ramp.
 
-**Dithering** — error diffusion (Floyd–Steinberg, Atkinson, Jarvis, Sierra Lite, plus
-axis-dominant Diffuse Y and Diffuse X that send the error down one axis so grain becomes
-streaks) with serpentine scanning, ordered Bayer 2/4/8, and a modulation family whose threshold is a
+**Dithering** — 24 algorithms. Error diffusion with serpentine scanning: Floyd–Steinberg,
+False Floyd–Steinberg, Jarvis–Judice–Ninke, Stucki, Burkes, Sierra, Sierra Two-Row, Sierra
+Lite and Atkinson from the halftoning literature, plus axis-dominant Diffuse Y and Diffuse X
+that send the error down one axis so grain becomes streaks. Ordered: Bayer 2/4/8/16,
+clustered-dot screens that grow a dot from the centre the way a printing screen does, and
+blue-noise masks built by Ulichney's void-and-cluster method — the matrices are generated
+from their construction rules rather than transcribed, because a rule can be tested and a
+1024-entry table cannot. And a modulation family whose threshold is a
 continuous function of position: lines, wave, rings, orb and beehive. A separate **pattern
 scale** sizes the pattern independently of the cell, which is what lets an algorithm be
 driven until it visibly breaks down.
