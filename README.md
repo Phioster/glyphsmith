@@ -1,7 +1,7 @@
 # Glyphsmith
 
-An Android ASCII-art forge: load an image, map it onto a character grid, export the render
-as a PNG or the grid itself as a `.txt`.
+An Android ASCII-art forge: load an image or a video, map it onto a character grid, export
+the render as a PNG, GIF, MP4 or SVG — or the grid itself as a `.txt`.
 
 It rebuilds the feature set of **Script Slayer** — the ASCII module inside Studio AAA's
 Dither Boy — for the phone: the same controls, the same vocabulary, an entirely separate
@@ -133,8 +133,8 @@ release.
 ascii/     CharacterSets, AsciiParams, AsciiEngine (pure Kotlin), Dither, EdgeDetect,
            Palettes, Fonts, AsciiRenderer (Canvas), Pipeline
 anim/      Animation tracks and curves, Temporal, GifEncoder, Mp4Encoder, ColorQuantizer
-effects/   The eight passes plus PixelOps and the ordered EffectPipeline
-data/      ImageLoader (decode + EXIF), PresetStore
+effects/   The nine passes plus PixelOps and the ordered EffectPipeline
+data/      Source (still / video), ImageLoader (decode + EXIF), PresetStore, Settings
 export/    PNG / TXT / SVG / clipboard / share
 ui/        terminal-styled Compose panels
 ```
