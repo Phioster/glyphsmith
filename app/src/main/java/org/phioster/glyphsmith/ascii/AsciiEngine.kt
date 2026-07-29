@@ -73,7 +73,12 @@ object AsciiEngine {
 
         samplePass(pixels, width, height, cellW, cellH, cols, rows, params, lumaGrid, colorGrid)
 
-        return glyphPass(params, ramp, cols, rows, lumaGrid, colorGrid)
+        // Blur and denoise need a cell's neighbours, which neither pass can offer: the
+        // sampler has not finished the grid yet, and by the time the glyph pass runs the
+        // values are already committed. Hence a pass of their own, in between.
+        val adjusted = neighbourhoodPass(params, cols, rows, lumaGrid, colorGrid)
+
+        return glyphPass(params, ramp, cols, rows, adjusted, colorGrid)
     }
 
     /** Pass one: average each cell's pixels and run the tone curve over the result. */
@@ -125,10 +130,47 @@ object AsciiEngine {
                 val avgB = (sumB / samples).toInt()
 
                 val cell = row * cols + col
-                lumaGrid[cell] = toneCurve(luminance(avgR, avgG, avgB), params)
-                colorGrid?.set(cell, (0xFF shl 24) or (avgR shl 16) or (avgG shl 8) or avgB)
+                // Hue and saturation land here, before the luminance is taken, because the
+                // luminance *is* what the dither reads — adjusting colour afterwards would
+                // change how the cell is painted without changing which glyph it gets.
+                val adjusted = Adjustments.colorAdjust(avgR, avgG, avgB, params.hue, params.saturation)
+                val r = (adjusted shr 16) and 0xFF
+                val g = (adjusted shr 8) and 0xFF
+                val b = adjusted and 0xFF
+                lumaGrid[cell] = toneCurve(luminance(r, g, b), params)
+                colorGrid?.set(cell, adjusted)
             }
         }
+    }
+
+    /**
+     * Between the passes: the adjustments that need to see a cell's neighbours.
+     *
+     * Denoise runs before blur on purpose. A median removes outliers, and feeding a blur
+     * outliers it then has to average is how a single hot pixel becomes a grey smudge the
+     * width of the kernel.
+     */
+    private fun neighbourhoodPass(
+        params: AsciiParams,
+        cols: Int,
+        rows: Int,
+        lumaGrid: FloatArray,
+        colorGrid: IntArray?,
+    ): FloatArray {
+        var luma = lumaGrid
+        if (params.denoise > 0) {
+            luma = Adjustments.denoise(luma, cols, rows, params.denoise)
+            colorGrid?.let {
+                Adjustments.denoiseColors(it, cols, rows, params.denoise).copyInto(it)
+            }
+        }
+        if (params.preBlur > 0) {
+            luma = Adjustments.blur(luma, cols, rows, params.preBlur)
+            colorGrid?.let {
+                Adjustments.blurColors(it, cols, rows, params.preBlur).copyInto(it)
+            }
+        }
+        return luma
     }
 
     /** Pass two: dither, quantise, offset, and let strong edges override the result. */
@@ -246,12 +288,13 @@ object AsciiEngine {
     fun luminance(r: Int, g: Int, b: Int): Float =
         (0.2126f * r + 0.7152f * g + 0.0722f * b) / 255f
 
-    /** Gamma, then contrast around mid grey, then brightness — clamped to 0..1. */
+    /** Gamma, then contrast around mid grey, then brightness, then midtones and highlights. */
     fun toneCurve(value: Float, params: AsciiParams): Float {
         val gamma = params.gamma.coerceAtLeast(0.05f)
         val gammaed = value.coerceIn(0f, 1f).pow(1f / gamma)
         val contrasted = (gammaed - 0.5f) * params.contrast + 0.5f
-        return (contrasted + params.brightness).coerceIn(0f, 1f)
+        val levelled = (contrasted + params.brightness).coerceIn(0f, 1f)
+        return Adjustments.tone(levelled, params.midtones, params.highlights)
     }
 
     /**
