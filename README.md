@@ -67,14 +67,20 @@ driven until it visibly breaks down.
 glyph matching the edge's direction rather than its brightness. Four edge sets, plus an
 edges-only mode that gives line art.
 
+**Ramp order** — the sets are ordered by ink coverage because the engine maps luminance
+straight onto a ramp index. That order used to be a hand-made guess. Now each glyph can be
+measured — drawn and counted, in the face that will actually render it — and the ramp sorted
+by the result, injected characters included. The panel shows every glyph's measured coverage
+and lets the order be changed by hand.
+
 **Colour** — single ink colour, source-sampled colour, or a palette. 19 palettes in 6
 categories, with individually editable stops, per-stop locks, a shuffle that respects them,
 a palette depth independent of the glyph depth, and extraction straight from the loaded
 image. Transparent or hex-picked background.
 
-**Effects** — nine stackable passes over the rendered glyphs, in an order you can change:
-post processing, blur/sharpen, tint, chromatic aberration, JPEG databending, diffraction
-stars, subtexture, CMYK halftone, and Epsilon Glow. The order is not cosmetic — glitch before glow blooms,
+**Effects** — eleven stackable passes over the rendered glyphs, in an order you can change:
+post processing, blur/sharpen, tint, chromatic aberration, JPEG databending, pixel sort,
+slice shift, diffraction stars, subtexture, CMYK halftone, and Epsilon Glow. The order is not cosmetic — glitch before glow blooms,
 glitch after glow cuts the bloom apart.
 
 *Epsilon Glow* is a directional bloom: threshold with soft knee, radius with optional
@@ -85,6 +91,12 @@ compensation, intensity, aspect ratio, direction, and an inverse-power falloff
 halftone, paper grain and fibre, scanner streaks, static, VHS bands — with four blend modes
 and an option to derive the texture from the picture's own local detail so it bites where
 there is structure and fades over flat areas.
+
+*Pixel sort* reorders runs of pixels along one axis, but only where their brightness falls
+inside a threshold band. The band is the whole effect: sorting everything gives gradient
+mush, sorting only the mid-tones leaves the darks and lights anchored and makes the colour
+appear to bleed out of the edges between them. *Slice shift* is the other half — whole bands
+displaced sideways, wrapping, with uneven heights so the result never reads as a pattern.
 
 *CMYK halftone* screens the image the way process printing does: four separations at the
 classic angles (yellow 0°, cyan 15°, black 45°, magenta 75°), with grey component
@@ -102,6 +114,12 @@ tracks, eight curves (three of them one-way ramps, marked as such because they d
 a loop), and **Temporal Variation**: nine animated noise patterns that shift the dither
 threshold itself. Every pattern is periodic over the loop, so the last frame lands back on
 the first.
+
+**Presets** — 24 shipped starting points in five categories, plus whatever you save. A
+preset holds the *complete* state, effects and animation included, so applying one is a
+single tap. The MOTION set arrives with animation already aimed: apply, press play. Each one
+renders a thumbnail from your loaded image, favourites sort to the top, and `surprise me`
+rolls a look within ranges chosen to actually produce something.
 
 **Export** — PNG to `Pictures/Glyphsmith`; the character grid, GIF, MP4 and SVG to
 `Download/Glyphsmith`; clipboard; or the system share sheet. Presets are saved as JSON.
