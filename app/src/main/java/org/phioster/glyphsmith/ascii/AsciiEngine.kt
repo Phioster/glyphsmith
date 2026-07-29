@@ -318,6 +318,15 @@ object AsciiEngine {
         DitherMode.FRACTAL_DIFFUSE ->
             FractalDiffuse.quantise(lumaGrid, cols, rows, levels, strength)
 
+        DitherMode.CONTRAST_AWARE_X ->
+            Directional.contrastAware(lumaGrid, cols, rows, levels, strength, vertical = true)
+
+        DitherMode.CONTRAST_AWARE_Y ->
+            Directional.contrastAware(lumaGrid, cols, rows, levels, strength, vertical = false)
+
+        DitherMode.VORTEX_DIFFUSION ->
+            Directional.spiral(lumaGrid, cols, rows, levels, strength)
+
         else -> Regions.quantise(mode, lumaGrid, cols, rows, levels, pattern)
     }
 

@@ -105,14 +105,29 @@ object TermThemes {
     val PARCHMENT = TermPalette(
         id = "parchment",
         name = "Parchment",
-        background = Color(0xFFEFE3C8),
-        surface = Color(0xFFE3D4B4),
-        surfaceHigh = Color(0xFFD6C39C),
-        ink = Color(0xFF241A0E),
-        inkDim = Color(0xFF5C4A2E),
-        inkFaint = Color(0xFF9A8663),
-        amber = Color(0xFF9A5B12),
-        danger = Color(0xFF8E2B2B),
+        /*
+         * Old paper rather than new paper.
+         *
+         * The first version of this was cream — clean, bright, fresh from the ream. That is
+         * not what parchment looks like after a century. Three things happen to it, and all
+         * three are here: the sheet yellows and greys as the sizing breaks down, so the
+         * background loses its brightness and picks up a dirty cast; the surfaces people
+         * actually touch darken further, which is why the raised ones are muddier rather than
+         * lighter; and iron gall ink oxidises from black to brown, so nothing on the page is
+         * ever fully dark.
+         *
+         * The contrast is deliberately lower than a light theme would normally take. Aged
+         * paper is a narrow range — the whole character is that nothing is bright and nothing
+         * is black — but the ink still clears the background by enough to read comfortably.
+         */
+        background = Color(0xFFD9C9A6),
+        surface = Color(0xFFCBB893),
+        surfaceHigh = Color(0xFFB8A47C),
+        ink = Color(0xFF33281A),
+        inkDim = Color(0xFF6B583C),
+        inkFaint = Color(0xFF9C8A68),
+        amber = Color(0xFF8A4A0E),
+        danger = Color(0xFF7A2420),
         light = true,
     )
 
