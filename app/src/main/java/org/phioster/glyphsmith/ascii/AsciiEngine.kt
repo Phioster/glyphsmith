@@ -206,7 +206,7 @@ object AsciiEngine {
         // loop. They resolve the whole grid up front and the loop below simply reads the
         // index each cell was given.
         val precomputed = if (Dither.isPrecomputed(mode)) {
-            precomputedIndices(mode, params, lumaGrid, cols, rows, levels, strength)
+            precomputedIndices(mode, params, lumaGrid, cols, rows, levels, strength, pattern)
         } else {
             null
         }
@@ -306,12 +306,13 @@ object AsciiEngine {
         rows: Int,
         levels: Int,
         strength: Float,
+        pattern: PatternOptions,
     ): IntArray? = when (mode) {
         DitherMode.RIEMERSMA -> Riemersma.quantise(lumaGrid, cols, rows, levels, strength) { x, y ->
             Temporal.offset(params.temporal, x, y) / max(1, levels - 1)
         }
 
-        else -> null
+        else -> Regions.quantise(mode, lumaGrid, cols, rows, levels, pattern)
     }
 
     /** Rec. 709 luminance, normalised to 0..1. */

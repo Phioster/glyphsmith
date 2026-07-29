@@ -143,6 +143,11 @@ object Dither {
         DitherMode.NOISE -> "grain"
         DitherMode.WAVE, DitherMode.SINE_DISTORT -> "frequency"
         DitherMode.RADIAL_BURST -> "ring spacing"
+        DitherMode.MOSAIC, DitherMode.SQUARE_MOSAIC -> "tile size"
+        DitherMode.CIRCLE_GRID, DitherMode.DIAMOND_GRID -> "grid size"
+        DitherMode.TRI_POLY, DitherMode.LOW_POLY -> "triangle size"
+        DitherMode.HEXA_POLY, DitherMode.PENTA_POLY -> "hex size"
+        DitherMode.CAMO -> "cell size"
         else -> "period"
     }
 
@@ -152,6 +157,10 @@ object Dither {
         DitherMode.RADIAL_BURST -> "spokes"
         DitherMode.CROSSHATCH -> "line weight"
         DitherMode.STIPPLING -> "dot size"
+        DitherMode.SQUARE_MOSAIC -> "grout"
+        DitherMode.CIRCLE_GRID, DitherMode.DIAMOND_GRID -> "fill"
+        DitherMode.LOW_POLY -> "triangle type"
+        DitherMode.PENTA_POLY -> "split direction"
         else -> null
     }
 
@@ -716,5 +725,21 @@ object Dither {
      * right corner before the top left. Rather than bend the main loop around them, they
      * hand back a finished grid of glyph indices and the loop just reads it.
      */
-    fun isPrecomputed(mode: DitherMode): Boolean = mode == DitherMode.RIEMERSMA
+    fun isPrecomputed(mode: DitherMode): Boolean = mode == DitherMode.RIEMERSMA || isRegion(mode)
+
+    /**
+     * Styles that flatten an area rather than threshold a cell.
+     *
+     * They average a tile's brightness and give every cell in it the same glyph, so what
+     * comes out is a coarser picture rather than a texture laid over the original one. See
+     * [Regions].
+     */
+    fun isRegion(mode: DitherMode): Boolean = when (mode) {
+        DitherMode.MOSAIC, DitherMode.SQUARE_MOSAIC, DitherMode.CIRCLE_GRID,
+        DitherMode.DIAMOND_GRID, DitherMode.TRI_POLY, DitherMode.HEXA_POLY,
+        DitherMode.PENTA_POLY, DitherMode.LOW_POLY, DitherMode.CAMO,
+        -> true
+
+        else -> false
+    }
 }

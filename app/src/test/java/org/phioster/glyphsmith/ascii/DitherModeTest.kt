@@ -56,9 +56,19 @@ class DitherModeTest {
     @Test
     fun `every category the picker would draw has members`() {
         val used = DitherMode.entries.map { it.category }.toSet()
-        val empty = DitherCategory.entries - used
-        // POLYGON is knowingly empty until its styles land; nothing else may be.
-        assertEquals(setOf(DitherCategory.POLYGON), empty.toSet())
+        assertEquals(DitherCategory.entries.toSet(), used)
+    }
+
+    /** Region styles never threshold, so nothing may claim both. */
+    @Test
+    fun `no style both flattens regions and thresholds cells`() {
+        DitherMode.entries.filter { Dither.isRegion(it) }.forEach { mode ->
+            assertTrue(
+                "${mode.name} flattens regions and yet claims a threshold",
+                !Dither.isThresholdBased(mode),
+            )
+            assertTrue("${mode.name} must be precomputed", Dither.isPrecomputed(mode))
+        }
     }
 
     @Test
