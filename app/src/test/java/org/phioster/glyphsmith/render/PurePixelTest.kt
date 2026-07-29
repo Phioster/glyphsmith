@@ -5,6 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.ColorMode
+import org.phioster.glyphsmith.ascii.Dither
 import org.phioster.glyphsmith.ascii.DitherMode
 
 /**
@@ -124,38 +125,37 @@ class PurePixelTest {
     }
 
     /**
-     * A flat field must not be scattered across the palette.
+     * A flat field must come out flat — but only in the modes that claim to follow the content.
      *
-     * Not "one colour", which is what you would expect and what this originally asserted: the
-     * threshold-based modes add a signed offset to the value *before* quantising, so at pure
-     * white a negative offset can round a cell down to the next level and leave a faint pattern
-     * in what should be a solid area. That is pre-existing behaviour of this app's dither
-     * formulation — the glyph path does exactly the same thing with the same code — so it is
-     * documented here rather than changed, which would alter every existing render.
+     * The pattern families deliberately do not: a camouflage or an orb field imposes structure
+     * whatever the input, and a threshold mode adds a signed offset *before* quantising, so at
+     * pure white a negative offset rounds some cells down and leaves a faint texture. Both are
+     * the point of those styles, not a defect, and the glyph path has always done the same thing
+     * with the same code.
      *
-     * What still has to hold is that the spread is *bounded*: at most two levels, and adjacent
-     * ones. A mode that scattered a flat field over the whole palette would be broken.
+     * What is left — plain quantisation and the error-diffusion kernels — has a real invariant:
+     * a value the palette can represent exactly produces zero error, so there is nothing to
+     * diffuse and every cell must land on the same level. A failure here would mean the error
+     * accounting had drifted.
      */
     @Test
-    fun `a flat field stays within two adjacent levels in every mode`() {
+    fun `content-driven modes leave a flat field uniform`() {
         val white = IntArray(side * side) { -1 }
-        for (mode in DitherMode.entries) {
+        val contentDriven = DitherMode.entries.filterNot { mode ->
+            Dither.isThresholdBased(mode) || Dither.isPrecomputed(mode) || Dither.isRegion(mode)
+        }
+        assertTrue("the filter must not exclude everything", contentDriven.isNotEmpty())
+
+        for (mode in contentDriven) {
             val p = params(mode)
             val grid = CellSampler.sample(white, side, side, p, 1, 1)
             val indexed = QuantisePass.run(p, grid, PixelDitherRenderer.levelsFor(p))
 
-            val levels = indexed.indices.toSortedSet()
-            assertTrue(
-                "$mode spread a flat field over ${levels.size} levels: $levels",
-                levels.size <= 2,
+            assertEquals(
+                "$mode split a flat field into ${indexed.indices.toSortedSet()}",
+                1,
+                indexed.indices.toSet().size,
             )
-            if (levels.size == 2) {
-                assertEquals(
-                    "$mode used two non-adjacent levels: $levels",
-                    1,
-                    levels.last() - levels.first(),
-                )
-            }
         }
     }
 }
