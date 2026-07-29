@@ -13,6 +13,8 @@ enum class DitherMode {
     ATKINSON,
     JARVIS,
     SIERRA_LITE,
+    DIFFUSE_Y,
+    DIFFUSE_X,
     BAYER_2,
     BAYER_4,
     BAYER_8,
@@ -30,6 +32,8 @@ enum class DitherMode {
             ATKINSON -> "Atkinson"
             JARVIS -> "Jarvis"
             SIERRA_LITE -> "Sierra Lite"
+            DIFFUSE_Y -> "Diffuse Y"
+            DIFFUSE_X -> "Diffuse X"
             BAYER_2 -> "Bayer 2×2"
             BAYER_4 -> "Bayer 4×4"
             BAYER_8 -> "Bayer 8×8"
@@ -258,6 +262,25 @@ object Dither {
             DiffusionTap(1, 0, 2 / 4f),
             DiffusionTap(-1, 1, 1 / 4f),
             DiffusionTap(0, 1, 1 / 4f),
+        )
+
+        // Axis-dominant diffusion. The four classic kernels all spread the error roughly
+        // evenly forward and down, which is what makes their noise look isotropic. Pushing
+        // almost all of it along one axis instead makes the error travel in a line, and the
+        // result reads as streaks rather than as grain — the "diffuse along Y" look.
+        DitherMode.DIFFUSE_Y -> listOf(
+            DiffusionTap(0, 1, 11 / 20f),
+            DiffusionTap(0, 2, 5 / 20f),
+            DiffusionTap(1, 0, 2 / 20f),
+            DiffusionTap(-1, 1, 1 / 20f),
+            DiffusionTap(1, 1, 1 / 20f),
+        )
+
+        DitherMode.DIFFUSE_X -> listOf(
+            DiffusionTap(1, 0, 12 / 20f),
+            DiffusionTap(2, 0, 5 / 20f),
+            DiffusionTap(0, 1, 2 / 20f),
+            DiffusionTap(1, 1, 1 / 20f),
         )
 
         else -> emptyList()

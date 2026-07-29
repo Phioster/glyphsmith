@@ -11,6 +11,8 @@ class DitherTest {
         DitherMode.ATKINSON,
         DitherMode.JARVIS,
         DitherMode.SIERRA_LITE,
+        DitherMode.DIFFUSE_Y,
+        DitherMode.DIFFUSE_X,
     )
 
     @Test
@@ -41,6 +43,24 @@ class DitherTest {
                 assertTrue("$mode taps backwards", tap.dy > 0 || (tap.dy == 0 && tap.dx > 0))
             }
         }
+    }
+
+    /**
+     * The axis-dominant kernels exist to make the error travel in a line rather than spread
+     * evenly. If most of the weight ever stops sitting on one axis they have quietly become
+     * ordinary diffusion kernels with worse noise.
+     */
+    @Test
+    fun `the axis kernels really are axis-dominant`() {
+        val down = Dither.diffusionKernel(DitherMode.DIFFUSE_Y)
+            .filter { it.dx == 0 && it.dy > 0 }
+            .sumOf { it.weight.toDouble() }
+        assertTrue("DIFFUSE_Y only sends $down straight down", down > 0.7)
+
+        val across = Dither.diffusionKernel(DitherMode.DIFFUSE_X)
+            .filter { it.dy == 0 && it.dx > 0 }
+            .sumOf { it.weight.toDouble() }
+        assertTrue("DIFFUSE_X only sends $across along the row", across > 0.7)
     }
 
     @Test

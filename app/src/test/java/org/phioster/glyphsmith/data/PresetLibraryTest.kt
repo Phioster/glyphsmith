@@ -43,16 +43,24 @@ class PresetLibraryTest {
         }
     }
 
+    /** The two categories that promise motion — applying one and pressing play is the deal. */
+    private val movingCategories =
+        setOf(PresetStore.CATEGORY_MOTION, PresetStore.CATEGORY_SIGNATURE)
+
     /**
-     * The MOTION set exists so that applying one and pressing play is the whole interaction.
-     * A preset in there that does not actually move would make the category a lie.
+     * A preset in MOTION or SIGNATURE that does not actually move would make the category a
+     * lie rather than an oversight, so both the switch and something to drive are asserted.
      */
     @Test
-    fun `every motion preset really animates`() {
-        val motion = library.filter { it.category == PresetStore.CATEGORY_MOTION }
-        assertTrue("no motion presets shipped", motion.isNotEmpty())
+    fun `every preset that promises motion really animates`() {
+        val moving = library.filter { it.category in movingCategories }
+        assertTrue("no animated presets shipped", moving.isNotEmpty())
+        assertTrue(
+            "not enough animated presets to be a library",
+            moving.size >= 8,
+        )
 
-        motion.forEach { preset ->
+        moving.forEach { preset ->
             val params = preset.params
             val moves = params.animation.activeCount > 0 || params.temporal.enabled
             assertTrue("${preset.name} has animation switched off", params.animation.enabled)
@@ -61,10 +69,20 @@ class PresetLibraryTest {
     }
 
     @Test
-    fun `nothing outside motion arrives with animation switched on`() {
-        library.filterNot { it.category == PresetStore.CATEGORY_MOTION }.forEach {
+    fun `the still categories really are still`() {
+        library.filterNot { it.category in movingCategories }.forEach {
             assertFalse("${it.name} animates unexpectedly", it.params.animation.enabled)
         }
+    }
+
+    /** The axis-dominant kernels were added for this look; something has to actually use it. */
+    @Test
+    fun `the signature set uses the axis diffusion it was built for`() {
+        val signature = library.filter { it.category == PresetStore.CATEGORY_SIGNATURE }
+        assertTrue(
+            "no signature preset uses DIFFUSE_Y or DIFFUSE_X",
+            signature.any { it.params.ditherMode.name.startsWith("DIFFUSE_") },
+        )
     }
 
     /** The whole point of the expansion: the newer engine features have starting points. */

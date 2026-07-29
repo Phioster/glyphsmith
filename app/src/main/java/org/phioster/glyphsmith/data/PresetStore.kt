@@ -128,6 +128,7 @@ class PresetStore(context: Context) {
         const val CATEGORY_PRINT = "PRINT"
         const val CATEGORY_MOTION = "MOTION"
         const val CATEGORY_HEAVY = "HEAVY"
+        const val CATEGORY_SIGNATURE = "SIGNATURE"
         const val CATEGORY_CUSTOM = "CUSTOM"
 
         /** Picker order. Anything the user saves lands in CUSTOM, which sits last. */
@@ -135,6 +136,7 @@ class PresetStore(context: Context) {
             CATEGORY_CLASSIC,
             CATEGORY_DITHER,
             CATEGORY_PRINT,
+            CATEGORY_SIGNATURE,
             CATEGORY_MOTION,
             CATEGORY_HEAVY,
             CATEGORY_CUSTOM,
@@ -471,6 +473,159 @@ class PresetStore(context: Context) {
                         glow = GlowParams(enabled = true, intensity = 520, radius = 120, aspectRatio = 240),
                     ),
                     animation = animation(sweep(AnimTarget.GLOW_DIRECTION, 0, 359, AnimCurve.SAWTOOTH)),
+                ),
+            ),
+
+            // --- signature ----------------------------------------------------------
+            // Modelled on the looks Studio AAA show in their public preview clips, not on
+            // their presets — those are not published, and neither is the maths behind the
+            // styles. Each of these is this app's own approximation of a look, built from
+            // controls that already existed, and each one animates so that applying it and
+            // pressing play is the whole interaction.
+            preset(
+                "orb diffuse", CATEGORY_SIGNATURE,
+                // Their "Orb Diffuse Y": a figure resolved into wavering vertical columns of
+                // dots with bright blooming points scattered through it. The vertical run is
+                // DIFFUSE_Y — error pushed almost entirely downward travels in a line, which
+                // is what turns grain into streaks.
+                AsciiParams(
+                    charSetId = "geo-circles",
+                    cellSize = 4,
+                    depth = 5,
+                    contrast = 1.55f,
+                    gamma = 1.15f,
+                    ditherMode = DitherMode.DIFFUSE_Y,
+                    ditherStrength = 100,
+                    serpentine = false,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ice",
+                    backgroundColor = 0xFF000206.toInt(),
+                    temporal = TemporalParams(
+                        enabled = true,
+                        pattern = TemporalPattern.VALUE_NOISE,
+                        scale = 9,
+                        amount = 30,
+                    ),
+                    effects = EffectStack(
+                        glow = GlowParams(
+                            enabled = true,
+                            threshold = 42,
+                            thresholdSmoothing = 40,
+                            radius = 110,
+                            intensity = 700,
+                            falloff = 14,
+                        ),
+                    ),
+                    animation = animation(sweep(AnimTarget.DITHER_STRENGTH, 70, 100), frames = 36),
+                ),
+            ),
+            preset(
+                "line diffuse", CATEGORY_SIGNATURE,
+                AsciiParams(
+                    charSetId = "misc-dots",
+                    cellSize = 4,
+                    depth = 4,
+                    contrast = 1.45f,
+                    ditherMode = DitherMode.DIFFUSE_X,
+                    serpentine = false,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "amber",
+                    backgroundColor = 0xFF060200.toInt(),
+                    effects = EffectStack(
+                        glow = GlowParams(enabled = true, radius = 70, intensity = 480, aspectRatio = 320),
+                    ),
+                    animation = animation(sweep(AnimTarget.DEPTH, 3, 9), frames = 30),
+                ),
+            ),
+            preset(
+                "modulation lines", CATEGORY_SIGNATURE,
+                AsciiParams(
+                    charSetId = "block-horizontal",
+                    cellSize = 5,
+                    depth = 5,
+                    ditherMode = DitherMode.MOD_LINES,
+                    modScale = 6,
+                    modAngle = 90,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "phosphor",
+                    animation = animation(
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        frames = 36,
+                    ),
+                ),
+            ),
+            preset(
+                "waveform", CATEGORY_SIGNATURE,
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 5,
+                    depth = 6,
+                    ditherMode = DitherMode.MOD_WAVE,
+                    modScale = 12,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        chromatic = ChromaticParams(
+                            enabled = true,
+                            offset = 6,
+                            waveAmplitude = 18,
+                            waveFrequency = 12,
+                        ),
+                        glow = GlowParams(enabled = true, intensity = 380, radius = 80),
+                    ),
+                    animation = animation(
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        sweep(AnimTarget.CHROMATIC_OFFSET, 2, 14),
+                        frames = 36,
+                    ),
+                ),
+            ),
+            preset(
+                "cyberpunk", CATEGORY_SIGNATURE,
+                AsciiParams(
+                    charSetId = "block-quadrant",
+                    cellSize = 4,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "neon",
+                    backgroundColor = 0xFF05000C.toInt(),
+                    temporal = TemporalParams(
+                        enabled = true,
+                        pattern = TemporalPattern.INTERFERENCE,
+                        scale = 12,
+                        amount = 40,
+                    ),
+                    effects = EffectStack(
+                        chromatic = ChromaticParams(enabled = true, offset = 8),
+                        sliceShift = SliceShiftParams(enabled = true, slices = 26, maxOffset = 10, density = 40),
+                        glow = GlowParams(enabled = true, intensity = 560, radius = 100),
+                    ),
+                    animation = animation(sweep(AnimTarget.GLITCH_SEED, 1, 9999, AnimCurve.RANDOM)),
+                ),
+            ),
+            preset(
+                "gemstone", CATEGORY_SIGNATURE,
+                AsciiParams(
+                    charSetId = "geo-diamonds",
+                    cellSize = 5,
+                    depth = 6,
+                    ditherMode = DitherMode.MOD_ORB,
+                    modScale = 6,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "sunset",
+                    effects = EffectStack(
+                        stars = DiffractionStarsParams(
+                            enabled = true,
+                            rays = 6,
+                            length = 70,
+                            threshold = 55,
+                            intensity = 620,
+                        ),
+                        glow = GlowParams(enabled = true, intensity = 340, radius = 60),
+                    ),
+                    animation = animation(
+                        sweep(AnimTarget.STARS_ANGLE, 0, 359, AnimCurve.SAWTOOTH),
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        frames = 36,
+                    ),
                 ),
             ),
 
