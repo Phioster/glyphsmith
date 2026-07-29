@@ -19,6 +19,8 @@ import org.phioster.glyphsmith.anim.AnimCurve
 import org.phioster.glyphsmith.anim.AnimTarget
 import org.phioster.glyphsmith.anim.AnimTrack
 import org.phioster.glyphsmith.anim.AnimationParams
+import org.phioster.glyphsmith.anim.TemporalParams
+import org.phioster.glyphsmith.anim.TemporalPattern
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
@@ -102,15 +104,21 @@ fun AnimPanel(
             TrackSection(animation.track(target)) { track -> update { withTrack(track) } }
         }
 
+        SectionHeader("temporal variation")
+
+        TemporalSection(params.temporal) { onChange(params.copy(temporal = it)) }
+
         SectionHeader("playback")
 
         val ready = state.hasImage && !state.working
+        // Temporal noise is an animation in its own right, so it alone is enough to play.
+        val moves = animation.activeCount > 0 || params.temporal.enabled
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TerminalButton(
                 label = if (state.animPlaying) "playing" else "play loop",
                 onClick = onPlay,
                 modifier = Modifier.weight(1f),
-                enabled = ready && animation.activeCount > 0,
+                enabled = ready && moves,
             )
             TerminalButton(
                 label = "stop",
@@ -119,9 +127,9 @@ fun AnimPanel(
                 enabled = state.animPlaying,
             )
         }
-        if (animation.activeCount == 0) {
+        if (!moves) {
             Text(
-                "switch on at least one track — nothing moves otherwise",
+                "switch on at least one track, or temporal variation — nothing moves otherwise",
                 color = Term.Amber,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 6.dp),
@@ -140,6 +148,77 @@ fun AnimPanel(
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+/**
+ * Animated noise on the dither threshold — the thing that makes the *texture* move rather
+ * than a parameter. It goes on the threshold, so it works with every dither mode, including
+ * none at all.
+ */
+@Composable
+private fun TemporalSection(params: TemporalParams, onChange: (TemporalParams) -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .border(1.dp, if (params.enabled) Term.InkDim else Term.InkFaint, RectangleShape)
+            .background(if (params.enabled) Term.Surface else Color.Transparent)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+    ) {
+        TerminalToggle(
+            label = "temporal variation",
+            checked = params.enabled,
+            onCheckedChange = { onChange(params.copy(enabled = it)) },
+        )
+        if (!params.enabled) {
+            Text(
+                "nine animated noise patterns that shift the dithering itself, the way an " +
+                    "old screen never quite holds still",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            return@Column
+        }
+
+        StepperDropdown(
+            label = "pattern",
+            items = TemporalPattern.entries.toList(),
+            selectedIndex = TemporalPattern.entries.indexOf(params.pattern),
+            onSelect = { onChange(params.copy(pattern = TemporalPattern.entries[it])) },
+            itemLabel = { it.label },
+        )
+        TerminalSlider(
+            label = "scale",
+            value = params.scale.toFloat(),
+            range = TemporalParams.SCALE_RANGE.first.toFloat()..
+                TemporalParams.SCALE_RANGE.last.toFloat(),
+            valueText = "${params.scale} cells",
+            onValueChange = { onChange(params.copy(scale = it.toInt())) },
+        )
+        TerminalSlider(
+            label = "speed",
+            value = params.speed.toFloat(),
+            range = TemporalParams.SPEED_RANGE.first.toFloat()..
+                TemporalParams.SPEED_RANGE.last.toFloat(),
+            steps = TemporalParams.SPEED_RANGE.count() - 2,
+            valueText = "${params.speed}× per loop",
+            onValueChange = { onChange(params.copy(speed = it.toInt())) },
+        )
+        TerminalSlider(
+            label = "amount",
+            value = params.amount.toFloat(),
+            range = 0f..100f,
+            valueText = "${params.amount}/100",
+            onValueChange = { onChange(params.copy(amount = it.toInt())) },
+        )
+        Text(
+            "every pattern is periodic over the loop, so the last frame lands back on the " +
+                "first — whole speeds only, for the same reason",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp),
         )
     }
 }
@@ -174,9 +253,21 @@ private fun TrackSection(track: AnimTrack, onChange: (AnimTrack) -> Unit) {
                     AnimCurve.SAWTOOTH -> "ramp, then snap back"
                     AnimCurve.PULSE -> "hard switch between the two ends"
                     AnimCurve.RANDOM -> "a new value every frame, same every render"
+                    AnimCurve.EASE_IN -> "one-way, starts slow"
+                    AnimCurve.EASE_OUT -> "one-way, ends slow"
+                    AnimCurve.EASE_IN_OUT -> "one-way, slow at both ends"
                 }
             },
         )
+        if (!track.curve.seamless) {
+            Text(
+                "one-way: this curve ends somewhere else than it began, so the loop will " +
+                    "jump at the seam. Fine for a single move, not for a looping texture.",
+                color = Term.Amber,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+        }
         TerminalSlider(
             label = "from",
             value = track.from.toFloat(),

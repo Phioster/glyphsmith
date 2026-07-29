@@ -91,6 +91,9 @@ fun EffectsPanel(
                     GlitchSection(fx.jpegGlitch, move) { p -> update { copy(jpegGlitch = p) } }
 
                 EffectId.STARS -> StarsSection(fx.stars, move) { p -> update { copy(stars = p) } }
+                EffectId.SUBTEXTURE ->
+                    SubtextureSection(fx.subtexture, move) { p -> update { copy(subtexture = p) } }
+
                 EffectId.GLOW -> GlowSection(fx.glow, move) { p -> update { copy(glow = p) } }
             }
         }

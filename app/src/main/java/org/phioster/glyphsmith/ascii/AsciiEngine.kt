@@ -1,5 +1,6 @@
 package org.phioster.glyphsmith.ascii
 
+import org.phioster.glyphsmith.anim.Temporal
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -175,7 +176,12 @@ object AsciiEngine {
                 val cell = row * cols + col
                 val base = lumaGrid[cell]
 
-                val target = when {
+                // Temporal noise nudges the threshold rather than the image, so it reaches
+                // every dither mode — including NONE, where it is the only thing moving.
+                // Scaled to one glyph step, exactly as the ordered branch scales its own.
+                val jitter = Temporal.offset(params.temporal, col, row) / max(1, levels - 1)
+
+                val target = jitter + when {
                     ordered -> base + (Dither.threshold(mode, col, row, pattern) - 0.5f) *
                         strength / max(1, levels - 1)
 

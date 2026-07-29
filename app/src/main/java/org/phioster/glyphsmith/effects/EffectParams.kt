@@ -146,6 +146,7 @@ enum class EffectId(val label: String) {
     CHROMATIC("chromatic"),
     GLITCH("jpeg glitch"),
     STARS("stars"),
+    SUBTEXTURE("subtexture"),
     GLOW("glow"),
 }
 
@@ -170,6 +171,7 @@ data class EffectStack(
     val stars: DiffractionStarsParams = DiffractionStarsParams(),
     val glow: GlowParams = GlowParams(),
     val blurSharpen: BlurSharpenParams = BlurSharpenParams(),
+    val subtexture: SubtextureParams = SubtextureParams(),
     val order: List<EffectId> = EffectId.entries.toList(),
 ) {
     fun enabledOf(id: EffectId): Boolean = when (id) {
@@ -179,6 +181,7 @@ data class EffectStack(
         EffectId.CHROMATIC -> chromatic.enabled
         EffectId.GLITCH -> jpegGlitch.enabled
         EffectId.STARS -> stars.enabled
+        EffectId.SUBTEXTURE -> subtexture.enabled
         EffectId.GLOW -> glow.enabled
     }
 

@@ -2,6 +2,7 @@ package org.phioster.glyphsmith.ascii
 
 import kotlinx.serialization.Serializable
 import org.phioster.glyphsmith.anim.AnimationParams
+import org.phioster.glyphsmith.anim.TemporalParams
 import org.phioster.glyphsmith.effects.EffectStack
 
 enum class ColorMode { SINGLE, SOURCE, PALETTE }
@@ -92,6 +93,8 @@ data class AsciiParams(
     val effects: EffectStack = EffectStack(),
     /** Drives selected parameters over time to animate a still image. */
     val animation: AnimationParams = AnimationParams(),
+    /** Animated noise added to the dither threshold — works with every dither mode. */
+    val temporal: TemporalParams = TemporalParams(),
 ) {
     val charSet: CharacterSet get() = CharacterSets.byId(charSetId)
 

@@ -9,15 +9,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
 import org.phioster.glyphsmith.effects.ChromaticParams
 import org.phioster.glyphsmith.effects.DiffractionStarsParams
 import org.phioster.glyphsmith.effects.GlowParams
 import org.phioster.glyphsmith.effects.JpegGlitchParams
 import org.phioster.glyphsmith.effects.PostProcessingParams
+import org.phioster.glyphsmith.effects.SubtextureParams
+import org.phioster.glyphsmith.effects.TextureKind
 import org.phioster.glyphsmith.effects.TintMode
 import org.phioster.glyphsmith.effects.TintParams
 import org.phioster.glyphsmith.ui.HexColorField
+import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalChip
 import org.phioster.glyphsmith.ui.TerminalSlider
 import org.phioster.glyphsmith.ui.TerminalToggle
@@ -261,6 +265,59 @@ internal fun StarsSection(
             { onChange(params.copy(falloff = it.toInt())) },
             valueText = "${params.falloff}/50",
         )
+    }
+}
+
+@Composable
+internal fun SubtextureSection(
+    params: SubtextureParams,
+    move: MoveHandler,
+    onChange: (SubtextureParams) -> Unit,
+) {
+    EffectSection("subtexture", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        StepperDropdown(
+            label = "texture",
+            items = TextureKind.entries.toList(),
+            selectedIndex = TextureKind.entries.indexOf(params.kind),
+            onSelect = { onChange(params.copy(kind = TextureKind.entries[it])) },
+            itemLabel = { it.label },
+        )
+        StepperDropdown(
+            label = "blend",
+            items = BlendMode.entries.toList(),
+            selectedIndex = BlendMode.entries.indexOf(params.blend),
+            onSelect = { onChange(params.copy(blend = BlendMode.entries[it])) },
+            itemLabel = { it.label },
+        )
+        TerminalSlider(
+            "scale", params.scale.toFloat(), 1f..64f,
+            { onChange(params.copy(scale = it.toInt())) },
+            valueText = "${params.scale}px",
+        )
+        TerminalSlider(
+            "intensity", params.intensity.toFloat(), 0f..100f,
+            { onChange(params.copy(intensity = it.toInt())) },
+            valueText = "${params.intensity}/100",
+        )
+        TerminalSlider(
+            "angle", params.angle.toFloat(), 0f..359f,
+            { onChange(params.copy(angle = it.toInt())) },
+            valueText = "${params.angle}°",
+        )
+        TerminalToggle(
+            label = "derive from image",
+            checked = params.fromSource,
+            onCheckedChange = { onChange(params.copy(fromSource = it)) },
+        )
+        Text(
+            "with this on, the texture is modulated by the picture's own local detail — it " +
+                "bites where there is structure and fades out over flat areas instead of " +
+                "sitting on top like a sticker",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        SeedRow(params.seed) { onChange(params.copy(seed = it)) }
     }
 }
 
