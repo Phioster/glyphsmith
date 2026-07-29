@@ -66,6 +66,14 @@ data class AsciiParams(
     val modAngle: Int = 0,
     /** 0..100 % of a period; animate it and the pattern travels. */
     val modPhase: Int = 0,
+    /** Shape of an individual orb — only the orb and beehive modes read these. */
+    val orbCount: Int = 1,
+    val orbSize: Int = 100,
+    val orbIntensity: Int = 0,
+    val orbRandom: Int = 0,
+    val orbOffset: Int = 0,
+    val orbDirection: Int = 0,
+    val orbSeed: Int = 1,
     /** Let strong edges pick a directional glyph instead of a brightness-matched one. */
     val edgeEnabled: Boolean = false,
     /** 0..100 — gradient magnitude a cell needs before it counts as an edge. */
@@ -135,6 +143,17 @@ data class AsciiParams(
         val injected = narrowed + injection.take(MAX_INJECTION)
         return if (invert) injected.reversed() else injected
     }
+
+    /** The orb controls gathered up for the engine. */
+    fun orbOptions(): OrbOptions = OrbOptions(
+        count = orbCount,
+        size = orbSize,
+        intensity = orbIntensity,
+        random = orbRandom,
+        offset = orbOffset,
+        direction = orbDirection,
+        seed = orbSeed,
+    )
 
     /** Upper bound the offset slider runs to — the offset wraps at the ramp length. */
     fun offsetMax(): Int = effectiveRamp().length.coerceAtLeast(1)

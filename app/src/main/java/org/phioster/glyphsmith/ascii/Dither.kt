@@ -87,6 +87,42 @@ data class PatternOptions(
     /** Grid centre in cells — only [DitherMode.MOD_RINGS] cares. */
     val centerX: Float = 0f,
     val centerY: Float = 0f,
+    /**
+     * The orb family's own controls, mirroring the six sliders Dither Boy's orb styles
+     * carry. They only reach [DitherMode.MOD_ORB] and [DitherMode.BEEHIVE]; the other
+     * modulation modes have no orbs to shape.
+     */
+    val orb: OrbOptions = OrbOptions(),
+)
+
+/**
+ * What an orb looks like, separately from where the grid puts it.
+ *
+ * [count] and [size] pull in opposite directions on purpose: count sets how many orbs fit
+ * across a period, size how much of its own cell each one fills. Turning the count up and
+ * the size down gives a fine stipple; the reverse gives fat overlapping blobs.
+ */
+data class OrbOptions(
+    /** Orbs per period, 1..20. */
+    val count: Int = 1,
+    /**
+     * 0..100 — how much of its cell an orb fills before it is clipped.
+     *
+     * Defaulted to 100 together with an [intensity] of 0 because those two values reproduce
+     * exactly what the orb modes did before these controls existed: a linear ramp from the
+     * cell centre to its corner. Anything else would silently repaint every saved preset
+     * that uses an orb mode.
+     */
+    val size: Int = 100,
+    /** 0..100 — how hard the orb's edge is. 0 is a soft gradient, 100 a flat disc. */
+    val intensity: Int = 0,
+    /** 0..100 — per-orb jitter of position and radius. */
+    val random: Int = 0,
+    /** -100..100 — shifts alternate rows sideways, the way BEEHIVE does at 50. */
+    val offset: Int = 0,
+    /** Rotates the orb lattice independently of the pattern angle. */
+    val direction: Int = 0,
+    val seed: Int = 1,
 )
 
 /** One neighbour that receives a share of a cell's quantisation error. */
@@ -236,28 +272,64 @@ object Dither {
                 0.5f + 0.5f * sin(TAU * (r + phase)).toFloat()
             }
 
-            DitherMode.MOD_ORB -> orbThreshold(u + phase, v)
+            DitherMode.MOD_ORB -> orbField(u + phase, v, options.orb, 0f)
 
             // Offsetting every other row by half a cell is what turns a square grid of orbs
             // into a honeycomb — the cells pack against each other instead of lining up.
-            DitherMode.BEEHIVE -> {
-                val shift = if (Math.floorMod(floor(v).toInt(), 2) == 0) 0f else 0.5f
-                orbThreshold(u + phase + shift, v)
-            }
+            // It is the same machinery as the orb offset control, fixed at a half step.
+            DitherMode.BEEHIVE -> orbField(u + phase, v, options.orb, 0.5f)
 
             else -> 0.5f
         }
     }
 
     /**
-     * Distance from the centre of the cell containing ([u], [v]), normalised so the corner
-     * reaches 1. Low in the middle, high at the edges — dark glyphs therefore clump into
-     * dots, which is the halftone look.
+     * The orb lattice: distance from the centre of the cell containing ([u], [v]), shaped by
+     * [orb]. Low in the middle, high at the edges — dark glyphs therefore clump into dots,
+     * which is the halftone look.
+     *
+     * [rowShift] is applied on top of [OrbOptions.offset] and is what BEEHIVE uses to stagger
+     * its rows; keeping it a parameter means the honeycomb and the offset slider are the same
+     * mechanism rather than two that can disagree.
      */
-    private fun orbThreshold(u: Float, v: Float): Float {
-        val dx = frac(u) - 0.5f
-        val dy = frac(v) - 0.5f
-        return (hypot(dx, dy) / 0.70710678f).coerceIn(0f, 1f)
+    private fun orbField(u: Float, v: Float, orb: OrbOptions, rowShift: Float): Float {
+        val count = orb.count.coerceIn(1, 20).toFloat()
+        val radians = orb.direction * PI / 180.0
+        val c = cos(radians).toFloat()
+        val s = sin(radians).toFloat()
+        // Rotated and multiplied up, so the lattice can turn and repeat independently of the
+        // pattern that placed it.
+        val lu = (u * c + v * s) * count
+        val lv = (-u * s + v * c) * count
+
+        val row = floor(lv).toInt()
+        val stagger = rowShift + orb.offset / 100f
+        val shifted = lu + if (Math.floorMod(row, 2) == 0) 0f else stagger
+
+        var dx = frac(shifted) - 0.5f
+        var dy = frac(lv) - 0.5f
+        if (orb.random > 0) {
+            // Jitter is keyed to the cell, not to the pixel, so a whole orb moves as one
+            // rather than dissolving into noise.
+            val jitter = orb.random / 100f * 0.5f
+            dx += (hash(floor(shifted).toInt(), row, orb.seed) - 0.5f) * jitter
+            dy += (hash(row, floor(shifted).toInt(), orb.seed + 71) - 0.5f) * jitter
+        }
+
+        val radius = (orb.size / 100f).coerceIn(0.02f, 1f)
+        val distance = hypot(dx, dy) / 0.70710678f / radius
+        // Intensity is the hardness of the edge: at 100 the disc is flat and its rim abrupt,
+        // at 0 the orb is a smooth gradient with no rim at all.
+        val hardness = (orb.intensity / 100f).coerceIn(0f, 1f)
+        val soft = distance.coerceIn(0f, 1f)
+        val hard = if (distance < 1f) 0f else 1f
+        return (soft * (1f - hardness) + hard * hardness).coerceIn(0f, 1f)
+    }
+
+    private fun hash(x: Int, y: Int, seed: Int): Float {
+        var h = x * 374761393 + y * 668265263 + seed * 1274126177
+        h = (h xor (h shr 13)) * 1274126177
+        return ((h xor (h shr 16)) and 0x7FFFFFFF) / 0x7FFFFFFF.toFloat()
     }
 
     /**

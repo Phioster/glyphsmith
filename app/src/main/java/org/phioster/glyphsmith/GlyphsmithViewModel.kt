@@ -32,6 +32,7 @@ import org.phioster.glyphsmith.ascii.Pipeline
 import org.phioster.glyphsmith.ascii.FontChoice
 import org.phioster.glyphsmith.ascii.GlyphCoverage
 import org.phioster.glyphsmith.data.ImageLoader
+import org.phioster.glyphsmith.data.PaletteFile
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
 import org.phioster.glyphsmith.data.Settings
@@ -196,6 +197,41 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         // appended a second time by effectiveRamp().
         updateParams(params.copy(rampOverride = sorted, injection = ""))
         "ordered ${sorted.length} glyphs by coverage"
+    }
+
+    /** Writes the palette in use to its own file, so colours can be shared without a look. */
+    fun exportPalette() = runExport("palette") {
+        val palette = _state.value.params.activePalette()
+        val text = PaletteFile.encode(palette)
+        val name = Exporter.timestampedName("json")
+            .replace("glyphsmith-", "glyphsmith-palette-")
+        val uri = withContext(Dispatchers.IO) { Exporter.saveJson(context, text, name) }
+        if (uri != null) {
+            "palette saved to Download/Glyphsmith"
+        } else {
+            "save failed"
+        }
+    }
+
+    fun importPalette(uri: Uri) = runExport("palette") {
+        val text = withContext(Dispatchers.IO) {
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+            }.getOrNull()
+        } ?: return@runExport "could not read that file"
+
+        val file = PaletteFile.decode(text) ?: return@runExport "that file isn't a palette"
+        val colors = PaletteFile.colorsOf(file)
+        if (colors.isEmpty()) return@runExport "no usable colours in that file"
+
+        updateParams(
+            _state.value.params.copy(
+                colorMode = ColorMode.PALETTE,
+                paletteOverride = colors,
+                paletteLocks = List(colors.size) { false },
+            ),
+        )
+        "loaded ${file.name} · ${colors.size} colours"
     }
 
     fun undo() {

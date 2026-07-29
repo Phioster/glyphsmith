@@ -155,6 +155,7 @@ object AsciiEngine {
             phase = params.modPhase / 100f,
             centerX = cols / 2f,
             centerY = rows / 2f,
+            orb = params.orbOptions(),
         )
         val kernel = Dither.diffusionKernel(mode)
         // Riemersma walks a space-filling curve, so its visiting order has nothing to do

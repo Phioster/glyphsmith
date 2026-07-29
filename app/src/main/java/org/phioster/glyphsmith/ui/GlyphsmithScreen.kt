@@ -90,6 +90,8 @@ fun GlyphsmithScreen(
     onToggleFavourite: (String) -> Unit,
     onRandomise: () -> Unit,
     onResetPresets: () -> Unit,
+    onExportPalette: () -> Unit,
+    onImportPalette: (android.net.Uri) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -140,7 +142,13 @@ fun GlyphsmithScreen(
                     onAutoOrder = onAutoOrderRamp,
                 )
                 Tab.MAPPING -> MappingPanel(state.params, onParamsChange)
-                Tab.COLOR -> ColorPanel(state.params, onParamsChange, onExtractPalette)
+                Tab.COLOR -> ColorPanel(
+                    params = state.params,
+                    onChange = onParamsChange,
+                    onExtractPalette = onExtractPalette,
+                    onExportPalette = onExportPalette,
+                    onImportPalette = onImportPalette,
+                )
                 Tab.EFFECTS -> EffectsPanel(state.params, onParamsChange)
                 Tab.ANIM -> AnimPanel(
                     state = state,

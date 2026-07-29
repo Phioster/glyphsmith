@@ -276,6 +276,72 @@ class DitherTest {
         assertTrue("odd band is not offset at all", differences > 0)
     }
 
+    /**
+     * The orb controls were added after the orb modes shipped, so their defaults have to
+     * reproduce the old behaviour exactly — a linear ramp from the cell centre to its corner.
+     * Anything else silently repaints every saved preset that uses an orb mode.
+     */
+    @Test
+    fun `default orb options reproduce the original orb ramp`() {
+        val options = PatternOptions(period = 8)
+        for (y in 0 until 24) {
+            for (x in 0 until 24) {
+                val u = x / 8f
+                val v = y / 8f
+                val dx = u - kotlin.math.floor(u) - 0.5f
+                val dy = v - kotlin.math.floor(v) - 0.5f
+                val expected = (kotlin.math.hypot(dx, dy) / 0.70710678f).coerceIn(0f, 1f)
+                assertEquals(
+                    "orb default drifted at ($x,$y)",
+                    expected,
+                    Dither.threshold(DitherMode.MOD_ORB, x, y, options),
+                    1e-5f,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `each orb control changes the field`() {
+        val base = PatternOptions(period = 8)
+        fun sample(options: PatternOptions) =
+            (0 until 24).flatMap { y -> (0 until 24).map { x -> Dither.threshold(DitherMode.MOD_ORB, x, y, options) } }
+
+        val reference = sample(base)
+        val variants = mapOf(
+            "count" to base.copy(orb = base.orb.copy(count = 3)),
+            "size" to base.copy(orb = base.orb.copy(size = 40)),
+            "intensity" to base.copy(orb = base.orb.copy(intensity = 100)),
+            "random" to base.copy(orb = base.orb.copy(random = 60)),
+            "offset" to base.copy(orb = base.orb.copy(offset = 50)),
+            "direction" to base.copy(orb = base.orb.copy(direction = 30)),
+        )
+        variants.forEach { (name, options) ->
+            assertTrue("the $name control does nothing", sample(options) != reference)
+        }
+    }
+
+    /** Beehive is the offset control fixed at half a step, so the two must agree there. */
+    @Test
+    fun `beehive equals an orb offset by half`() {
+        val options = PatternOptions(period = 6)
+        for (y in 0 until 18) {
+            for (x in 0 until 18) {
+                assertEquals(
+                    "at ($x,$y)",
+                    Dither.threshold(DitherMode.BEEHIVE, x, y, options),
+                    Dither.threshold(
+                        DitherMode.MOD_ORB,
+                        x,
+                        y,
+                        options.copy(orb = options.orb.copy(offset = 50)),
+                    ),
+                    1e-5f,
+                )
+            }
+        }
+    }
+
     @Test
     fun `modulation phase travels a whole period and comes back`() {
         val options = PatternOptions(period = 5)

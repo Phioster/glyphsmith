@@ -145,6 +145,63 @@ fun MappingPanel(
                 valueText = "${params.modPhase}%",
                 onValueChange = { onChange(params.copy(modPhase = it.toInt())) },
             )
+            if (params.ditherMode == DitherMode.MOD_ORB ||
+                params.ditherMode == DitherMode.BEEHIVE
+            ) {
+                SectionHeader("orb")
+
+                TerminalSlider(
+                    label = "count",
+                    value = params.orbCount.toFloat(),
+                    range = 1f..20f,
+                    valueText = "${params.orbCount} per period",
+                    onValueChange = { onChange(params.copy(orbCount = it.toInt())) },
+                )
+                TerminalSlider(
+                    label = "size",
+                    value = params.orbSize.toFloat(),
+                    range = 5f..100f,
+                    valueText = "${params.orbSize}/100",
+                    onValueChange = { onChange(params.copy(orbSize = it.toInt())) },
+                )
+                TerminalSlider(
+                    label = "intensity",
+                    value = params.orbIntensity.toFloat(),
+                    range = 0f..100f,
+                    valueText = if (params.orbIntensity == 0) "soft gradient" else "${params.orbIntensity}/100",
+                    onValueChange = { onChange(params.copy(orbIntensity = it.toInt())) },
+                )
+                TerminalSlider(
+                    label = "random",
+                    value = params.orbRandom.toFloat(),
+                    range = 0f..100f,
+                    valueText = "${params.orbRandom}/100",
+                    onValueChange = { onChange(params.copy(orbRandom = it.toInt())) },
+                )
+                TerminalSlider(
+                    label = "offset",
+                    value = params.orbOffset.toFloat(),
+                    range = -100f..100f,
+                    valueText = "${params.orbOffset}/100",
+                    onValueChange = { onChange(params.copy(orbOffset = it.toInt())) },
+                )
+                TerminalSlider(
+                    label = "direction",
+                    value = params.orbDirection.toFloat(),
+                    range = 0f..359f,
+                    valueText = "${params.orbDirection}°",
+                    onValueChange = { onChange(params.copy(orbDirection = it.toInt())) },
+                )
+                Text(
+                    "count and size pull against each other: many small orbs give a fine " +
+                        "stipple, few large ones give fat overlapping blobs. intensity is " +
+                        "the hardness of the rim — 0 is a smooth gradient, 100 a flat disc.",
+                    color = Term.InkFaint,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+
             Text(
                 "animate the phase in ANIM to make the pattern travel",
                 color = Term.InkFaint,
@@ -207,6 +264,12 @@ fun MappingPanel(
                         modScale = 8,
                         modAngle = 0,
                         modPhase = 0,
+                        orbCount = 1,
+                        orbSize = 100,
+                        orbIntensity = 0,
+                        orbRandom = 0,
+                        orbOffset = 0,
+                        orbDirection = 0,
                         edgeEnabled = false,
                         edgeThreshold = 25,
                         edgeOnly = false,

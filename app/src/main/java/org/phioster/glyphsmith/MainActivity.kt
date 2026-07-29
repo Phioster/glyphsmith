@@ -61,6 +61,8 @@ class MainActivity : ComponentActivity() {
                         onToggleFavourite = viewModel::toggleFavourite,
                         onRandomise = viewModel::randomise,
                         onResetPresets = viewModel::resetPresets,
+                        onExportPalette = viewModel::exportPalette,
+                        onImportPalette = viewModel::importPalette,
                     )
                 }
             }
