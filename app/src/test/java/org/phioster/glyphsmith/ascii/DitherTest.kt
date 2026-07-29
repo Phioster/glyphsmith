@@ -12,16 +12,59 @@ class DitherTest {
 
     private val orderedModes = DitherMode.entries.filter { Dither.isOrdered(it) }
 
+    /**
+     * Every mode has to be exactly one kind of thing. RIEMERSMA is the one that is neither a
+     * kernel nor a threshold — it walks its own curve — and it is named here rather than
+     * quietly allowed, so a mode that falls through by accident still fails.
+     */
     @Test
-    fun `every mode is diffusion, threshold-based, or nothing at all`() {
+    fun `every mode is a kernel, a threshold, or a named exception`() {
+        val exceptions = setOf(DitherMode.NONE, DitherMode.RIEMERSMA)
         DitherMode.entries.forEach { mode ->
             val kinds = listOf(
                 Dither.diffusionKernel(mode).isNotEmpty(),
                 Dither.isThresholdBased(mode),
             ).count { it }
-            val expected = if (mode == DitherMode.NONE) 0 else 1
+            val expected = if (mode in exceptions) 0 else 1
             assertEquals("$mode is $kinds kinds of dither at once", expected, kinds)
         }
+    }
+
+    /** The curve must visit every cell of its square exactly once, or cells go unquantised. */
+    @Test
+    fun `the hilbert curve covers its square exactly once`() {
+        listOf(4, 8, 16).forEach { side ->
+            val seen = (0 until side * side).map { Riemersma.curvePoint(side, it) }
+            assertEquals("side $side revisits a cell", side * side, seen.toSet().size)
+            assertTrue(
+                "side $side leaves the square",
+                seen.all { (x, y) -> x in 0 until side && y in 0 until side },
+            )
+        }
+    }
+
+    /** Successive points on a Hilbert curve are always neighbours — that is its whole value. */
+    @Test
+    fun `the hilbert curve never jumps`() {
+        val side = 16
+        for (step in 1 until side * side) {
+            val (px, py) = Riemersma.curvePoint(side, step - 1)
+            val (x, y) = Riemersma.curvePoint(side, step)
+            val distance = kotlin.math.abs(x - px) + kotlin.math.abs(y - py)
+            assertEquals("jump at step $step", 1, distance)
+        }
+    }
+
+    @Test
+    fun `riemersma quantises every cell into the ramp`() {
+        val cols = 13
+        val rows = 7
+        val luma = FloatArray(cols * rows) { (it % cols) / (cols - 1f) }
+        val out = Riemersma.quantise(luma, cols, rows, 4, 1f)
+
+        assertEquals(cols * rows, out.size)
+        assertTrue("an index left the ramp", out.all { it in 0..3 })
+        assertTrue("the result is flat", out.toSet().size > 1)
     }
 
     @Test

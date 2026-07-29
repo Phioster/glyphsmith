@@ -129,6 +129,7 @@ class PresetStore(context: Context) {
         const val CATEGORY_MOTION = "MOTION"
         const val CATEGORY_HEAVY = "HEAVY"
         const val CATEGORY_SIGNATURE = "SIGNATURE"
+        const val CATEGORY_LAB = "LAB"
         const val CATEGORY_CUSTOM = "CUSTOM"
 
         /** Picker order. Anything the user saves lands in CUSTOM, which sits last. */
@@ -139,6 +140,7 @@ class PresetStore(context: Context) {
             CATEGORY_SIGNATURE,
             CATEGORY_MOTION,
             CATEGORY_HEAVY,
+            CATEGORY_LAB,
             CATEGORY_CUSTOM,
         )
 
@@ -176,7 +178,28 @@ class PresetStore(context: Context) {
          * arrive with animation already switched on and tracks already aimed, so applying
          * one and pressing play is the whole interaction.
          */
-        val builtIns: List<Preset> = listOf(
+        /**
+         * The comparison bench: identical settings, one per algorithm.
+         *
+         * Generated rather than written out, so a dither mode added later cannot be left
+         * without a preset — which is exactly how a new algorithm goes untested. Depth is
+         * deliberately low: with many levels the ramp hides what the algorithm is doing, and
+         * at four levels the differences between the kernels are unmissable.
+         */
+        private val labBase = AsciiParams(
+            charSetId = "ascii-standard-10",
+            cellSize = 5,
+            depth = 4,
+            contrast = 1.25f,
+        )
+
+        private val lab: List<Preset> = DitherMode.entries
+            .filter { it != DitherMode.NONE }
+            .map { mode ->
+                preset("lab · ${mode.label}", CATEGORY_LAB, labBase.copy(ditherMode = mode))
+            }
+
+        private val curated: List<Preset> = listOf(
             // --- classic ------------------------------------------------------------
             preset(
                 "terminal", CATEGORY_CLASSIC,
@@ -710,5 +733,11 @@ class PresetStore(context: Context) {
                 ),
             ),
         )
+
+        /**
+         * Declared last on purpose: a Kotlin object initialises its properties in source
+         * order, so reading [curated] from above where it is defined would hand back null.
+         */
+        val builtIns: List<Preset> = curated + lab
     }
 }

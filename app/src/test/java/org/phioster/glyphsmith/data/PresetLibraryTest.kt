@@ -6,6 +6,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.phioster.glyphsmith.ascii.CharacterSets
+import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.ascii.Palettes
 
 class PresetLibraryTest {
@@ -66,6 +67,29 @@ class PresetLibraryTest {
             assertTrue("${preset.name} has animation switched off", params.animation.enabled)
             assertTrue("${preset.name} animates nothing", moves)
         }
+    }
+
+    /**
+     * The bench exists so a new algorithm cannot ship untested. If a mode ever has no
+     * preset, the generation has stopped covering the enum and someone will have to notice
+     * a missing algorithm by eye instead.
+     */
+    @Test
+    fun `every dither algorithm has a bench preset`() {
+        val benched = library
+            .filter { it.category == PresetStore.CATEGORY_LAB }
+            .map { it.params.ditherMode }
+            .toSet()
+        val expected = DitherMode.entries.filterNot { it == DitherMode.NONE }.toSet()
+        assertEquals(expected, benched)
+    }
+
+    /** The bench is a comparison, so only the algorithm may differ between its presets. */
+    @Test
+    fun `the bench presets differ only in their algorithm`() {
+        val bench = library.filter { it.category == PresetStore.CATEGORY_LAB }
+        val normalised = bench.map { it.params.copy(ditherMode = DitherMode.NONE) }.toSet()
+        assertEquals("bench presets differ in more than the algorithm", 1, normalised.size)
     }
 
     @Test

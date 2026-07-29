@@ -18,6 +18,8 @@ enum class DitherMode {
     SIERRA,
     SIERRA_TWO_ROW,
     FALSE_FLOYD,
+    STEVENSON_ARCE,
+    RIEMERSMA,
     DIFFUSE_Y,
     DIFFUSE_X,
     BAYER_2,
@@ -47,6 +49,8 @@ enum class DitherMode {
             SIERRA -> "Sierra"
             SIERRA_TWO_ROW -> "Sierra Two-Row"
             FALSE_FLOYD -> "False Floyd-Steinberg"
+            STEVENSON_ARCE -> "Stevenson-Arce"
+            RIEMERSMA -> "Riemersma"
             DIFFUSE_Y -> "Diffuse Y"
             DIFFUSE_X -> "Diffuse X"
             BAYER_2 -> "Bayer 2×2"
@@ -359,6 +363,27 @@ object Dither {
             DiffusionTap(1, 0, 3 / 8f),
             DiffusionTap(0, 1, 3 / 8f),
             DiffusionTap(1, 1, 2 / 8f),
+        )
+
+        /*
+         * Stevenson-Arce, 1985. The weights sit on a hexagonal lattice — every second
+         * column of the 7x4 window is empty — which is why it reaches three cells sideways
+         * yet costs about what a 5x3 kernel does. The staggering is the point: a hexagonal
+         * neighbourhood has no axis for artefacts to line up along.
+         */
+        DitherMode.STEVENSON_ARCE -> listOf(
+            DiffusionTap(2, 0, 32 / 200f),
+            DiffusionTap(-3, 1, 12 / 200f),
+            DiffusionTap(-1, 1, 26 / 200f),
+            DiffusionTap(1, 1, 30 / 200f),
+            DiffusionTap(3, 1, 16 / 200f),
+            DiffusionTap(-2, 2, 12 / 200f),
+            DiffusionTap(0, 2, 26 / 200f),
+            DiffusionTap(2, 2, 12 / 200f),
+            DiffusionTap(-3, 3, 5 / 200f),
+            DiffusionTap(-1, 3, 12 / 200f),
+            DiffusionTap(1, 3, 12 / 200f),
+            DiffusionTap(3, 3, 5 / 200f),
         )
 
         // Axis-dominant diffusion. The four classic kernels all spread the error roughly
