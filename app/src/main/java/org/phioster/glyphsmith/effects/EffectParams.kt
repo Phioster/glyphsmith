@@ -145,8 +145,11 @@ enum class EffectId(val label: String) {
     TINT("tint"),
     CHROMATIC("chromatic"),
     GLITCH("jpeg glitch"),
+    SORT("pixel sort"),
+    SLICE("slice shift"),
     STARS("stars"),
     SUBTEXTURE("subtexture"),
+    CMYK("cmyk halftone"),
     GLOW("glow"),
 }
 
@@ -172,6 +175,9 @@ data class EffectStack(
     val glow: GlowParams = GlowParams(),
     val blurSharpen: BlurSharpenParams = BlurSharpenParams(),
     val subtexture: SubtextureParams = SubtextureParams(),
+    val cmyk: CmykHalftoneParams = CmykHalftoneParams(),
+    val pixelSort: PixelSortParams = PixelSortParams(),
+    val sliceShift: SliceShiftParams = SliceShiftParams(),
     val order: List<EffectId> = EffectId.entries.toList(),
 ) {
     fun enabledOf(id: EffectId): Boolean = when (id) {
@@ -180,8 +186,11 @@ data class EffectStack(
         EffectId.TINT -> tint.enabled
         EffectId.CHROMATIC -> chromatic.enabled
         EffectId.GLITCH -> jpegGlitch.enabled
+        EffectId.SORT -> pixelSort.enabled
+        EffectId.SLICE -> sliceShift.enabled
         EffectId.STARS -> stars.enabled
         EffectId.SUBTEXTURE -> subtexture.enabled
+        EffectId.CMYK -> cmyk.enabled
         EffectId.GLOW -> glow.enabled
     }
 

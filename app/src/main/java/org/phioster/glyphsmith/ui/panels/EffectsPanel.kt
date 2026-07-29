@@ -90,9 +90,17 @@ fun EffectsPanel(
                 EffectId.GLITCH ->
                     GlitchSection(fx.jpegGlitch, move) { p -> update { copy(jpegGlitch = p) } }
 
+                EffectId.SORT ->
+                    PixelSortSection(fx.pixelSort, move) { p -> update { copy(pixelSort = p) } }
+
+                EffectId.SLICE ->
+                    SliceShiftSection(fx.sliceShift, move) { p -> update { copy(sliceShift = p) } }
+
                 EffectId.STARS -> StarsSection(fx.stars, move) { p -> update { copy(stars = p) } }
                 EffectId.SUBTEXTURE ->
                     SubtextureSection(fx.subtexture, move) { p -> update { copy(subtexture = p) } }
+
+                EffectId.CMYK -> CmykSection(fx.cmyk, move) { p -> update { copy(cmyk = p) } }
 
                 EffectId.GLOW -> GlowSection(fx.glow, move) { p -> update { copy(glow = p) } }
             }

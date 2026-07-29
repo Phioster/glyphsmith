@@ -45,6 +45,7 @@ fun AnimPanel(
     onStop: () -> Unit,
     onExportGif: () -> Unit,
     onExportMp4: () -> Unit,
+    onPreviewPosition: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val params = state.params
@@ -53,15 +54,37 @@ fun AnimPanel(
         onChange(params.copy(animation = animation.block()))
 
     Column(modifier.fillMaxWidth()) {
+        if (state.isVideo) {
+            SectionHeader("source")
+
+            TerminalSlider(
+                label = "preview frame",
+                value = state.previewPosition,
+                range = 0f..1f,
+                valueText = String.format(Locale.US, "%.0f%%", state.previewPosition * 100),
+                onValueChange = onPreviewPosition,
+            )
+            Text(
+                "a video is its own animation: the frames below are sampled evenly across " +
+                    "the whole clip, and any tracks you switch on ride on top of them",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+            )
+        }
+
         SectionHeader("animation")
 
         TerminalToggle(
-            label = "animate",
+            label = "animate parameters",
             checked = animation.enabled,
             onCheckedChange = { on -> update { copy(enabled = on) } },
         )
 
-        if (!animation.enabled) {
+        // A video moves on its own, so the frame controls and the export stay reachable even
+        // with parameter animation switched off — otherwise a clip could not be exported at
+        // all without also arming a track it does not need.
+        if (!animation.enabled && !state.isVideo) {
             Text(
                 "drives depth, offset, seeds and effect angles over time — no video needed, " +
                     "the still image stays still",
@@ -98,10 +121,12 @@ fun AnimPanel(
             )
         }
 
-        SectionHeader("tracks")
+        if (animation.enabled) {
+            SectionHeader("tracks")
 
-        AnimTarget.entries.forEach { target ->
-            TrackSection(animation.track(target)) { track -> update { withTrack(track) } }
+            AnimTarget.entries.forEach { target ->
+                TrackSection(animation.track(target)) { track -> update { withTrack(track) } }
+            }
         }
 
         SectionHeader("temporal variation")
@@ -112,7 +137,9 @@ fun AnimPanel(
 
         val ready = state.hasImage && !state.working
         // Temporal noise is an animation in its own right, so it alone is enough to play.
-        val moves = animation.activeCount > 0 || params.temporal.enabled
+        val moves = state.isVideo ||
+            (animation.enabled && animation.activeCount > 0) ||
+            params.temporal.enabled
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TerminalButton(
                 label = if (state.animPlaying) "playing" else "play loop",
@@ -129,7 +156,8 @@ fun AnimPanel(
         }
         if (!moves) {
             Text(
-                "switch on at least one track, or temporal variation — nothing moves otherwise",
+                "load a video, switch on a track, or turn on temporal variation — nothing " +
+                    "moves otherwise",
                 color = Term.Amber,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 6.dp),

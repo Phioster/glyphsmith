@@ -13,9 +13,23 @@ enum class DitherMode {
     ATKINSON,
     JARVIS,
     SIERRA_LITE,
+    STUCKI,
+    BURKES,
+    SIERRA,
+    SIERRA_TWO_ROW,
+    FALSE_FLOYD,
+    STEVENSON_ARCE,
+    RIEMERSMA,
+    DIFFUSE_Y,
+    DIFFUSE_X,
     BAYER_2,
     BAYER_4,
     BAYER_8,
+    BAYER_16,
+    CLUSTER_4,
+    CLUSTER_8,
+    BLUE_NOISE_16,
+    BLUE_NOISE_32,
     MOD_LINES,
     MOD_WAVE,
     MOD_RINGS,
@@ -30,9 +44,23 @@ enum class DitherMode {
             ATKINSON -> "Atkinson"
             JARVIS -> "Jarvis"
             SIERRA_LITE -> "Sierra Lite"
+            STUCKI -> "Stucki"
+            BURKES -> "Burkes"
+            SIERRA -> "Sierra"
+            SIERRA_TWO_ROW -> "Sierra Two-Row"
+            FALSE_FLOYD -> "False Floyd-Steinberg"
+            STEVENSON_ARCE -> "Stevenson-Arce"
+            RIEMERSMA -> "Riemersma"
+            DIFFUSE_Y -> "Diffuse Y"
+            DIFFUSE_X -> "Diffuse X"
             BAYER_2 -> "Bayer 2×2"
             BAYER_4 -> "Bayer 4×4"
             BAYER_8 -> "Bayer 8×8"
+            BAYER_16 -> "Bayer 16×16"
+            CLUSTER_4 -> "Clustered Dot 4×4"
+            CLUSTER_8 -> "Clustered Dot 8×8"
+            BLUE_NOISE_16 -> "Blue Noise 16×16"
+            BLUE_NOISE_32 -> "Blue Noise 32×32"
             MOD_LINES -> "Modulation Lines"
             MOD_WAVE -> "Modulation Wave"
             MOD_RINGS -> "Modulation Rings"
@@ -59,6 +87,42 @@ data class PatternOptions(
     /** Grid centre in cells — only [DitherMode.MOD_RINGS] cares. */
     val centerX: Float = 0f,
     val centerY: Float = 0f,
+    /**
+     * The orb family's own controls, mirroring the six sliders Dither Boy's orb styles
+     * carry. They only reach [DitherMode.MOD_ORB] and [DitherMode.BEEHIVE]; the other
+     * modulation modes have no orbs to shape.
+     */
+    val orb: OrbOptions = OrbOptions(),
+)
+
+/**
+ * What an orb looks like, separately from where the grid puts it.
+ *
+ * [count] and [size] pull in opposite directions on purpose: count sets how many orbs fit
+ * across a period, size how much of its own cell each one fills. Turning the count up and
+ * the size down gives a fine stipple; the reverse gives fat overlapping blobs.
+ */
+data class OrbOptions(
+    /** Orbs per period, 1..20. */
+    val count: Int = 1,
+    /**
+     * 0..100 — how much of its cell an orb fills before it is clipped.
+     *
+     * Defaulted to 100 together with an [intensity] of 0 because those two values reproduce
+     * exactly what the orb modes did before these controls existed: a linear ramp from the
+     * cell centre to its corner. Anything else would silently repaint every saved preset
+     * that uses an orb mode.
+     */
+    val size: Int = 100,
+    /** 0..100 — how hard the orb's edge is. 0 is a soft gradient, 100 a flat disc. */
+    val intensity: Int = 0,
+    /** 0..100 — per-orb jitter of position and radius. */
+    val random: Int = 0,
+    /** -100..100 — shifts alternate rows sideways, the way BEEHIVE does at 50. */
+    val offset: Int = 0,
+    /** Rotates the orb lattice independently of the pattern angle. */
+    val direction: Int = 0,
+    val seed: Int = 1,
 )
 
 /** One neighbour that receives a share of a cell's quantisation error. */
@@ -72,8 +136,17 @@ data class DiffusionTap(val dx: Int, val dy: Int, val weight: Float)
 object Dither {
 
     /** Matrix-driven modes: the threshold comes from a fixed tile. */
+    /**
+     * Deliberately a plain `when` rather than `matrix(mode) != null`: the picker asks this
+     * for every mode as it draws, and the generated matrices are built on first use. Going
+     * through [matrix] would generate every blue-noise mask just to open a dropdown.
+     */
     fun isOrdered(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.BAYER_2, DitherMode.BAYER_4, DitherMode.BAYER_8 -> true
+        DitherMode.BAYER_2, DitherMode.BAYER_4, DitherMode.BAYER_8, DitherMode.BAYER_16,
+        DitherMode.CLUSTER_4, DitherMode.CLUSTER_8,
+        DitherMode.BLUE_NOISE_16, DitherMode.BLUE_NOISE_32,
+        -> true
+
         else -> false
     }
 
@@ -116,11 +189,17 @@ object Dither {
 
     private val BAYER_4X4 = grow(BAYER_2X2)
     private val BAYER_8X8 = grow(BAYER_4X4)
+    private val BAYER_16X16 = grow(BAYER_8X8)
 
     fun matrix(mode: DitherMode): Array<IntArray>? = when (mode) {
         DitherMode.BAYER_2 -> BAYER_2X2
         DitherMode.BAYER_4 -> BAYER_4X4
         DitherMode.BAYER_8 -> BAYER_8X8
+        DitherMode.BAYER_16 -> BAYER_16X16
+        DitherMode.CLUSTER_4 -> DitherMatrices.clusteredDot(4)
+        DitherMode.CLUSTER_8 -> DitherMatrices.clusteredDot(8)
+        DitherMode.BLUE_NOISE_16 -> DitherMatrices.blueNoise(16)
+        DitherMode.BLUE_NOISE_32 -> DitherMatrices.blueNoise(32)
         else -> null
     }
 
@@ -193,28 +272,64 @@ object Dither {
                 0.5f + 0.5f * sin(TAU * (r + phase)).toFloat()
             }
 
-            DitherMode.MOD_ORB -> orbThreshold(u + phase, v)
+            DitherMode.MOD_ORB -> orbField(u + phase, v, options.orb, 0f)
 
             // Offsetting every other row by half a cell is what turns a square grid of orbs
             // into a honeycomb — the cells pack against each other instead of lining up.
-            DitherMode.BEEHIVE -> {
-                val shift = if (Math.floorMod(floor(v).toInt(), 2) == 0) 0f else 0.5f
-                orbThreshold(u + phase + shift, v)
-            }
+            // It is the same machinery as the orb offset control, fixed at a half step.
+            DitherMode.BEEHIVE -> orbField(u + phase, v, options.orb, 0.5f)
 
             else -> 0.5f
         }
     }
 
     /**
-     * Distance from the centre of the cell containing ([u], [v]), normalised so the corner
-     * reaches 1. Low in the middle, high at the edges — dark glyphs therefore clump into
-     * dots, which is the halftone look.
+     * The orb lattice: distance from the centre of the cell containing ([u], [v]), shaped by
+     * [orb]. Low in the middle, high at the edges — dark glyphs therefore clump into dots,
+     * which is the halftone look.
+     *
+     * [rowShift] is applied on top of [OrbOptions.offset] and is what BEEHIVE uses to stagger
+     * its rows; keeping it a parameter means the honeycomb and the offset slider are the same
+     * mechanism rather than two that can disagree.
      */
-    private fun orbThreshold(u: Float, v: Float): Float {
-        val dx = frac(u) - 0.5f
-        val dy = frac(v) - 0.5f
-        return (hypot(dx, dy) / 0.70710678f).coerceIn(0f, 1f)
+    private fun orbField(u: Float, v: Float, orb: OrbOptions, rowShift: Float): Float {
+        val count = orb.count.coerceIn(1, 20).toFloat()
+        val radians = orb.direction * PI / 180.0
+        val c = cos(radians).toFloat()
+        val s = sin(radians).toFloat()
+        // Rotated and multiplied up, so the lattice can turn and repeat independently of the
+        // pattern that placed it.
+        val lu = (u * c + v * s) * count
+        val lv = (-u * s + v * c) * count
+
+        val row = floor(lv).toInt()
+        val stagger = rowShift + orb.offset / 100f
+        val shifted = lu + if (Math.floorMod(row, 2) == 0) 0f else stagger
+
+        var dx = frac(shifted) - 0.5f
+        var dy = frac(lv) - 0.5f
+        if (orb.random > 0) {
+            // Jitter is keyed to the cell, not to the pixel, so a whole orb moves as one
+            // rather than dissolving into noise.
+            val jitter = orb.random / 100f * 0.5f
+            dx += (hash(floor(shifted).toInt(), row, orb.seed) - 0.5f) * jitter
+            dy += (hash(row, floor(shifted).toInt(), orb.seed + 71) - 0.5f) * jitter
+        }
+
+        val radius = (orb.size / 100f).coerceIn(0.02f, 1f)
+        val distance = hypot(dx, dy) / 0.70710678f / radius
+        // Intensity is the hardness of the edge: at 100 the disc is flat and its rim abrupt,
+        // at 0 the orb is a smooth gradient with no rim at all.
+        val hardness = (orb.intensity / 100f).coerceIn(0f, 1f)
+        val soft = distance.coerceIn(0f, 1f)
+        val hard = if (distance < 1f) 0f else 1f
+        return (soft * (1f - hardness) + hard * hardness).coerceIn(0f, 1f)
+    }
+
+    private fun hash(x: Int, y: Int, seed: Int): Float {
+        var h = x * 374761393 + y * 668265263 + seed * 1274126177
+        h = (h xor (h shr 13)) * 1274126177
+        return ((h xor (h shr 16)) and 0x7FFFFFFF) / 0x7FFFFFFF.toFloat()
     }
 
     /**
@@ -258,6 +373,108 @@ object Dither {
             DiffusionTap(1, 0, 2 / 4f),
             DiffusionTap(-1, 1, 1 / 4f),
             DiffusionTap(0, 1, 1 / 4f),
+        )
+
+        // The published kernels below are transcribed from the halftoning literature, where
+        // each is named after whoever proposed it. Their weights are the whole algorithm —
+        // what differs between them is only how far and how evenly the error is spread, and
+        // that is exactly what makes their grain look different.
+        DitherMode.STUCKI -> listOf(
+            DiffusionTap(1, 0, 8 / 42f),
+            DiffusionTap(2, 0, 4 / 42f),
+            DiffusionTap(-2, 1, 2 / 42f),
+            DiffusionTap(-1, 1, 4 / 42f),
+            DiffusionTap(0, 1, 8 / 42f),
+            DiffusionTap(1, 1, 4 / 42f),
+            DiffusionTap(2, 1, 2 / 42f),
+            DiffusionTap(-2, 2, 1 / 42f),
+            DiffusionTap(-1, 2, 2 / 42f),
+            DiffusionTap(0, 2, 4 / 42f),
+            DiffusionTap(1, 2, 2 / 42f),
+            DiffusionTap(2, 2, 1 / 42f),
+        )
+
+        // Stucki with the bottom row dropped — faster, and a touch sharper for it.
+        DitherMode.BURKES -> listOf(
+            DiffusionTap(1, 0, 8 / 32f),
+            DiffusionTap(2, 0, 4 / 32f),
+            DiffusionTap(-2, 1, 2 / 32f),
+            DiffusionTap(-1, 1, 4 / 32f),
+            DiffusionTap(0, 1, 8 / 32f),
+            DiffusionTap(1, 1, 4 / 32f),
+            DiffusionTap(2, 1, 2 / 32f),
+        )
+
+        DitherMode.SIERRA -> listOf(
+            DiffusionTap(1, 0, 5 / 32f),
+            DiffusionTap(2, 0, 3 / 32f),
+            DiffusionTap(-2, 1, 2 / 32f),
+            DiffusionTap(-1, 1, 4 / 32f),
+            DiffusionTap(0, 1, 5 / 32f),
+            DiffusionTap(1, 1, 4 / 32f),
+            DiffusionTap(2, 1, 2 / 32f),
+            DiffusionTap(-1, 2, 2 / 32f),
+            DiffusionTap(0, 2, 3 / 32f),
+            DiffusionTap(1, 2, 2 / 32f),
+        )
+
+        DitherMode.SIERRA_TWO_ROW -> listOf(
+            DiffusionTap(1, 0, 4 / 16f),
+            DiffusionTap(2, 0, 3 / 16f),
+            DiffusionTap(-2, 1, 1 / 16f),
+            DiffusionTap(-1, 1, 2 / 16f),
+            DiffusionTap(0, 1, 3 / 16f),
+            DiffusionTap(1, 1, 2 / 16f),
+            DiffusionTap(2, 1, 1 / 16f),
+        )
+
+        // A widely copied mistranscription of Floyd-Steinberg that took on a life of its own.
+        // It is included because it genuinely looks different — coarser, more directional —
+        // not because it is correct. The name says so.
+        DitherMode.FALSE_FLOYD -> listOf(
+            DiffusionTap(1, 0, 3 / 8f),
+            DiffusionTap(0, 1, 3 / 8f),
+            DiffusionTap(1, 1, 2 / 8f),
+        )
+
+        /*
+         * Stevenson-Arce, 1985. The weights sit on a hexagonal lattice — every second
+         * column of the 7x4 window is empty — which is why it reaches three cells sideways
+         * yet costs about what a 5x3 kernel does. The staggering is the point: a hexagonal
+         * neighbourhood has no axis for artefacts to line up along.
+         */
+        DitherMode.STEVENSON_ARCE -> listOf(
+            DiffusionTap(2, 0, 32 / 200f),
+            DiffusionTap(-3, 1, 12 / 200f),
+            DiffusionTap(-1, 1, 26 / 200f),
+            DiffusionTap(1, 1, 30 / 200f),
+            DiffusionTap(3, 1, 16 / 200f),
+            DiffusionTap(-2, 2, 12 / 200f),
+            DiffusionTap(0, 2, 26 / 200f),
+            DiffusionTap(2, 2, 12 / 200f),
+            DiffusionTap(-3, 3, 5 / 200f),
+            DiffusionTap(-1, 3, 12 / 200f),
+            DiffusionTap(1, 3, 12 / 200f),
+            DiffusionTap(3, 3, 5 / 200f),
+        )
+
+        // Axis-dominant diffusion. The four classic kernels all spread the error roughly
+        // evenly forward and down, which is what makes their noise look isotropic. Pushing
+        // almost all of it along one axis instead makes the error travel in a line, and the
+        // result reads as streaks rather than as grain — the "diffuse along Y" look.
+        DitherMode.DIFFUSE_Y -> listOf(
+            DiffusionTap(0, 1, 11 / 20f),
+            DiffusionTap(0, 2, 5 / 20f),
+            DiffusionTap(1, 0, 2 / 20f),
+            DiffusionTap(-1, 1, 1 / 20f),
+            DiffusionTap(1, 1, 1 / 20f),
+        )
+
+        DitherMode.DIFFUSE_X -> listOf(
+            DiffusionTap(1, 0, 12 / 20f),
+            DiffusionTap(2, 0, 5 / 20f),
+            DiffusionTap(0, 1, 2 / 20f),
+            DiffusionTap(1, 1, 1 / 20f),
         )
 
         else -> emptyList()

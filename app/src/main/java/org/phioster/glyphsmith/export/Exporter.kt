@@ -117,6 +117,14 @@ object Exporter {
     fun saveSvg(context: Context, text: String, name: String = timestampedName("svg")): Uri? =
         saveDocument(context, text, name, "image/svg+xml")
 
+    /** A coloured HTML page — the grid as it lives on the web. */
+    fun saveHtml(context: Context, text: String, name: String = timestampedName("html")): Uri? =
+        saveDocument(context, text, name, "text/html")
+
+    /** ANSI escapes; `.ans` is the conventional extension and `cat` renders it. */
+    fun saveAnsi(context: Context, text: String, name: String = timestampedName("ans")): Uri? =
+        saveDocument(context, text, name, "text/plain")
+
     /** Animations are binary, so they go through the same folder but as raw bytes. */
     fun saveBytes(context: Context, bytes: ByteArray, name: String, mimeType: String): Uri? =
         saveDownload(context, name, mimeType) { it.write(bytes) }

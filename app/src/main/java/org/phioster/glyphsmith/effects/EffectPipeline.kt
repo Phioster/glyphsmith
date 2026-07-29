@@ -30,8 +30,11 @@ object EffectPipeline {
         EffectId.TINT -> Tint.apply(pixels, stack.tint)
         EffectId.CHROMATIC -> Chromatic.apply(pixels, stack.chromatic)
         EffectId.GLITCH -> JpegGlitch.apply(pixels, stack.jpegGlitch)
+        EffectId.SORT -> PixelSort.apply(pixels, stack.pixelSort)
+        EffectId.SLICE -> SliceShift.apply(pixels, stack.sliceShift)
         EffectId.STARS -> DiffractionStars.apply(pixels, stack.stars)
         EffectId.SUBTEXTURE -> Subtexture.apply(pixels, stack.subtexture)
+        EffectId.CMYK -> CmykHalftone.apply(pixels, stack.cmyk)
         EffectId.GLOW -> EpsilonGlow.apply(pixels, stack.glow)
     }
 }

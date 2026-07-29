@@ -24,22 +24,52 @@ import org.phioster.glyphsmith.anim.ColorQuantizer
 import org.phioster.glyphsmith.anim.GifEncoder
 import org.phioster.glyphsmith.anim.Mp4Encoder
 import org.phioster.glyphsmith.ascii.AsciiRenderer
+import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.ColorMode
+import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.ascii.Palettes
 import org.phioster.glyphsmith.ascii.Pipeline
 import org.phioster.glyphsmith.ascii.FontChoice
+import org.phioster.glyphsmith.ascii.GlyphCoverage
 import org.phioster.glyphsmith.data.ImageLoader
+import org.phioster.glyphsmith.data.PaletteFile
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
+import org.phioster.glyphsmith.data.PreviewQuality
+import org.phioster.glyphsmith.data.Settings
+import org.phioster.glyphsmith.data.Source
+import org.phioster.glyphsmith.data.StillSource
+import org.phioster.glyphsmith.data.VideoSource
+import org.phioster.glyphsmith.effects.BlurSharpenParams
+import org.phioster.glyphsmith.effects.ChromaticParams
+import org.phioster.glyphsmith.effects.CmykHalftoneParams
+import org.phioster.glyphsmith.effects.DiffractionStarsParams
+import org.phioster.glyphsmith.effects.EffectId
+import org.phioster.glyphsmith.effects.EffectStack
+import org.phioster.glyphsmith.effects.GlowParams
+import org.phioster.glyphsmith.effects.JpegGlitchParams
+import org.phioster.glyphsmith.effects.PixelSortParams
+import org.phioster.glyphsmith.effects.PostProcessingParams
+import org.phioster.glyphsmith.effects.SliceShiftParams
+import org.phioster.glyphsmith.effects.SubtextureParams
+import org.phioster.glyphsmith.effects.TextureKind
+import org.phioster.glyphsmith.effects.TintParams
 import org.phioster.glyphsmith.export.Exporter
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgExporter
 import org.phioster.glyphsmith.export.SvgMode
+import org.phioster.glyphsmith.export.TextExporters
+import org.phioster.glyphsmith.ui.theme.Term
+import org.phioster.glyphsmith.ui.theme.TermThemes
 
 data class UiState(
     val params: AsciiParams = AsciiParams(),
     val preview: Bitmap? = null,
     val hasImage: Boolean = false,
+    /** The source is a video, so the preview can be scrubbed and playback has real frames. */
+    val isVideo: Boolean = false,
+    /** Where in a video the preview sits, 0..1. Meaningless for a still. */
+    val previewPosition: Float = 0f,
     val cols: Int = 0,
     val rows: Int = 0,
     val outputWidth: Int = 0,
@@ -53,7 +83,18 @@ data class UiState(
     val canRedo: Boolean = false,
     val fontLabel: String = "",
     val missingGlyphs: String = "",
+    /** Measured ink coverage per glyph of the base ramp, for the ramp editor. */
+    val rampCoverage: List<Float> = emptyList(),
     val presets: List<Preset> = emptyList(),
+    /** One rendered thumbnail per preset name, built from the current source. */
+    val presetThumbs: Map<String, Bitmap> = emptyMap(),
+    val themeId: String = "matrix",
+    val previewQuality: PreviewQuality = PreviewQuality.FULL,
+    /** Playback repeats rather than stopping at the last frame. */
+    val looped: Boolean = true,
+    /** How far a batch run has got, as done/total. Zero total means nothing is running. */
+    val batchDone: Int = 0,
+    val batchTotal: Int = 0,
     val status: String = "no image loaded",
 )
 
@@ -62,8 +103,16 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private val context: Context get() = getApplication<Application>()
 
     private val presetStore = PresetStore(app)
+    private val settings = Settings(app)
 
-    private val _state = MutableStateFlow(UiState(presets = presetStore.load()))
+    private val _state = MutableStateFlow(
+        UiState(
+            presets = presetStore.load(),
+            themeId = settings.themeId,
+            previewQuality = settings.previewQuality,
+            looped = settings.looped,
+        ),
+    )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private val paramsFlow = MutableStateFlow(AsciiParams())
@@ -76,12 +125,13 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private var lastCommitted = AsciiParams()
     private var suppressHistory = false
 
-    private var sourcePixels: IntArray? = null
-    private var sourceWidth = 0
-    private var sourceHeight = 0
+    private var source: Source? = null
     private var art: AsciiArt? = null
 
     init {
+        // Applied before the first frame so the app never flashes the default theme on top
+        // of the one the user actually chose.
+        Term.palette = TermThemes.byId(settings.themeId)
         viewModelScope.launch {
             paramsFlow.collectLatest { params ->
                 // Coalesce slider spam: collectLatest cancels the previous pass, so a drag
@@ -100,6 +150,30 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Switches the interface theme and remembers it.
+     *
+     * [Term] is Compose state, so assigning it repaints everything reading it; the id is
+     * mirrored into [UiState] purely so the picker can show which one is selected.
+     */
+    fun setTheme(id: String) {
+        settings.themeId = id
+        Term.palette = TermThemes.byId(id)
+        _state.value = _state.value.copy(themeId = id)
+    }
+
+    /** Halving the preview resolution is the one lever that makes a heavy chain feel live. */
+    fun setPreviewQuality(quality: PreviewQuality) {
+        settings.previewQuality = quality
+        _state.value = _state.value.copy(previewQuality = quality)
+        viewModelScope.launch { rebuild(_state.value.params) }
+    }
+
+    fun setLooped(looped: Boolean) {
+        settings.looped = looped
+        _state.value = _state.value.copy(looped = looped)
+    }
+
     fun updateParams(params: AsciiParams) {
         _state.value = _state.value.copy(params = params)
         paramsFlow.value = params
@@ -114,7 +188,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * [Palettes.sample] maps luminance onto list position.
      */
     fun extractPalette(count: Int) = runExport("palette") {
-        val pixels = sourcePixels ?: return@runExport "no image"
+        val pixels = currentPixels() ?: return@runExport "no image"
         val colors = withContext(Dispatchers.Default) {
             Palettes.fromColors(ColorQuantizer.palette(listOf(pixels), count).toList())
         }
@@ -127,6 +201,62 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             ),
         )
         "extracted ${colors.size} colours"
+    }
+
+    /**
+     * Reorders the ramp by measured ink coverage.
+     *
+     * The sets ship in a hand-chosen order, which is a guess; anything typed into Inject
+     * Characters is not even that, since it lands at the dense end unmeasured. Measuring
+     * uses the face the ramp will actually be drawn with, so the answer is right for this
+     * ramp rather than right in general.
+     */
+    fun autoOrderRamp() = runExport("ramp") {
+        val params = _state.value.params
+        val face = AsciiRenderer.faceFor(params, params.effectiveRamp().ifEmpty { " " })
+        val sorted = withContext(Dispatchers.Default) {
+            GlyphCoverage.sort(params.baseGlyphs() + params.injection, face.typeface)
+        }
+        if (sorted.isEmpty()) return@runExport "nothing to order"
+        // The injected characters are now placed by measurement, so they must not also be
+        // appended a second time by effectiveRamp().
+        updateParams(params.copy(rampOverride = sorted, injection = ""))
+        "ordered ${sorted.length} glyphs by coverage"
+    }
+
+    /** Writes the palette in use to its own file, so colours can be shared without a look. */
+    fun exportPalette() = runExport("palette") {
+        val palette = _state.value.params.activePalette()
+        val text = PaletteFile.encode(palette)
+        val name = Exporter.timestampedName("json")
+            .replace("glyphsmith-", "glyphsmith-palette-")
+        val uri = withContext(Dispatchers.IO) { Exporter.saveJson(context, text, name) }
+        if (uri != null) {
+            "palette saved to Download/Glyphsmith"
+        } else {
+            "save failed"
+        }
+    }
+
+    fun importPalette(uri: Uri) = runExport("palette") {
+        val text = withContext(Dispatchers.IO) {
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+            }.getOrNull()
+        } ?: return@runExport "could not read that file"
+
+        val file = PaletteFile.decode(text) ?: return@runExport "that file isn't a palette"
+        val colors = PaletteFile.colorsOf(file)
+        if (colors.isEmpty()) return@runExport "no usable colours in that file"
+
+        updateParams(
+            _state.value.params.copy(
+                colorMode = ColorMode.PALETTE,
+                paletteOverride = colors,
+                paletteLocks = List(colors.size) { false },
+            ),
+        )
+        "loaded ${file.name} · ${colors.size} colours"
     }
 
     fun undo() {
@@ -173,6 +303,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val merged = presetStore.importJson(text)
             ?: return@runExport "that file isn't a preset export"
         _state.value = _state.value.copy(presets = merged)
+        renderThumbs()
         "${merged.size} presets after import"
     }
 
@@ -184,25 +315,86 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 _state.value = _state.value.copy(working = false, status = "could not decode that image")
                 return@launch
             }
-            sourcePixels = withContext(Dispatchers.Default) { ImageLoader.pixelsOf(loaded) }
-            sourceWidth = loaded.width
-            sourceHeight = loaded.height
+            val pixels = withContext(Dispatchers.Default) { ImageLoader.pixelsOf(loaded) }
+            // Read the size before recycling — a recycled bitmap's dimensions are not
+            // something to rely on.
+            val width = loaded.width
+            val height = loaded.height
             loaded.recycle()
+            adopt(StillSource(pixels, width, height))
             _state.value = _state.value.copy(
                 hasImage = true,
-                status = "loaded ${sourceWidth}×$sourceHeight",
+                isVideo = false,
+                previewPosition = 0f,
+                status = "loaded ${width}×$height",
             )
             rebuild(_state.value.params)
+            renderThumbs()
         }
     }
 
+    /**
+     * Loads a video as the source. Frames are decoded on demand rather than held, so a long
+     * clip costs the same memory as a still — see [VideoSource].
+     */
+    fun loadVideo(uri: Uri) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(working = true, status = "opening video…")
+            val opened = withContext(Dispatchers.IO) { VideoSource.open(context, uri) }
+            if (opened == null) {
+                _state.value = _state.value.copy(
+                    working = false,
+                    status = "could not read that video",
+                )
+                return@launch
+            }
+            adopt(opened)
+            _state.value = _state.value.copy(
+                hasImage = true,
+                isVideo = true,
+                previewPosition = 0f,
+                status = "video ${opened.width}×${opened.height}",
+            )
+            rebuild(_state.value.params)
+            renderThumbs()
+        }
+    }
+
+    /** Scrubs the preview through a video. Ignored for a still, which has one frame. */
+    fun setPreviewPosition(position: Float) {
+        if (source?.isMoving != true) return
+        _state.value = _state.value.copy(previewPosition = position.coerceIn(0f, 1f))
+        viewModelScope.launch { rebuild(_state.value.params) }
+    }
+
+    /** Swaps in a new source and releases whatever the old one was holding. */
+    private fun adopt(next: Source) {
+        source?.close()
+        source = next
+    }
+
+    private fun currentPixels(): IntArray? =
+        source?.pixelsAt(_state.value.previewPosition)
+
+    override fun onCleared() {
+        source?.close()
+        source = null
+        super.onCleared()
+    }
+
     private suspend fun rebuild(params: AsciiParams) {
-        val pixels = sourcePixels ?: return
+        val current = source ?: return
+        val pixels = current.pixelsAt(_state.value.previewPosition)
         _state.value = _state.value.copy(working = true)
         val result = withContext(Dispatchers.Default) {
-            Pipeline.run(pixels, sourceWidth, sourceHeight, params, PREVIEW_MAX_SIDE)
+            Pipeline.run(pixels, current.width, current.height, params, _state.value.previewQuality.maxSide)
         }
         art = result.art
+        // Measured once per rebuild and cached inside GlyphCoverage, so a slider drag pays
+        // for the rasterisation only the first time a glyph is seen in this face.
+        val coverage = withContext(Dispatchers.Default) {
+            GlyphCoverage.profile(params.baseGlyphs(), result.face.typeface).map { it.second }
+        }
         // The old preview is deliberately not recycled: Compose may still be drawing it
         // this frame, and a recycled bitmap under the canvas is an instant crash.
         _state.value = _state.value.copy(
@@ -213,16 +405,18 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             outputHeight = result.outputHeight,
             fontLabel = result.face.label,
             missingGlyphs = result.face.missing,
+            rampCoverage = coverage,
             working = false,
             status = "${result.art.cols}×${result.art.rows} cells",
         )
     }
 
     private suspend fun renderFullSize(): Bitmap? {
-        val pixels = sourcePixels ?: return null
+        val current = source ?: return null
+        val pixels = current.pixelsAt(_state.value.previewPosition)
         val params = _state.value.params
         return withContext(Dispatchers.Default) {
-            Pipeline.run(pixels, sourceWidth, sourceHeight, params, AsciiRenderer.MAX_OUTPUT_SIDE).bitmap
+            Pipeline.run(pixels, current.width, current.height, params, AsciiRenderer.MAX_OUTPUT_SIDE).bitmap
         }
     }
 
@@ -263,6 +457,90 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun exportHtml() = runExport("html") {
+        val grid = art ?: return@runExport "nothing to export"
+        val text = TextExporters.html(grid, _state.value.params)
+        val uri = withContext(Dispatchers.IO) { Exporter.saveHtml(context, text) }
+        if (uri != null) "html saved to Download/Glyphsmith" else "save failed"
+    }
+
+    fun exportAnsi() = runExport("ansi") {
+        val grid = art ?: return@runExport "nothing to export"
+        val text = TextExporters.ansi(grid, _state.value.params)
+        val uri = withContext(Dispatchers.IO) { Exporter.saveAnsi(context, text) }
+        if (uri != null) "ansi saved to Download/Glyphsmith" else "save failed"
+    }
+
+    /**
+     * Runs every picked image through the current settings and saves each result.
+     *
+     * Deliberately sequential. Each pass allocates a full-size bitmap and the effect chain
+     * works on its own copies, so running several at once is the quickest way to meet the
+     * heap limit — and the phone has nothing to gain from it anyway.
+     *
+     * The source is put back afterwards. A batch is something you launch *from* a look you
+     * have already dialled in, and losing that look as a side effect would be hostile.
+     */
+    fun runBatch(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        viewModelScope.launch {
+            val params = _state.value.params
+            val restore = source
+            val restorePosition = _state.value.previewPosition
+            var saved = 0
+            var failed = 0
+
+            _state.value = _state.value.copy(
+                working = true,
+                batchDone = 0,
+                batchTotal = uris.size,
+                status = "batch 0/${uris.size}",
+            )
+
+            uris.forEachIndexed { index, uri ->
+                val loaded = withContext(Dispatchers.IO) { ImageLoader.load(context, uri) }
+                if (loaded == null) {
+                    failed++
+                } else {
+                    val pixels = withContext(Dispatchers.Default) { ImageLoader.pixelsOf(loaded) }
+                    val width = loaded.width
+                    val height = loaded.height
+                    loaded.recycle()
+
+                    val bitmap = withContext(Dispatchers.Default) {
+                        Pipeline.run(pixels, width, height, params, AsciiRenderer.MAX_OUTPUT_SIDE).bitmap
+                    }
+                    val format = _state.value.exportFormat
+                    val name = Exporter.timestampedName(format.extension)
+                        .replace("glyphsmith-", "glyphsmith-batch-${index + 1}-")
+                    val uriOut = withContext(Dispatchers.IO) {
+                        Exporter.saveImage(context, bitmap, format, name)
+                    }
+                    bitmap.recycle()
+                    if (uriOut != null) saved++ else failed++
+                }
+                _state.value = _state.value.copy(
+                    batchDone = index + 1,
+                    status = "batch ${index + 1}/${uris.size}",
+                )
+            }
+
+            source = restore
+            _state.value = _state.value.copy(
+                working = false,
+                batchDone = 0,
+                batchTotal = 0,
+                previewPosition = restorePosition,
+                status = if (failed == 0) {
+                    "batch done — $saved saved to Pictures/Glyphsmith"
+                } else {
+                    "batch done — $saved saved, $failed failed"
+                },
+            )
+            rebuild(_state.value.params)
+        }
+    }
+
     fun copyText() = runExport("copy") {
         val text = art?.toText() ?: return@runExport "nothing to copy"
         Exporter.copyToClipboard(context, text)
@@ -300,7 +578,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * would never hold the frame rate — a single frame is the whole pipeline.
      */
     fun playAnimation() {
-        val pixels = sourcePixels ?: return
+        val current = source ?: return
         viewModelScope.launch {
             cancelPlayback()
             val params = _state.value.params
@@ -308,7 +586,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(working = true, status = "rendering ${animation.frames} frames…")
 
             val frames = withContext(Dispatchers.Default) {
-                renderFrames(pixels, params, animation, ANIM_PREVIEW_MAX_SIDE)
+                renderFrames(current, params, animation, ANIM_PREVIEW_MAX_SIDE)
             }
             animFrames = frames
             _state.value = _state.value.copy(
@@ -321,11 +599,16 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             val frameDelay = 1000L / animation.fps.coerceAtLeast(1)
             playbackJob = viewModelScope.launch {
                 var index = 0
+                val loop = _state.value.looped
                 while (isActive && animFrames.isNotEmpty()) {
                     _state.value = _state.value.copy(preview = animFrames[index % animFrames.size])
                     index++
+                    // Not looping means stopping on the last frame rather than snapping back,
+                    // which is what you want while judging where an animation ends up.
+                    if (!loop && index >= animFrames.size) break
                     delay(frameDelay)
                 }
+                if (!loop) _state.value = _state.value.copy(animPlaying = false)
             }
         }
     }
@@ -351,7 +634,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * bitmap — and neither GIF nor MP4 accepts that.
      */
     private fun renderFrames(
-        pixels: IntArray,
+        source: Source,
         base: AsciiParams,
         animation: AnimationParams,
         maxSide: Int,
@@ -360,8 +643,14 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         var width = 0
         var height = 0
         return (0 until animation.frames).map { frame ->
+            val position = frame.toFloat() / animation.frames
+            // The clock is set here rather than in paramsAt, so temporal noise still moves
+            // over a video whose parameter tracks are all switched off.
             val frameParams = Animator.paramsAt(base, animation, frame)
-            val rendered = Pipeline.run(pixels, sourceWidth, sourceHeight, frameParams, budgetSide).bitmap
+                .let { it.copy(temporal = it.temporal.copy(time = position)) }
+            // A still hands back the same buffer every time; a video decodes this position.
+            val pixels = source.pixelsAt(position)
+            val rendered = Pipeline.run(pixels, source.width, source.height, frameParams, budgetSide).bitmap
             if (frame == 0) {
                 width = rendered.width
                 height = rendered.height
@@ -384,11 +673,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun exportGif() = runExport("gif") {
-        val pixels = sourcePixels ?: return@runExport "no image"
+        val current = source ?: return@runExport "no image"
         val params = _state.value.params
         val animation = params.animation
         val bytes = withContext(Dispatchers.Default) {
-            val frames = renderFrames(pixels, params, animation, ANIM_EXPORT_MAX_SIDE)
+            val frames = renderFrames(current, params, animation, ANIM_EXPORT_MAX_SIDE)
             val width = frames.first().width
             val height = frames.first().height
             val buffers = frames.map { bitmap ->
@@ -407,12 +696,12 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun exportMp4() = runExport("mp4") {
-        val pixels = sourcePixels ?: return@runExport "no image"
+        val current = source ?: return@runExport "no image"
         val params = _state.value.params
         val animation = params.animation
         val file = java.io.File(context.cacheDir, "glyphsmith-anim.mp4")
         val failure = withContext(Dispatchers.Default) {
-            val frames = renderFrames(pixels, params, animation, ANIM_EXPORT_MAX_SIDE)
+            val frames = renderFrames(current, params, animation, ANIM_EXPORT_MAX_SIDE)
             val result = Mp4Encoder.encode(frames, animation.fps.coerceAtLeast(1), file)
             frames.forEach { it.recycle() }
             result
@@ -428,10 +717,153 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     fun savePreset(name: String) {
         val presets = presetStore.upsert(name, _state.value.params)
         _state.value = _state.value.copy(presets = presets, status = "preset saved")
+        renderThumbs()
     }
 
     fun deletePreset(name: String) {
         _state.value = _state.value.copy(presets = presetStore.delete(name), status = "preset deleted")
+        renderThumbs()
+    }
+
+    fun toggleFavourite(name: String) {
+        _state.value = _state.value.copy(presets = presetStore.toggleFavourite(name))
+    }
+
+    /** Puts the shipped library back, discarding anything saved on top of it. */
+    fun resetPresets() {
+        _state.value = _state.value.copy(
+            presets = presetStore.reset(),
+            status = "presets reset to the built-in library",
+        )
+        renderThumbs()
+    }
+
+    /**
+     * Rolls a look at random.
+     *
+     * Deliberately narrow: a genuinely uniform roll over every parameter produces an empty
+     * or unreadable image far more often than an interesting one, which makes the button
+     * useless. Cell size, depth and the effect count are all kept inside the range that
+     * reliably yields something worth looking at, and the effects are picked one at a time
+     * rather than all rolled independently.
+     */
+    fun randomise() {
+        val random = kotlin.random.Random.Default
+        val set = CharacterSets.all.random(random)
+        val palette = Palettes.all.random(random)
+        val dither = DitherMode.entries.random(random)
+
+        var effects = EffectStack()
+        repeat(random.nextInt(0, 3)) {
+            effects = when (EffectId.entries.random(random)) {
+                EffectId.POST -> effects.copy(
+                    postProcessing = PostProcessingParams(
+                        enabled = true,
+                        grain = random.nextInt(0, 40),
+                        vignette = random.nextInt(0, 60),
+                        scanlines = random.nextInt(0, 60),
+                    ),
+                )
+
+                EffectId.BLUR -> effects.copy(
+                    blurSharpen = BlurSharpenParams(enabled = true, amount = random.nextInt(-70, 70)),
+                )
+
+                EffectId.TINT -> effects.copy(tint = TintParams(enabled = true, color = palette.colors.last()))
+                EffectId.CHROMATIC -> effects.copy(
+                    chromatic = ChromaticParams(enabled = true, offset = random.nextInt(2, 18)),
+                )
+
+                EffectId.GLITCH -> effects.copy(
+                    jpegGlitch = JpegGlitchParams(enabled = true, corruption = random.nextInt(20, 140)),
+                )
+
+                EffectId.SORT -> effects.copy(
+                    pixelSort = PixelSortParams(
+                        enabled = true,
+                        thresholdLow = random.nextInt(10, 40),
+                        thresholdHigh = random.nextInt(55, 90),
+                    ),
+                )
+
+                EffectId.SLICE -> effects.copy(
+                    sliceShift = SliceShiftParams(enabled = true, maxOffset = random.nextInt(4, 20)),
+                )
+
+                EffectId.STARS -> effects.copy(stars = DiffractionStarsParams(enabled = true))
+                EffectId.SUBTEXTURE -> effects.copy(
+                    subtexture = SubtextureParams(
+                        enabled = true,
+                        kind = TextureKind.entries.random(random),
+                        intensity = random.nextInt(20, 60),
+                    ),
+                )
+
+                EffectId.CMYK -> effects.copy(
+                    cmyk = CmykHalftoneParams(enabled = true, frequency = random.nextInt(4, 14)),
+                )
+
+                EffectId.GLOW -> effects.copy(
+                    glow = GlowParams(enabled = true, intensity = random.nextInt(200, 600)),
+                )
+            }
+        }
+
+        updateParams(
+            _state.value.params.copy(
+                charSetId = set.id,
+                cellSize = random.nextInt(4, 13),
+                depth = random.nextInt(3, 24),
+                invert = random.nextBoolean(),
+                ditherMode = dither,
+                ditherStrength = random.nextInt(50, 101),
+                modScale = random.nextInt(4, 16),
+                modAngle = random.nextInt(0, 360),
+                colorMode = ColorMode.entries.random(random),
+                paletteId = palette.id,
+                paletteOverride = emptyList(),
+                paletteLocks = emptyList(),
+                rampOverride = "",
+                effects = effects,
+            ),
+        )
+        _state.value = _state.value.copy(status = "rolled ${set.name} · ${dither.label}")
+    }
+
+    private var thumbJob: Job? = null
+
+    /**
+     * Renders one small preview per preset from the current source.
+     *
+     * Effects work in absolute pixels, so a glow radius of 200 covers a 160px thumbnail
+     * entirely while barely showing at export size. The thumbnail is there to show a
+     * preset's *character*, not to predict its output — the live preview has the same
+     * limitation at [PreviewQuality.FULL], this one is just further along the same scale.
+     *
+     * An animated preset is shown at frame 0. Two dozen running loops in a list would be
+     * neither readable nor affordable.
+     */
+    private fun renderThumbs() {
+        val current = source ?: return
+        thumbJob?.cancel()
+        thumbJob = viewModelScope.launch {
+            val presets = _state.value.presets
+            val pixels = current.pixelsAt(_state.value.previewPosition)
+            val thumbs = withContext(Dispatchers.Default) {
+                presets.associate { preset ->
+                    preset.name to Pipeline.run(
+                        pixels,
+                        current.width,
+                        current.height,
+                        preset.params,
+                        THUMB_MAX_SIDE,
+                    ).bitmap
+                }
+            }
+            // The previous set is dropped rather than recycled: Compose may still be drawing
+            // one of them this frame, and a recycled bitmap under the canvas crashes.
+            _state.value = _state.value.copy(presetThumbs = thumbs)
+        }
     }
 
     fun applyPreset(preset: Preset) {
@@ -450,8 +882,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         const val DEBOUNCE_MS = 90L
         const val MAX_HISTORY = 50
-        const val PREVIEW_MAX_SIDE = 1600
         const val ANIM_PREVIEW_MAX_SIDE = 640
+        const val THUMB_MAX_SIDE = 160
         const val ANIM_EXPORT_MAX_SIDE = 1080
         const val MEMORY_BUDGET_BYTES = 96L * 1024 * 1024
         const val REFERENCE_FONT_SIZE = 32

@@ -1,7 +1,7 @@
 # Glyphsmith
 
-An Android ASCII-art forge: load an image, map it onto a character grid, export the render
-as a PNG or the grid itself as a `.txt`.
+An Android ASCII-art forge: load an image or a video, map it onto a character grid, export
+the render as a PNG, GIF, MP4 or SVG — or the grid itself as a `.txt`.
 
 It rebuilds the feature set of **Script Slayer** — the ASCII module inside Studio AAA's
 Dither Boy — for the phone: the same controls, the same vocabulary, an entirely separate
@@ -57,8 +57,15 @@ Both together are under 170 KB. See `app/src/main/assets/fonts/NOTICE.md`.
 **Tone** — gamma → contrast → brightness, applied to each cell's luminance before it picks a
 glyph. Without it a flat photo only ever reaches the middle third of the ramp.
 
-**Dithering** — error diffusion (Floyd–Steinberg, Atkinson, Jarvis, Sierra Lite) with
-serpentine scanning, ordered Bayer 2/4/8, and a modulation family whose threshold is a
+**Dithering** — 26 algorithms. Error diffusion with serpentine scanning: Floyd–Steinberg,
+False Floyd–Steinberg, Jarvis–Judice–Ninke, Stucki, Burkes, Sierra, Sierra Two-Row, Sierra
+Lite, Atkinson and the hexagonal Stevenson–Arce from the halftoning literature, Riemersma
+walking a Hilbert curve with a decaying error queue instead of a kernel at all, plus axis-dominant Diffuse Y and Diffuse X
+that send the error down one axis so grain becomes streaks. Ordered: Bayer 2/4/8/16,
+clustered-dot screens that grow a dot from the centre the way a printing screen does, and
+blue-noise masks built by Ulichney's void-and-cluster method — the matrices are generated
+from their construction rules rather than transcribed, because a rule can be tested and a
+1024-entry table cannot. And a modulation family whose threshold is a
 continuous function of position: lines, wave, rings, orb and beehive. A separate **pattern
 scale** sizes the pattern independently of the cell, which is what lets an algorithm be
 driven until it visibly breaks down.
@@ -67,14 +74,20 @@ driven until it visibly breaks down.
 glyph matching the edge's direction rather than its brightness. Four edge sets, plus an
 edges-only mode that gives line art.
 
+**Ramp order** — the sets are ordered by ink coverage because the engine maps luminance
+straight onto a ramp index. That order used to be a hand-made guess. Now each glyph can be
+measured — drawn and counted, in the face that will actually render it — and the ramp sorted
+by the result, injected characters included. The panel shows every glyph's measured coverage
+and lets the order be changed by hand.
+
 **Colour** — single ink colour, source-sampled colour, or a palette. 19 palettes in 6
 categories, with individually editable stops, per-stop locks, a shuffle that respects them,
 a palette depth independent of the glyph depth, and extraction straight from the loaded
 image. Transparent or hex-picked background.
 
-**Effects** — eight stackable passes over the rendered glyphs, in an order you can change:
-post processing, blur/sharpen, tint, chromatic aberration, JPEG databending, diffraction
-stars, subtexture, and Epsilon Glow. The order is not cosmetic — glitch before glow blooms,
+**Effects** — eleven stackable passes over the rendered glyphs, in an order you can change:
+post processing, blur/sharpen, tint, chromatic aberration, JPEG databending, pixel sort,
+slice shift, diffraction stars, subtexture, CMYK halftone, and Epsilon Glow. The order is not cosmetic — glitch before glow blooms,
 glitch after glow cuts the bloom apart.
 
 *Epsilon Glow* is a directional bloom: threshold with soft knee, radius with optional
@@ -86,7 +99,22 @@ halftone, paper grain and fibre, scanner streaks, static, VHS bands — with fou
 and an option to derive the texture from the picture's own local detail so it bites where
 there is structure and fades over flat areas.
 
+*Pixel sort* reorders runs of pixels along one axis, but only where their brightness falls
+inside a threshold band. The band is the whole effect: sorting everything gives gradient
+mush, sorting only the mid-tones leaves the darks and lights anchored and makes the colour
+appear to bleed out of the edges between them. *Slice shift* is the other half — whole bands
+displaced sideways, wrapping, with uneven heights so the result never reads as a pattern.
+
+*CMYK halftone* screens the image the way process printing does: four separations at the
+classic angles (yellow 0°, cyan 15°, black 45°, magenta 75°), with grey component
+replacement on a black-ink slider and a mid-tone gain for dot spread.
+
 None of the effects touch the character grid, so `.txt` and `.svg` exports are unaffected.
+
+**Video** — load a clip instead of a still and the frames are sampled evenly across it,
+each one going through the same pipeline. Frames are decoded on demand rather than held, so
+a long clip costs about what a single image does. Parameter tracks and temporal noise still
+apply on top.
 
 **Animation** — a still image animated by moving the parameters, not the picture. Nine
 tracks, eight curves (three of them one-way ramps, marked as such because they do not close
@@ -94,8 +122,39 @@ a loop), and **Temporal Variation**: nine animated noise patterns that shift the
 threshold itself. Every pattern is periodic over the loop, so the last frame lands back on
 the first.
 
+**Presets** — 56 shipped starting points in seven categories, plus whatever you save. A
+preset holds the *complete* state, effects and animation included, so applying one is a
+single tap. The MOTION and SIGNATURE sets arrive with animation already aimed: apply, press play.
+SIGNATURE is this app's own approximation of the looks Studio AAA show in their public
+preview clips — not their presets, which aren't published. Each one
+renders a thumbnail from your loaded image, favourites sort to the top, and `surprise me`
+rolls a look within ranges chosen to actually produce something. The LAB category is a
+comparison bench: one preset per dithering algorithm at otherwise identical settings,
+generated from the enum so an algorithm added later cannot be left without one.
+
+**Layers** — extra renderings of the same picture stacked over the first, each with its own
+complete settings plus blend mode, opacity, offset, scale, rotation and flip. A layer is
+captured from the settings in force rather than edited separately: build a look, capture it,
+change the settings, capture again. Layers render at the output size and are scaled
+afterwards, so scaling one up enlarges its glyphs rather than resampling a smaller picture
+of them.
+
+**Batch** — pick a set of images and run them all through the current settings. Your loaded
+image and its framing come back afterwards.
+
 **Export** — PNG to `Pictures/Glyphsmith`; the character grid, GIF, MP4 and SVG to
-`Download/Glyphsmith`; clipboard; or the system share sheet. Presets are saved as JSON.
+`Download/Glyphsmith`; clipboard; or the system share sheet. Presets are saved as JSON, and
+palettes can be exported on their own — a name and a list of hex colours, editable by hand.
+
+Two text formats keep the colour the `.txt` export drops: a self-contained HTML page, and
+ANSI escapes a terminal renders straight from `cat`.
+
+**Preview** — Live halves the preview resolution for a heavy effect chain; the export is
+untouched. Playback can loop or stop on the last frame.
+
+**Themes** — six interface looks (Matrix, Amber CRT, Ice, Handheld, Rose, and the one light
+theme, Parchment). The theme is an app setting rather than part of a preset: loading someone
+else's preset should not repaint your interface.
 
 SVG comes in two modes. *Text* keeps the glyphs editable as type but needs the font at the
 other end. *Outlines* flattens each glyph to a real path — no font dependency, which is what
@@ -120,8 +179,8 @@ release.
 ascii/     CharacterSets, AsciiParams, AsciiEngine (pure Kotlin), Dither, EdgeDetect,
            Palettes, Fonts, AsciiRenderer (Canvas), Pipeline
 anim/      Animation tracks and curves, Temporal, GifEncoder, Mp4Encoder, ColorQuantizer
-effects/   The eight passes plus PixelOps and the ordered EffectPipeline
-data/      ImageLoader (decode + EXIF), PresetStore
+effects/   The nine passes plus PixelOps and the ordered EffectPipeline
+data/      Source (still / video), ImageLoader (decode + EXIF), PresetStore, Settings
 export/    PNG / TXT / SVG / clipboard / share
 ui/        terminal-styled Compose panels
 ```

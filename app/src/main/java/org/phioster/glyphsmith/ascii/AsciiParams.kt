@@ -31,6 +31,14 @@ data class AsciiParams(
     val offset: Int = 0,
     /** Up to [MAX_INJECTION] custom characters appended to the dense end of the ramp. */
     val injection: String = "",
+    /**
+     * Replaces the selected set's glyphs. Empty means the set is used as it ships.
+     *
+     * One field serves two features: `auto-order` writes the measured coverage order into
+     * it, and the ramp editor writes a hand-arranged one. Because it is an ordinary field it
+     * travels into presets and exports without anything else having to know about it.
+     */
+    val rampOverride: String = "",
     val invert: Boolean = false,
     val fontStyle: FontStyle = FontStyle.REGULAR,
     val glyphFont: GlyphFont = GlyphFont.AUTO,
@@ -58,6 +66,14 @@ data class AsciiParams(
     val modAngle: Int = 0,
     /** 0..100 % of a period; animate it and the pattern travels. */
     val modPhase: Int = 0,
+    /** Shape of an individual orb — only the orb and beehive modes read these. */
+    val orbCount: Int = 1,
+    val orbSize: Int = 100,
+    val orbIntensity: Int = 0,
+    val orbRandom: Int = 0,
+    val orbOffset: Int = 0,
+    val orbDirection: Int = 0,
+    val orbSeed: Int = 1,
     /** Let strong edges pick a directional glyph instead of a brightness-matched one. */
     val edgeEnabled: Boolean = false,
     /** 0..100 — gradient magnitude a cell needs before it counts as an edge. */
@@ -95,6 +111,14 @@ data class AsciiParams(
     val animation: AnimationParams = AnimationParams(),
     /** Animated noise added to the dither threshold — works with every dither mode. */
     val temporal: TemporalParams = TemporalParams(),
+    /**
+     * Extra renderings stacked over this one. Empty by default, so nothing changes for
+     * anything that has never touched them.
+     *
+     * A layer carries a whole [AsciiParams] and therefore a `layers` list of its own; that
+     * one is deliberately not recursed into. See [Layer].
+     */
+    val layers: List<Layer> = emptyList(),
 ) {
     val charSet: CharacterSet get() = CharacterSets.byId(charSetId)
 
@@ -108,8 +132,11 @@ data class AsciiParams(
      * Injection lands at the dense end on purpose — injected glyphs show up in the
      * brightest areas, which is predictable and keeps the tonal ramp below it intact.
      */
+    /** The glyphs the ramp is built from: the override when set, else the chosen set. */
+    fun baseGlyphs(): String = rampOverride.ifEmpty { charSet.glyphs }
+
     fun effectiveRamp(): String {
-        val base = charSet.glyphs
+        val base = baseGlyphs()
         val levels = effectiveDepth
         val narrowed = when {
             levels >= base.length -> base
@@ -124,6 +151,17 @@ data class AsciiParams(
         val injected = narrowed + injection.take(MAX_INJECTION)
         return if (invert) injected.reversed() else injected
     }
+
+    /** The orb controls gathered up for the engine. */
+    fun orbOptions(): OrbOptions = OrbOptions(
+        count = orbCount,
+        size = orbSize,
+        intensity = orbIntensity,
+        random = orbRandom,
+        offset = orbOffset,
+        direction = orbDirection,
+        seed = orbSeed,
+    )
 
     /** Upper bound the offset slider runs to — the offset wraps at the ramp length. */
     fun offsetMax(): Int = effectiveRamp().length.coerceAtLeast(1)

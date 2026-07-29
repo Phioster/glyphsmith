@@ -2,11 +2,15 @@ package org.phioster.glyphsmith.ui.panels
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,6 +49,8 @@ fun AsciiPanel(
     onChange: (AsciiParams) -> Unit,
     fontLabel: String,
     missingGlyphs: String,
+    rampCoverage: List<Float>,
+    onAutoOrder: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val categories = remember { listOf(CATEGORY_ALL) + CharacterSets.categories }
@@ -82,7 +89,9 @@ fun AsciiPanel(
                 } else {
                     CharacterSets.inCategory(categories[index]).first()
                 }
-                onChange(params.copy(charSetId = first.id))
+                // A ramp override belongs to the set it was built from; carrying it into a
+                // different set would make picking that set look like it did nothing.
+                onChange(params.copy(charSetId = first.id, rampOverride = ""))
             },
         )
 
@@ -90,7 +99,7 @@ fun AsciiPanel(
             label = "character set",
             items = sets,
             selectedIndex = setIndex,
-            onSelect = { onChange(params.copy(charSetId = sets[it].id)) },
+            onSelect = { onChange(params.copy(charSetId = sets[it].id, rampOverride = "")) },
             itemLabel = { it.name },
             itemDetail = { it.glyphs.take(28) },
         )
@@ -101,6 +110,8 @@ fun AsciiPanel(
             value = params.injection,
             onChange = { onChange(params.copy(injection = it)) },
         )
+
+        RampEditor(params, rampCoverage, onAutoOrder, onChange)
 
         TerminalSlider(
             label = "character offset",
@@ -248,4 +259,111 @@ private fun InjectField(value: String, onChange: (String) -> Unit) {
                 .padding(horizontal = 8.dp, vertical = 8.dp),
         )
     }
+}
+
+/**
+ * Reordering the ramp by hand, and the measured coverage that says where it is wrong.
+ *
+ * The ordering is not decoration: the engine maps a cell's luminance straight onto a ramp
+ * index, so a glyph out of place shows up as a flat spot or a jump in the tonal gradient.
+ * The percentages come from actually rasterising each glyph in the face that will draw it,
+ * which is the only way to know for a set someone typed into Inject Characters.
+ *
+ * The chips are a horizontal strip rather than a list of rows: a 70-glyph set would be 70
+ * rows of buttons, which is neither usable on a phone nor cheap to compose.
+ */
+@Composable
+private fun RampEditor(
+    params: AsciiParams,
+    coverage: List<Float>,
+    onAutoOrder: () -> Unit,
+    onChange: (AsciiParams) -> Unit,
+) {
+    val glyphs = params.baseGlyphs()
+    var selected by remember(glyphs) { mutableStateOf(-1) }
+
+    fun move(delta: Int) {
+        val from = selected
+        val to = from + delta
+        if (from !in glyphs.indices || to !in glyphs.indices) return
+        val chars = glyphs.toMutableList()
+        val moved = chars.removeAt(from)
+        chars.add(to, moved)
+        selected = to
+        onChange(params.copy(rampOverride = chars.joinToString("")))
+    }
+
+    SectionHeader("ramp order")
+
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = 4.dp),
+    ) {
+        glyphs.forEachIndexed { index, glyph ->
+            val chosen = index == selected
+            Column(
+                Modifier
+                    .padding(end = 4.dp)
+                    .border(1.dp, if (chosen) Term.Ink else Term.InkFaint, RectangleShape)
+                    .background(if (chosen) Term.SurfaceHigh else Term.Surface)
+                    .clickable { selected = if (chosen) -1 else index }
+                    .padding(horizontal = 7.dp, vertical = 5.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    if (glyph == ' ') "␠" else glyph.toString(),
+                    color = if (chosen) Term.Ink else Term.InkDim,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    coverage.getOrNull(index)?.let { "${(it * 100).toInt()}" } ?: "·",
+                    color = Term.InkFaint,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+        }
+    }
+
+    if (selected >= 0) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TerminalButton(
+                label = "◀ move",
+                enabled = selected > 0,
+                onClick = { move(-1) },
+                modifier = Modifier.weight(1f),
+            )
+            TerminalButton(
+                label = "move ▶",
+                enabled = selected < glyphs.lastIndex,
+                onClick = { move(1) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+
+    Row(
+        Modifier.fillMaxWidth().padding(top = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        TerminalButton(
+            label = "auto-order",
+            onClick = onAutoOrder,
+            modifier = Modifier.weight(1f),
+        )
+        TerminalButton(
+            label = "reset ramp",
+            enabled = params.rampOverride.isNotEmpty(),
+            onClick = { onChange(params.copy(rampOverride = "")) },
+            modifier = Modifier.weight(1f),
+        )
+    }
+    Text(
+        "the number under each glyph is its measured ink coverage. auto-order sorts by it — " +
+            "including anything you injected, which otherwise sits at the dense end unmeasured.",
+        color = Term.InkFaint,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(top = 4.dp),
+    )
 }

@@ -1,5 +1,8 @@
 package org.phioster.glyphsmith.ui.panels
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +37,9 @@ fun OutputPanel(
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
     onExportSvg: (SvgMode) -> Unit,
+    onExportHtml: () -> Unit,
+    onExportAnsi: () -> Unit,
+    onRunBatch: (List<android.net.Uri>) -> Unit,
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
     onShareText: () -> Unit,
@@ -152,6 +158,55 @@ fun OutputPanel(
                 "svg outlines", { onExportSvg(SvgMode.OUTLINES) }, Modifier.weight(1f), enabled,
             )
         }
+        SectionHeader("text formats")
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TerminalButton("save html", onExportHtml, Modifier.weight(1f), enabled)
+            TerminalButton("save ansi", onExportAnsi, Modifier.weight(1f), enabled)
+        }
+        Text(
+            "the .txt export drops the colour, which is right for a README and wrong for " +
+                "everything else. html is a self-contained page; ansi is 24-bit escapes a " +
+                "terminal renders straight from cat.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+
+        SectionHeader("batch")
+
+        val batchPicker = rememberLauncherForActivityResult(
+            ActivityResultContracts.PickMultipleVisualMedia(BATCH_LIMIT),
+        ) { uris -> if (uris.isNotEmpty()) onRunBatch(uris) }
+
+        if (state.batchTotal > 0) {
+            Text(
+                "running ${state.batchDone}/${state.batchTotal}…",
+                color = Term.Amber,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(vertical = 6.dp),
+            )
+        } else {
+            TerminalButton(
+                label = "pick images and run",
+                onClick = {
+                    batchPicker.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.working,
+            )
+        }
+        Text(
+            "runs every picked image through the settings you have now and saves each one to " +
+                "Pictures/Glyphsmith. Your loaded image and its framing come back afterwards — " +
+                "a batch is something you launch from a look, not instead of one.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+
         Text(
             "text keeps the glyphs editable but needs the font on the other machine; " +
                 "outlines are real paths and render anywhere — that is the one for print " +
@@ -175,6 +230,9 @@ private fun InfoRow(label: String, value: String) {
 }
 
 private const val MAX_SIDE = 8192
+
+/** Android's picker caps the selection anyway; this keeps a run to something finishable. */
+private const val BATCH_LIMIT = 30
 
 /** Handy targets: a phone wallpaper, a square post, and 4K. */
 private val CANVAS_PRESETS = listOf(

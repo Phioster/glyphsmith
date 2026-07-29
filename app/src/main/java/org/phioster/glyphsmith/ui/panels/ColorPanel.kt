@@ -1,5 +1,7 @@
 package org.phioster.glyphsmith.ui.panels
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +51,8 @@ fun ColorPanel(
     params: AsciiParams,
     onChange: (AsciiParams) -> Unit,
     onExtractPalette: (Int) -> Unit,
+    onExportPalette: () -> Unit,
+    onImportPalette: (android.net.Uri) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val palette = params.renderPalette()
@@ -91,6 +95,8 @@ fun ColorPanel(
                 params = params,
                 onChange = onChange,
                 onExtractPalette = onExtractPalette,
+                onExportPalette = onExportPalette,
+                onImportPalette = onImportPalette,
                 categories = categories,
                 category = category,
                 onCategoryChange = { next ->
@@ -133,6 +139,8 @@ private fun PaletteSection(
     params: AsciiParams,
     onChange: (AsciiParams) -> Unit,
     onExtractPalette: (Int) -> Unit,
+    onExportPalette: () -> Unit,
+    onImportPalette: (android.net.Uri) -> Unit,
     categories: List<String>,
     category: String,
     onCategoryChange: (String) -> Unit,
@@ -301,6 +309,31 @@ private fun PaletteSection(
                 modifier = Modifier.weight(1f),
             )
         }
+        val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let(onImportPalette)
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            TerminalButton(
+                label = "export palette",
+                onClick = onExportPalette,
+                modifier = Modifier.weight(1f),
+            )
+            TerminalButton(
+                label = "import palette",
+                onClick = { importer.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Text(
+            "a palette file is just a name and a list of hex colours — editable by hand, " +
+                "and re-sorted by luminance on the way back in",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp),
+        )
         Text(
             "■ pins a stop against the shuffle",
             color = Term.InkFaint,

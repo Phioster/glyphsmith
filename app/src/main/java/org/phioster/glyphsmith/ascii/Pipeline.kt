@@ -25,6 +25,15 @@ object Pipeline {
         val outputHeight: Int,
     )
 
+    /** One rendering with no layers of its own — what a layer is built from. */
+    private fun renderFlat(
+        pixels: IntArray,
+        sourceWidth: Int,
+        sourceHeight: Int,
+        params: AsciiParams,
+        maxSide: Int,
+    ): Bitmap = run(pixels, sourceWidth, sourceHeight, params.copy(layers = emptyList()), maxSide).bitmap
+
     fun run(
         pixels: IntArray,
         sourceWidth: Int,
@@ -48,10 +57,20 @@ object Pipeline {
             1f
         }
 
-        val bitmap = EffectPipeline.apply(
+        var bitmap = EffectPipeline.apply(
             AsciiRenderer.render(grid, params, fontSize, canvasScale),
             params.effects,
         )
+
+        // Each layer is a full render of the same source at the base's size, transformed and
+        // blended over it. Its own layer list is ignored — one level deep is the rule.
+        if (params.layers.any { it.enabled && it.opacity > 0 }) {
+            bitmap = LayerCompositor.composite(bitmap, params.layers) { layer ->
+                runCatching {
+                    renderFlat(pixels, sourceWidth, sourceHeight, layer.params, maxSide)
+                }.getOrNull()
+            }
+        }
 
         val output = if (params.canvasEnabled) {
             params.canvasWidth to params.canvasHeight

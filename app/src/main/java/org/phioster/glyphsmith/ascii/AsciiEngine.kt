@@ -155,8 +155,19 @@ object AsciiEngine {
             phase = params.modPhase / 100f,
             centerX = cols / 2f,
             centerY = rows / 2f,
+            orb = params.orbOptions(),
         )
         val kernel = Dither.diffusionKernel(mode)
+        // Riemersma walks a space-filling curve, so its visiting order has nothing to do
+        // with rows and it cannot share this loop. It is resolved up front instead, and the
+        // loop below simply reads the index it decided on.
+        val curve = if (mode == DitherMode.RIEMERSMA) {
+            Riemersma.quantise(lumaGrid, cols, rows, levels, strength) { x, y ->
+                Temporal.offset(params.temporal, x, y) / max(1, levels - 1)
+            }
+        } else {
+            null
+        }
         val depth = Dither.kernelDepth(mode)
         // Only the rows a kernel can still reach are kept, not a full-grid error buffer.
         val errorRows = Array(depth) { FloatArray(cols) }
@@ -189,7 +200,7 @@ object AsciiEngine {
                     else -> base
                 }
 
-                val index = quantize(target, levels)
+                val index = curve?.get(cell) ?: quantize(target, levels)
 
                 if (!ordered && kernel.isNotEmpty()) {
                     val reproduced = if (levels <= 1) 0f else index.toFloat() / (levels - 1)

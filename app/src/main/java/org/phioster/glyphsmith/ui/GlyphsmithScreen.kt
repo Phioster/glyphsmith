@@ -37,12 +37,14 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.data.Preset
+import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgMode
 import org.phioster.glyphsmith.ui.panels.AnimPanel
 import org.phioster.glyphsmith.ui.panels.AsciiPanel
 import org.phioster.glyphsmith.ui.panels.ColorPanel
 import org.phioster.glyphsmith.ui.panels.EffectsPanel
+import org.phioster.glyphsmith.ui.panels.LayerPanel
 import org.phioster.glyphsmith.ui.panels.OutputPanel
 import org.phioster.glyphsmith.ui.panels.PresetPanel
 import org.phioster.glyphsmith.ui.panels.MappingPanel
@@ -53,6 +55,7 @@ private enum class Tab(val label: String) {
     MAPPING("MAP"),
     COLOR("COLOUR"),
     EFFECTS("FX"),
+    LAYERS("LYR"),
     ANIM("ANIM"),
     OUTPUT("OUT"),
     PRESETS("PRE"),
@@ -63,10 +66,15 @@ fun GlyphsmithScreen(
     state: UiState,
     onParamsChange: (AsciiParams) -> Unit,
     onPickImage: (android.net.Uri) -> Unit,
+    onPickVideo: (android.net.Uri) -> Unit,
+    onPreviewPosition: (Float) -> Unit,
     onFormatChange: (ImageFormat) -> Unit,
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
     onExportSvg: (SvgMode) -> Unit,
+    onExportHtml: () -> Unit,
+    onExportAnsi: () -> Unit,
+    onRunBatch: (List<android.net.Uri>) -> Unit,
     onExtractPalette: (Int) -> Unit,
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
@@ -82,10 +90,23 @@ fun GlyphsmithScreen(
     onStopAnimation: () -> Unit,
     onExportGif: () -> Unit,
     onExportMp4: () -> Unit,
+    themeId: String,
+    onThemeChange: (String) -> Unit,
+    onAutoOrderRamp: () -> Unit,
+    onToggleFavourite: (String) -> Unit,
+    onRandomise: () -> Unit,
+    onResetPresets: () -> Unit,
+    onExportPalette: () -> Unit,
+    onImportPalette: (android.net.Uri) -> Unit,
+    onPreviewQualityChange: (PreviewQuality) -> Unit,
+    onLoopedChange: (Boolean) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(onPickImage)
+    }
+    val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let(onPickVideo)
     }
 
     Column(
@@ -100,6 +121,11 @@ fun GlyphsmithScreen(
             onUndo = onUndo,
             onRedo = onRedo,
             onLoad = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+            onLoadVideo = {
+                videoPicker.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly),
+                )
+            },
         )
 
         Preview(state, Modifier.weight(1f))
@@ -120,10 +146,19 @@ fun GlyphsmithScreen(
                     onChange = onParamsChange,
                     fontLabel = state.fontLabel,
                     missingGlyphs = state.missingGlyphs,
+                    rampCoverage = state.rampCoverage,
+                    onAutoOrder = onAutoOrderRamp,
                 )
                 Tab.MAPPING -> MappingPanel(state.params, onParamsChange)
-                Tab.COLOR -> ColorPanel(state.params, onParamsChange, onExtractPalette)
+                Tab.COLOR -> ColorPanel(
+                    params = state.params,
+                    onChange = onParamsChange,
+                    onExtractPalette = onExtractPalette,
+                    onExportPalette = onExportPalette,
+                    onImportPalette = onImportPalette,
+                )
                 Tab.EFFECTS -> EffectsPanel(state.params, onParamsChange)
+                Tab.LAYERS -> LayerPanel(state.params, onParamsChange)
                 Tab.ANIM -> AnimPanel(
                     state = state,
                     onChange = onParamsChange,
@@ -131,6 +166,7 @@ fun GlyphsmithScreen(
                     onStop = onStopAnimation,
                     onExportGif = onExportGif,
                     onExportMp4 = onExportMp4,
+                    onPreviewPosition = onPreviewPosition,
                 )
 
                 Tab.OUTPUT -> OutputPanel(
@@ -140,6 +176,9 @@ fun GlyphsmithScreen(
                     onExportPng = onExportPng,
                     onExportTxt = onExportTxt,
                     onExportSvg = onExportSvg,
+                    onExportHtml = onExportHtml,
+                    onExportAnsi = onExportAnsi,
+                    onRunBatch = onRunBatch,
                     onCopy = onCopy,
                     onShareImage = onShareImage,
                     onShareText = onShareText,
@@ -152,6 +191,16 @@ fun GlyphsmithScreen(
                     onDelete = onDeletePreset,
                     onExport = onExportPresets,
                     onImport = onImportPresets,
+                    thumbs = state.presetThumbs,
+                    onToggleFavourite = onToggleFavourite,
+                    onRandomise = onRandomise,
+                    onResetPresets = onResetPresets,
+                    themeId = themeId,
+                    onThemeChange = onThemeChange,
+                    previewQuality = state.previewQuality,
+                    onPreviewQualityChange = onPreviewQualityChange,
+                    looped = state.looped,
+                    onLoopedChange = onLoopedChange,
                 )
             }
         }
@@ -165,6 +214,7 @@ private fun Header(
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onLoad: () -> Unit,
+    onLoadVideo: () -> Unit,
 ) {
     Row(
         Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
@@ -177,7 +227,8 @@ private fun Header(
         }
         TerminalButton(label = "↶", onClick = onUndo, enabled = canUndo)
         TerminalButton(label = "↷", onClick = onRedo, enabled = canRedo)
-        TerminalButton(label = "load", onClick = onLoad)
+        TerminalButton(label = "img", onClick = onLoad)
+        TerminalButton(label = "vid", onClick = onLoadVideo)
     }
 }
 

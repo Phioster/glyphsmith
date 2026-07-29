@@ -12,10 +12,15 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
 import org.phioster.glyphsmith.effects.ChromaticParams
+import org.phioster.glyphsmith.effects.CmykHalftoneParams
 import org.phioster.glyphsmith.effects.DiffractionStarsParams
 import org.phioster.glyphsmith.effects.GlowParams
 import org.phioster.glyphsmith.effects.JpegGlitchParams
+import org.phioster.glyphsmith.effects.PixelSortParams
 import org.phioster.glyphsmith.effects.PostProcessingParams
+import org.phioster.glyphsmith.effects.SliceShiftParams
+import org.phioster.glyphsmith.effects.SortAxis
+import org.phioster.glyphsmith.effects.SortKey
 import org.phioster.glyphsmith.effects.SubtextureParams
 import org.phioster.glyphsmith.effects.TextureKind
 import org.phioster.glyphsmith.effects.TintMode
@@ -318,6 +323,151 @@ internal fun SubtextureSection(
             modifier = Modifier.padding(top = 4.dp),
         )
         SeedRow(params.seed) { onChange(params.copy(seed = it)) }
+    }
+}
+
+@Composable
+internal fun PixelSortSection(
+    params: PixelSortParams,
+    move: MoveHandler,
+    onChange: (PixelSortParams) -> Unit,
+) {
+    EffectSection("pixel sort", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "only pixels whose brightness falls inside the band get reordered — narrow it " +
+                "and the mid-tones bleed out of the edges, open it fully and the picture " +
+                "becomes gradient stripes",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        StepperDropdown(
+            label = "axis",
+            items = SortAxis.entries.toList(),
+            selectedIndex = SortAxis.entries.indexOf(params.axis),
+            onSelect = { onChange(params.copy(axis = SortAxis.entries[it])) },
+            itemLabel = { it.label },
+        )
+        StepperDropdown(
+            label = "sort by",
+            items = SortKey.entries.toList(),
+            selectedIndex = SortKey.entries.indexOf(params.key),
+            onSelect = { onChange(params.copy(key = SortKey.entries[it])) },
+            itemLabel = { it.label },
+        )
+        TerminalSlider(
+            "band low", params.thresholdLow.toFloat(), 0f..100f,
+            { onChange(params.copy(thresholdLow = it.toInt())) },
+            valueText = "${params.thresholdLow}/100",
+        )
+        TerminalSlider(
+            "band high", params.thresholdHigh.toFloat(), 0f..100f,
+            { onChange(params.copy(thresholdHigh = it.toInt())) },
+            valueText = "${params.thresholdHigh}/100",
+        )
+        TerminalSlider(
+            "max run", params.maxRun.toFloat(), 0f..400f,
+            { onChange(params.copy(maxRun = it.toInt())) },
+            valueText = if (params.maxRun == 0) "unlimited" else "${params.maxRun}px",
+        )
+        TerminalToggle(
+            label = "reverse",
+            checked = params.reverse,
+            onCheckedChange = { onChange(params.copy(reverse = it)) },
+        )
+    }
+}
+
+@Composable
+internal fun SliceShiftSection(
+    params: SliceShiftParams,
+    move: MoveHandler,
+    onChange: (SliceShiftParams) -> Unit,
+) {
+    EffectSection("slice shift", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        TerminalSlider(
+            "slices", params.slices.toFloat(), 2f..120f,
+            { onChange(params.copy(slices = it.toInt())) },
+            valueText = "${params.slices}",
+        )
+        TerminalSlider(
+            "max offset", params.maxOffset.toFloat(), 0f..100f,
+            { onChange(params.copy(maxOffset = it.toInt())) },
+            valueText = "${params.maxOffset}%",
+        )
+        TerminalSlider(
+            "density", params.density.toFloat(), 0f..100f,
+            { onChange(params.copy(density = it.toInt())) },
+            valueText = "${params.density}/100",
+        )
+        TerminalSlider(
+            "colour shift", params.colorShift.toFloat(), 0f..100f,
+            { onChange(params.copy(colorShift = it.toInt())) },
+            valueText = "${params.colorShift}/100",
+        )
+        TerminalToggle(
+            label = "vertical bands",
+            checked = params.vertical,
+            onCheckedChange = { onChange(params.copy(vertical = it)) },
+        )
+        Text(
+            "band heights are uneven on purpose — evenly cut slices read as a pattern, and " +
+                "a pattern is the one thing a glitch must not look like",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        SeedRow(params.seed) { onChange(params.copy(seed = it)) }
+    }
+}
+
+@Composable
+internal fun CmykSection(
+    params: CmykHalftoneParams,
+    move: MoveHandler,
+    onChange: (CmykHalftoneParams) -> Unit,
+) {
+    EffectSection("cmyk halftone", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "four screens at the classic printing angles — yellow 0°, cyan 15°, black 45°, " +
+                "magenta 75°. Thirty degrees between the strong inks is what stops their " +
+                "rosette collapsing into a moiré.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        TerminalSlider(
+            "screen", params.frequency.toFloat(), 2f..40f,
+            { onChange(params.copy(frequency = it.toInt())) },
+            valueText = "${params.frequency}px per dot",
+        )
+        TerminalSlider(
+            "angle", params.angle.toFloat(), 0f..90f,
+            { onChange(params.copy(angle = it.toInt())) },
+            valueText = "+${params.angle}°",
+        )
+        TerminalSlider(
+            "black ink", params.blackInk.toFloat(), 0f..100f,
+            { onChange(params.copy(blackInk = it.toInt())) },
+            valueText = "${params.blackInk}/100",
+        )
+        TerminalSlider(
+            "mid-tone gain", params.midtoneGain.toFloat(), 1f..200f,
+            { onChange(params.copy(midtoneGain = it.toInt())) },
+            valueText = "${params.midtoneGain}/200",
+        )
+        TerminalSlider(
+            "dot sharpness", params.sharpness.toFloat(), 0f..100f,
+            { onChange(params.copy(sharpness = it.toInt())) },
+            valueText = "${params.sharpness}/100",
+        )
+        Text(
+            "black ink pulls the grey component out of the three chromatic inks — at 0 a " +
+                "neutral is printed by all three at once, which goes muddy",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
 
