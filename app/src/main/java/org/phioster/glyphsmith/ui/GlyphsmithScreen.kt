@@ -37,6 +37,7 @@ import android.content.pm.PackageManager
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
@@ -128,13 +129,40 @@ fun GlyphsmithScreen(
     val context = LocalContext.current
     var pending by remember { mutableStateOf<android.net.Uri?>(null) }
     var permissionDenied by remember { mutableStateOf(false) }
+    // What to do once the permission comes back. Both camera features need it, so the
+    // launcher is shared and the intent is remembered rather than duplicated.
+    var afterPermission by remember { mutableStateOf<(() -> Unit)?>(null) }
     val cameraPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         // Refused is a state to report, not an error to swallow: without saying so the
         // button would simply do nothing and look broken.
         permissionDenied = !granted
-        if (granted) onStartLive()
+        val next = afterPermission
+        afterPermission = null
+        if (granted) next?.invoke()
+    }
+
+    /**
+     * Runs [action] once the camera permission is held.
+     *
+     * Taking a photo hands the work to the system camera app, which needs no permission of
+     * ours — right up until this app *declares* CAMERA for the live view. From that point
+     * Android refuses to start IMAGE_CAPTURE from a process that has not been granted it,
+     * and the refusal is a SecurityException rather than a returned failure. So both paths
+     * go through here.
+     */
+    fun withCamera(action: () -> Unit) {
+        permissionDenied = false
+        if (
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            action()
+        } else {
+            afterPermission = action
+            cameraPermission.launch(Manifest.permission.CAMERA)
+        }
     }
 
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { saved ->
@@ -161,30 +189,23 @@ fun GlyphsmithScreen(
                 )
             },
             onCapture = {
-                val (_, uri) = org.phioster.glyphsmith.data.CameraCapture.destination(context)
-                pending = uri
-                camera.launch(uri)
+                withCamera {
+                    val (_, uri) = org.phioster.glyphsmith.data.CameraCapture.destination(context)
+                    pending = uri
+                    camera.launch(uri)
+                }
             },
             live = state.liveCamera,
             onLive = {
-                permissionDenied = false
-                if (state.liveCamera) {
-                    onStopLive()
-                } else if (
-                    ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                    PackageManager.PERMISSION_GRANTED
-                ) {
-                    onStartLive()
-                } else {
-                    cameraPermission.launch(Manifest.permission.CAMERA)
-                }
+                if (state.liveCamera) onStopLive() else withCamera(onStartLive)
             },
         )
 
         if (permissionDenied) {
             Text(
-                "camera permission refused — the live view needs it. Taking a photo with " +
-                    "[cam] still works, that goes through the system camera app.",
+                "camera permission refused — both [cam] and [live] need it. Android requires " +
+                    "it of any app that declares it, even for handing the job to the system " +
+                    "camera. You can grant it in the app's settings.",
                 color = Term.Amber,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(bottom = 6.dp),
@@ -297,25 +318,49 @@ private fun Header(
     live: Boolean,
     onLive: () -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("GLYPHSMITH", color = Term.Ink, style = MaterialTheme.typography.titleLarge)
-            Text("ascii forge", color = Term.InkFaint, style = MaterialTheme.typography.labelSmall)
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                // maxLines matters here: squeezed narrow, an unconstrained title wraps
+                // character by character and drags the whole header ten lines tall.
+                Text(
+                    "GLYPHSMITH",
+                    color = Term.Ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
+                    style = MaterialTheme.typography.titleLarge,
+                )
+                Text(
+                    "ascii forge",
+                    color = Term.InkFaint,
+                    maxLines = 1,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+            TerminalButton(label = "↶", onClick = onUndo, enabled = canUndo)
+            TerminalButton(label = "↷", onClick = onRedo, enabled = canRedo)
         }
-        TerminalButton(label = "↶", onClick = onUndo, enabled = canUndo)
-        TerminalButton(label = "↷", onClick = onRedo, enabled = canRedo)
-        TerminalButton(label = "img", onClick = onLoad)
-        TerminalButton(label = "vid", onClick = onLoadVideo)
-        TerminalButton(label = "cam", onClick = onCapture)
-        TerminalButton(
-            label = if (live) "live ■" else "live",
-            accent = if (live) Term.Amber else Term.Ink,
-            onClick = onLive,
-        )
+
+        // The four sources get their own row. Six buttons beside the title left it no width
+        // at all on a phone, which is what broke the layout when the camera arrived.
+        Row(
+            Modifier.fillMaxWidth().padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            TerminalButton(label = "img", onClick = onLoad, modifier = Modifier.weight(1f))
+            TerminalButton(label = "vid", onClick = onLoadVideo, modifier = Modifier.weight(1f))
+            TerminalButton(label = "cam", onClick = onCapture, modifier = Modifier.weight(1f))
+            TerminalButton(
+                label = if (live) "live ■" else "live",
+                accent = if (live) Term.Amber else Term.Ink,
+                onClick = onLive,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 

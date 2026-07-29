@@ -15,10 +15,12 @@ import java.util.Locale
  * exist, and it has to be reachable by another process, which means a `FileProvider` uri
  * rather than a path.
  *
- * **No camera permission is involved.** The app never touches the camera; the system camera
- * app does, under its own permissions, and simply returns a picture. Asking for
- * `android.permission.CAMERA` here would be asking for something that is not used — the
- * live preview is the feature that genuinely needs it.
+ * **The camera permission is needed after all**, which is not obvious. This path never
+ * touches the camera — the system camera app does that under its own permissions. But once
+ * an app *declares* `android.permission.CAMERA` in its manifest, Android refuses to start
+ * `IMAGE_CAPTURE` from a process that has not been granted it, and refuses with a
+ * `SecurityException` rather than a failed result. Declaring it for the live preview
+ * therefore made it mandatory here too.
  */
 object CameraCapture {
 
