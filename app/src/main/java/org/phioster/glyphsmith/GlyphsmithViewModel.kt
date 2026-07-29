@@ -30,7 +30,6 @@ import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.ascii.Palettes
 import org.phioster.glyphsmith.ascii.Pipeline
-import org.phioster.glyphsmith.ascii.FontChoice
 import org.phioster.glyphsmith.ascii.GlyphCoverage
 import org.phioster.glyphsmith.data.CameraCapture
 import org.phioster.glyphsmith.data.ImageLoader
@@ -143,6 +142,14 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private var source: Source? = null
     private var art: AsciiArt? = null
 
+    /**
+     * True between a slider being grabbed and released.
+     *
+     * Not in [UiState]: nothing in the interface renders differently while a slider is held, and
+     * putting it there would recompose every panel twice per drag for no visible change.
+     */
+    private var scrubbing = false
+
     init {
         // Applied before the first frame so the app never flashes the default theme on top
         // of the one the user actually chose.
@@ -175,6 +182,20 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         settings.themeId = id
         Term.palette = TermThemes.byId(id)
         _state.value = _state.value.copy(themeId = id)
+    }
+
+    /**
+     * Called when any slider is grabbed or released.
+     *
+     * While held, [rebuild] renders at [SCRUB_MAX_SIDE] instead of the preview budget, which is
+     * what makes a heavy chain track the finger. The release triggers one more pass at full
+     * preview quality — without it the user would be left looking at the coarse render and
+     * would reasonably conclude the app had got worse.
+     */
+    fun setScrubbing(active: Boolean) {
+        if (scrubbing == active) return
+        scrubbing = active
+        if (!active) viewModelScope.launch { rebuild(paramsFlow.value) }
     }
 
     /** Halving the preview resolution is the one lever that makes a heavy chain feel live. */
@@ -434,8 +455,10 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val current = source ?: return
         val pixels = current.pixelsAt(_state.value.previewPosition)
         _state.value = _state.value.copy(working = true)
+        val scrub = scrubbing
+        val budget = if (scrub) SCRUB_MAX_SIDE else _state.value.previewQuality.maxSide
         val result = withContext(Dispatchers.Default) {
-            Pipeline.run(pixels, current.width, current.height, params, _state.value.previewQuality.maxSide)
+            Pipeline.run(pixels, current.width, current.height, params, budget, isScrubbing = scrub)
         }
         art = result.art
         // Measured once per rebuild and cached inside GlyphCoverage, so a slider drag pays
@@ -1030,21 +1053,16 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(status = "preset ${preset.name}")
     }
 
-    private class Rebuilt(
-        val grid: AsciiArt,
-        val preview: Bitmap,
-        val outputWidth: Int,
-        val outputHeight: Int,
-        val face: FontChoice,
-    )
-
     private companion object {
         const val DEBOUNCE_MS = 90L
         const val MAX_HISTORY = 50
-        const val ANIM_PREVIEW_MAX_SIDE = 640
+        /**
+         * Preview budget while a slider is held. The same figure the live camera renders at,
+         * for the same reason: it is the size at which a full chain still keeps up with input.
+         */
+        const val SCRUB_MAX_SIDE = 480
         const val THUMB_MAX_SIDE = 160
         const val ANIM_EXPORT_MAX_SIDE = 1080
         const val MEMORY_BUDGET_BYTES = 96L * 1024 * 1024
-        const val REFERENCE_FONT_SIZE = 32
     }
 }

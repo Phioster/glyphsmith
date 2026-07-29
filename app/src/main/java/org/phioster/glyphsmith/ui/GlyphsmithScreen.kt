@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -115,6 +116,7 @@ fun GlyphsmithScreen(
     onToggleFavouritePalette: (String) -> Unit,
     onToggleFavouriteStyle: (String) -> Unit,
     onLoopedChange: (Boolean) -> Unit,
+    onScrubbing: (Boolean) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -172,6 +174,9 @@ fun GlyphsmithScreen(
         if (saved && target != null) onCapture(target)
     }
 
+    // Provided once here so all hundred-odd sliders report drag state without any of them
+    // taking a parameter for it.
+    CompositionLocalProvider(LocalScrubReporter provides onScrubbing) {
     Column(
         Modifier
             .fillMaxSize()
@@ -309,6 +314,7 @@ fun GlyphsmithScreen(
                 )
             }
         }
+    }
     }
 }
 
