@@ -47,6 +47,7 @@ import org.phioster.glyphsmith.effects.DiffractionStarsParams
 import org.phioster.glyphsmith.effects.EffectId
 import org.phioster.glyphsmith.effects.EffectStack
 import org.phioster.glyphsmith.effects.GlowParams
+import org.phioster.glyphsmith.effects.InterlaceParams
 import org.phioster.glyphsmith.effects.JpegGlitchParams
 import org.phioster.glyphsmith.effects.PixelSortParams
 import org.phioster.glyphsmith.effects.PostProcessingParams
@@ -788,6 +789,15 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
                 EffectId.SLICE -> effects.copy(
                     sliceShift = SliceShiftParams(enabled = true, maxOffset = random.nextInt(4, 20)),
+                )
+
+                EffectId.INTERLACE -> effects.copy(
+                    interlace = InterlaceParams(
+                        enabled = true,
+                        shift = random.nextInt(2, 18),
+                        density = random.nextInt(30, 90),
+                        tearColor = random.nextInt(0, 60),
+                    ),
                 )
 
                 EffectId.STARS -> effects.copy(stars = DiffractionStarsParams(enabled = true))
