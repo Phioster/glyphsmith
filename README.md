@@ -57,8 +57,9 @@ Both together are under 170 KB. See `app/src/main/assets/fonts/NOTICE.md`.
 **Tone** — gamma → contrast → brightness, applied to each cell's luminance before it picks a
 glyph. Without it a flat photo only ever reaches the middle third of the ramp.
 
-**Dithering** — error diffusion (Floyd–Steinberg, Atkinson, Jarvis, Sierra Lite) with
-serpentine scanning, ordered Bayer 2/4/8, and a modulation family whose threshold is a
+**Dithering** — error diffusion (Floyd–Steinberg, Atkinson, Jarvis, Sierra Lite, plus
+axis-dominant Diffuse Y and Diffuse X that send the error down one axis so grain becomes
+streaks) with serpentine scanning, ordered Bayer 2/4/8, and a modulation family whose threshold is a
 continuous function of position: lines, wave, rings, orb and beehive. A separate **pattern
 scale** sizes the pattern independently of the cell, which is what lets an algorithm be
 driven until it visibly breaks down.
@@ -115,9 +116,11 @@ a loop), and **Temporal Variation**: nine animated noise patterns that shift the
 threshold itself. Every pattern is periodic over the loop, so the last frame lands back on
 the first.
 
-**Presets** — 24 shipped starting points in five categories, plus whatever you save. A
+**Presets** — 30 shipped starting points in six categories, plus whatever you save. A
 preset holds the *complete* state, effects and animation included, so applying one is a
-single tap. The MOTION set arrives with animation already aimed: apply, press play. Each one
+single tap. The MOTION and SIGNATURE sets arrive with animation already aimed: apply, press play.
+SIGNATURE is this app's own approximation of the looks Studio AAA show in their public
+preview clips — not their presets, which aren't published. Each one
 renders a thumbnail from your loaded image, favourites sort to the top, and `surprise me`
 rolls a look within ranges chosen to actually produce something.
 
