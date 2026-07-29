@@ -66,7 +66,13 @@ object LayerCompositor {
     }
 
     /**
-     * Blends [top] onto [bottom] and returns the bottom, mutated.
+     * Blends [top] onto [bottom] and returns the result as a new bitmap.
+     *
+     * Deliberately *not* written back into [bottom]. `Bitmap.createBitmap(IntArray, …)` —
+     * which is how the effect chain hands its result back — returns an **immutable** bitmap,
+     * and `setPixels` on one of those throws. Building a new bitmap costs an allocation and
+     * makes the whole question go away; mutating in place only works for as long as nobody
+     * upstream switches to a factory that returns an immutable one.
      *
      * The layer's own alpha gates everything: where a layer drew nothing — the gaps between
      * glyphs, or the frame it was moved out of — it must leave what is underneath alone,
@@ -95,8 +101,11 @@ object LayerCompositor {
             )
         }
 
-        bottom.setPixels(under, 0, width, 0, 0, width, height)
-        return bottom
+        // The old bottom is a private intermediate — Pipeline has not handed it to anyone
+        // yet — so releasing it here is safe and keeps a tall stack from holding one full
+        // bitmap per layer.
+        bottom.recycle()
+        return Bitmap.createBitmap(under, width, height, Bitmap.Config.ARGB_8888)
     }
 
     private fun mix(dst: Int, src: Int, blend: LayerBlend, alpha: Float): Int {
