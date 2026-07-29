@@ -16,7 +16,11 @@ import org.phioster.glyphsmith.effects.CmykHalftoneParams
 import org.phioster.glyphsmith.effects.DiffractionStarsParams
 import org.phioster.glyphsmith.effects.GlowParams
 import org.phioster.glyphsmith.effects.JpegGlitchParams
+import org.phioster.glyphsmith.effects.PixelSortParams
 import org.phioster.glyphsmith.effects.PostProcessingParams
+import org.phioster.glyphsmith.effects.SliceShiftParams
+import org.phioster.glyphsmith.effects.SortAxis
+import org.phioster.glyphsmith.effects.SortKey
 import org.phioster.glyphsmith.effects.SubtextureParams
 import org.phioster.glyphsmith.effects.TextureKind
 import org.phioster.glyphsmith.effects.TintMode
@@ -314,6 +318,101 @@ internal fun SubtextureSection(
             "with this on, the texture is modulated by the picture's own local detail — it " +
                 "bites where there is structure and fades out over flat areas instead of " +
                 "sitting on top like a sticker",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        SeedRow(params.seed) { onChange(params.copy(seed = it)) }
+    }
+}
+
+@Composable
+internal fun PixelSortSection(
+    params: PixelSortParams,
+    move: MoveHandler,
+    onChange: (PixelSortParams) -> Unit,
+) {
+    EffectSection("pixel sort", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "only pixels whose brightness falls inside the band get reordered — narrow it " +
+                "and the mid-tones bleed out of the edges, open it fully and the picture " +
+                "becomes gradient stripes",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        StepperDropdown(
+            label = "axis",
+            items = SortAxis.entries.toList(),
+            selectedIndex = SortAxis.entries.indexOf(params.axis),
+            onSelect = { onChange(params.copy(axis = SortAxis.entries[it])) },
+            itemLabel = { it.label },
+        )
+        StepperDropdown(
+            label = "sort by",
+            items = SortKey.entries.toList(),
+            selectedIndex = SortKey.entries.indexOf(params.key),
+            onSelect = { onChange(params.copy(key = SortKey.entries[it])) },
+            itemLabel = { it.label },
+        )
+        TerminalSlider(
+            "band low", params.thresholdLow.toFloat(), 0f..100f,
+            { onChange(params.copy(thresholdLow = it.toInt())) },
+            valueText = "${params.thresholdLow}/100",
+        )
+        TerminalSlider(
+            "band high", params.thresholdHigh.toFloat(), 0f..100f,
+            { onChange(params.copy(thresholdHigh = it.toInt())) },
+            valueText = "${params.thresholdHigh}/100",
+        )
+        TerminalSlider(
+            "max run", params.maxRun.toFloat(), 0f..400f,
+            { onChange(params.copy(maxRun = it.toInt())) },
+            valueText = if (params.maxRun == 0) "unlimited" else "${params.maxRun}px",
+        )
+        TerminalToggle(
+            label = "reverse",
+            checked = params.reverse,
+            onCheckedChange = { onChange(params.copy(reverse = it)) },
+        )
+    }
+}
+
+@Composable
+internal fun SliceShiftSection(
+    params: SliceShiftParams,
+    move: MoveHandler,
+    onChange: (SliceShiftParams) -> Unit,
+) {
+    EffectSection("slice shift", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        TerminalSlider(
+            "slices", params.slices.toFloat(), 2f..120f,
+            { onChange(params.copy(slices = it.toInt())) },
+            valueText = "${params.slices}",
+        )
+        TerminalSlider(
+            "max offset", params.maxOffset.toFloat(), 0f..100f,
+            { onChange(params.copy(maxOffset = it.toInt())) },
+            valueText = "${params.maxOffset}%",
+        )
+        TerminalSlider(
+            "density", params.density.toFloat(), 0f..100f,
+            { onChange(params.copy(density = it.toInt())) },
+            valueText = "${params.density}/100",
+        )
+        TerminalSlider(
+            "colour shift", params.colorShift.toFloat(), 0f..100f,
+            { onChange(params.copy(colorShift = it.toInt())) },
+            valueText = "${params.colorShift}/100",
+        )
+        TerminalToggle(
+            label = "vertical bands",
+            checked = params.vertical,
+            onCheckedChange = { onChange(params.copy(vertical = it)) },
+        )
+        Text(
+            "band heights are uneven on purpose — evenly cut slices read as a pattern, and " +
+                "a pattern is the one thing a glitch must not look like",
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 4.dp),
