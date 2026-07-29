@@ -14,19 +14,32 @@ import kotlin.random.Random
 /**
  * Channel separation plus row displacement.
  *
- * Red and blue are sampled from opposite sides along [ChromaticParams.angle] while green
- * stays put — that asymmetry is what reads as a mistuned signal rather than a blur. The row
- * displacement runs on top, either as a clean sine or as per-row noise.
+ * Each channel is sampled from its own position along [ChromaticParams.angle], scaled by
+ * [ChromaticParams.maxDisplace]. That the three are independent is the point: pulling two of
+ * them together and the third away gives yellow or cyan fringing, where a symmetric split
+ * can only ever give red and blue.
+ *
+ * It is a real channel split, so a channel that is not present in the image does not move —
+ * a pure blue picture ignores the red slider entirely, and that is correct rather than a
+ * missing feature.
+ *
+ * The row displacement runs on top, either as a clean sine or as per-row noise.
  */
 object Chromatic {
 
     fun apply(source: Pixels, params: ChromaticParams): Pixels {
         if (!params.enabled) return source
-        if (params.offset == 0 && params.waveAmplitude == 0) return source
+        if (params.maxDisplace == 0 && params.waveAmplitude == 0) return source
 
         val radians = params.angle * PI / 180.0
-        val dx = (cos(radians) * params.offset).toFloat()
-        val dy = (sin(radians) * params.offset).toFloat()
+        val axisX = cos(radians).toFloat()
+        val axisY = sin(radians).toFloat()
+
+        // 50 is the middle, so a channel left there does not move at all.
+        fun displacement(position: Int) = (position.coerceIn(0, 100) - 50) / 50f * params.maxDisplace
+        val red = displacement(params.redChannel)
+        val green = displacement(params.greenChannel)
+        val blue = displacement(params.blueChannel)
 
         val random = Random(params.seed)
         val noiseAmount = params.waveNoise / 100f
@@ -48,14 +61,14 @@ object Chromatic {
             val shift = rowShift[y]
             for (x in 0 until source.width) {
                 val baseX = x + shift
-                val red = sample(source, baseX + dx, y + dy)
-                val green = sample(source, baseX.toFloat(), y.toFloat())
-                val blue = sample(source, baseX - dx, y - dy)
+                val r = sample(source, baseX + axisX * red, y + axisY * red)
+                val g = sample(source, baseX + axisX * green, y + axisY * green)
+                val b = sample(source, baseX + axisX * blue, y + axisY * blue)
                 out[y * source.width + x] = argb(
-                    alphaOf(green),
-                    redOf(red),
-                    greenOf(green),
-                    blueOf(blue),
+                    alphaOf(g),
+                    redOf(r),
+                    greenOf(g),
+                    blueOf(b),
                 )
             }
         }
