@@ -57,16 +57,49 @@ Both together are under 170 KB. See `app/src/main/assets/fonts/NOTICE.md`.
 **Tone** — gamma → contrast → brightness, applied to each cell's luminance before it picks a
 glyph. Without it a flat photo only ever reaches the middle third of the ramp.
 
+**Dithering** — error diffusion (Floyd–Steinberg, Atkinson, Jarvis, Sierra Lite) with
+serpentine scanning, ordered Bayer 2/4/8, and a modulation family whose threshold is a
+continuous function of position: lines, wave, rings, orb and beehive. A separate **pattern
+scale** sizes the pattern independently of the cell, which is what lets an algorithm be
+driven until it visibly breaks down.
+
+**Edges** — Sobel over the cell grid; a cell whose gradient clears the threshold takes a
+glyph matching the edge's direction rather than its brightness. Four edge sets, plus an
+edges-only mode that gives line art.
+
 **Colour** — single ink colour, source-sampled colour, or a palette. 19 palettes in 6
-categories, with individually editable stops. Transparent or hex-picked background.
+categories, with individually editable stops, per-stop locks, a shuffle that respects them,
+a palette depth independent of the glyph depth, and extraction straight from the loaded
+image. Transparent or hex-picked background.
 
-**Epsilon Glow** — directional bloom over the rendered glyphs: threshold with soft knee,
-radius with optional compensation, intensity, aspect ratio, direction, and an inverse-power
-falloff `w(d) = 1 / ((d·scale)ⁿ + ε)`. It never touches the character grid, so `.txt` exports
-are unaffected.
+**Effects** — eight stackable passes over the rendered glyphs, in an order you can change:
+post processing, blur/sharpen, tint, chromatic aberration, JPEG databending, diffraction
+stars, subtexture, and Epsilon Glow. The order is not cosmetic — glitch before glow blooms,
+glitch after glow cuts the bloom apart.
 
-**Export** — PNG to `Pictures/Glyphsmith`, the character grid to `Download/Glyphsmith`,
-clipboard, or the system share sheet. Presets are saved as JSON.
+*Epsilon Glow* is a directional bloom: threshold with soft knee, radius with optional
+compensation, intensity, aspect ratio, direction, and an inverse-power falloff
+`w(d) = 1 / ((d·scale)ⁿ + ε)`.
+
+*Subtexture* generates its own textures rather than shipping any — CRT stripes and aperture,
+halftone, paper grain and fibre, scanner streaks, static, VHS bands — with four blend modes
+and an option to derive the texture from the picture's own local detail so it bites where
+there is structure and fades over flat areas.
+
+None of the effects touch the character grid, so `.txt` and `.svg` exports are unaffected.
+
+**Animation** — a still image animated by moving the parameters, not the picture. Nine
+tracks, eight curves (three of them one-way ramps, marked as such because they do not close
+a loop), and **Temporal Variation**: nine animated noise patterns that shift the dither
+threshold itself. Every pattern is periodic over the loop, so the last frame lands back on
+the first.
+
+**Export** — PNG to `Pictures/Glyphsmith`; the character grid, GIF, MP4 and SVG to
+`Download/Glyphsmith`; clipboard; or the system share sheet. Presets are saved as JSON.
+
+SVG comes in two modes. *Text* keeps the glyphs editable as type but needs the font at the
+other end. *Outlines* flattens each glyph to a real path — no font dependency, which is what
+print and embroidery want.
 
 ## Building
 
@@ -84,10 +117,12 @@ release.
 ## Layout
 
 ```
-ascii/     CharacterSets, AsciiParams, AsciiEngine (pure Kotlin), AsciiRenderer (Canvas)
-effects/   EpsilonGlow
+ascii/     CharacterSets, AsciiParams, AsciiEngine (pure Kotlin), Dither, EdgeDetect,
+           Palettes, Fonts, AsciiRenderer (Canvas), Pipeline
+anim/      Animation tracks and curves, Temporal, GifEncoder, Mp4Encoder, ColorQuantizer
+effects/   The eight passes plus PixelOps and the ordered EffectPipeline
 data/      ImageLoader (decode + EXIF), PresetStore
-export/    PNG / TXT / clipboard / share
+export/    PNG / TXT / SVG / clipboard / share
 ui/        terminal-styled Compose panels
 ```
 

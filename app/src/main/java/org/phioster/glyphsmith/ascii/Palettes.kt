@@ -1,5 +1,7 @@
 package org.phioster.glyphsmith.ascii
 
+import kotlin.random.Random
+
 /**
  * A palette maps a cell's luminance onto a colour, darkest entry first.
  *
@@ -81,6 +83,56 @@ object Palettes {
         val lower = scaled.toInt().coerceAtMost(colors.size - 2)
         val frac = scaled - lower
         return lerpColor(colors[lower], colors[lower + 1], frac)
+    }
+
+    /** Rec. 709 luminance of a packed colour, 0..1 — the key palettes are ordered by. */
+    fun luminanceOf(color: Int): Float {
+        val r = (color shr 16) and 0xFF
+        val g = (color shr 8) and 0xFF
+        val b = color and 0xFF
+        return (0.2126f * r + 0.7152f * g + 0.0722f * b) / 255f
+    }
+
+    /**
+     * Turns loose colours into a usable palette: opaque, deduplicated, darkest first.
+     *
+     * The sort is not cosmetic. [sample] maps a cell's luminance straight onto the list
+     * position, so an unsorted palette makes bright areas come out dark and the image reads
+     * as noise. Anything built from an image has to come through here.
+     */
+    fun fromColors(colors: List<Int>): List<Int> = colors
+        .map { it or (0xFF shl 24) }
+        .distinct()
+        .sortedBy { luminanceOf(it) }
+
+    /**
+     * Resamples [colors] down to [depth] stops, keeping both ends.
+     *
+     * A depth of 0 — or one that is not actually a reduction — leaves the palette alone.
+     * Interpolating rather than dropping entries keeps the ramp evenly spaced instead of
+     * lop-sided towards whichever end happened to survive.
+     */
+    fun withDepth(colors: List<Int>, depth: Int): List<Int> {
+        if (depth <= 0 || colors.size < 2 || depth >= colors.size) return colors
+        if (depth == 1) return listOf(colors.first())
+        val palette = Palette("resampled", "resampled", "", colors)
+        return List(depth) { i -> sample(palette, i.toFloat() / (depth - 1)) }
+    }
+
+    /**
+     * Shuffles the stops that are not locked, leaving the locked ones exactly where they are.
+     *
+     * The result is deliberately *not* re-sorted. A shuffle is for finding a look by accident,
+     * and a palette that always snaps back to dark-to-light can only ever produce the same
+     * ordering it started with.
+     */
+    fun shuffle(colors: List<Int>, locked: List<Boolean>, random: Random): List<Int> {
+        val movable = colors.indices.filterNot { locked.getOrElse(it) { false } }
+        if (movable.size < 2) return colors
+        val shuffled = movable.map { colors[it] }.shuffled(random)
+        val out = colors.toMutableList()
+        movable.forEachIndexed { i, index -> out[index] = shuffled[i] }
+        return out
     }
 
     private fun lerpColor(from: Int, to: Int, frac: Float): Int {

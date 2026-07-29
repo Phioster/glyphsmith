@@ -1,5 +1,6 @@
 package org.phioster.glyphsmith.ascii
 
+import org.phioster.glyphsmith.anim.Temporal
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -142,11 +143,19 @@ object AsciiEngine {
         val levels = ramp.length
         val glyphs = CharArray(cols * rows)
         val colors = if (colorGrid != null) IntArray(cols * rows) else null
-        val palette = params.activePalette()
+        val palette = params.renderPalette()
 
         val mode = params.ditherMode
         val strength = (params.ditherStrength / 100f).coerceIn(0f, 1f)
-        val ordered = Dither.isOrdered(mode)
+        val ordered = Dither.isThresholdBased(mode)
+        val pattern = PatternOptions(
+            scale = params.ditherScale,
+            period = params.modScale,
+            angle = params.modAngle,
+            phase = params.modPhase / 100f,
+            centerX = cols / 2f,
+            centerY = rows / 2f,
+        )
         val kernel = Dither.diffusionKernel(mode)
         val depth = Dither.kernelDepth(mode)
         // Only the rows a kernel can still reach are kept, not a full-grid error buffer.
@@ -167,8 +176,13 @@ object AsciiEngine {
                 val cell = row * cols + col
                 val base = lumaGrid[cell]
 
-                val target = when {
-                    ordered -> base + (Dither.orderedThreshold(mode, col, row) - 0.5f) *
+                // Temporal noise nudges the threshold rather than the image, so it reaches
+                // every dither mode — including NONE, where it is the only thing moving.
+                // Scaled to one glyph step, exactly as the ordered branch scales its own.
+                val jitter = Temporal.offset(params.temporal, col, row) / max(1, levels - 1)
+
+                val target = jitter + when {
+                    ordered -> base + (Dither.threshold(mode, col, row, pattern) - 0.5f) *
                         strength / max(1, levels - 1)
 
                     kernel.isNotEmpty() -> base + currentError[col]

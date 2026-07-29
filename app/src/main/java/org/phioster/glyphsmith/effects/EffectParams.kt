@@ -123,14 +123,44 @@ data class DiffractionStarsParams(
 )
 
 /**
- * The effect chain, applied to the *rendered glyphs* in this fixed order:
+ * Blur and sharpen, on one slider.
  *
- * post processing → tint → chromatic → JPEG glitch → diffraction stars → glow
+ * They are the same operation seen from both ends — sharpening is the blurred image
+ * subtracted back out of the original — so splitting them into two effects would mean two
+ * controls that can contradict each other.
+ */
+@Serializable
+data class BlurSharpenParams(
+    val enabled: Boolean = false,
+    /** -100..100: negative sharpens, positive blurs, 0 does nothing. */
+    val amount: Int = 0,
+    /** Kernel radius in pixels, 1..12. */
+    val radius: Int = 2,
+)
+
+/** One slot in the effect chain. The enum order is the default order of the chain. */
+enum class EffectId(val label: String) {
+    POST("post"),
+    BLUR("blur / sharpen"),
+    TINT("tint"),
+    CHROMATIC("chromatic"),
+    GLITCH("jpeg glitch"),
+    STARS("stars"),
+    SUBTEXTURE("subtexture"),
+    GLOW("glow"),
+}
+
+/**
+ * The effect chain, applied to the *rendered glyphs*.
  *
- * The order is deliberate rather than configurable: grading before damage, damage before
- * light. Putting the glow last is what makes flares and glitch edges bloom instead of being
- * smeared by later passes. None of it touches the character grid, so `.txt` exports are
- * unaffected by anything in here.
+ * The default order — grading before damage, damage before light — is still the one worth
+ * reaching for, and glow last is what makes flares and glitch edges bloom instead of being
+ * smeared by whatever follows. But the order is now [order] rather than the sequence of
+ * calls, because which pass runs first changes the result far more than most of the sliders
+ * do. A preset saved before this existed simply has no `order` field and deserialises to
+ * the old fixed sequence.
+ *
+ * None of it touches the character grid, so `.txt` and `.svg` exports are unaffected.
  */
 @Serializable
 data class EffectStack(
@@ -140,14 +170,40 @@ data class EffectStack(
     val jpegGlitch: JpegGlitchParams = JpegGlitchParams(),
     val stars: DiffractionStarsParams = DiffractionStarsParams(),
     val glow: GlowParams = GlowParams(),
+    val blurSharpen: BlurSharpenParams = BlurSharpenParams(),
+    val subtexture: SubtextureParams = SubtextureParams(),
+    val order: List<EffectId> = EffectId.entries.toList(),
 ) {
-    val activeCount: Int
-        get() = listOf(
-            postProcessing.enabled,
-            tint.enabled,
-            chromatic.enabled,
-            jpegGlitch.enabled,
-            stars.enabled,
-            glow.enabled,
-        ).count { it }
+    fun enabledOf(id: EffectId): Boolean = when (id) {
+        EffectId.POST -> postProcessing.enabled
+        EffectId.BLUR -> blurSharpen.enabled
+        EffectId.TINT -> tint.enabled
+        EffectId.CHROMATIC -> chromatic.enabled
+        EffectId.GLITCH -> jpegGlitch.enabled
+        EffectId.STARS -> stars.enabled
+        EffectId.SUBTEXTURE -> subtexture.enabled
+        EffectId.GLOW -> glow.enabled
+    }
+
+    /**
+     * [order] with duplicates dropped and anything missing appended, so a preset written
+     * before an effect existed still runs that effect rather than silently dropping it.
+     */
+    fun effectiveOrder(): List<EffectId> {
+        val known = order.distinct()
+        return known + EffectId.entries.filterNot { it in known }
+    }
+
+    val activeCount: Int get() = EffectId.entries.count { enabledOf(it) }
+
+    /** Moves [id] one slot earlier or later; a no-op at either end. */
+    fun reorder(id: EffectId, delta: Int): EffectStack {
+        val current = effectiveOrder().toMutableList()
+        val from = current.indexOf(id)
+        val to = from + delta
+        if (from < 0 || to !in current.indices) return this
+        current.removeAt(from)
+        current.add(to, id)
+        return copy(order = current)
+    }
 }

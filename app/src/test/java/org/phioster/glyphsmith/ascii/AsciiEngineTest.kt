@@ -124,6 +124,43 @@ class AsciiEngineTest {
         assertTrue(art.toText().lines().toSet().size > 1)
     }
 
+    /**
+     * A gradient varies only in x, so an undithered render repeats one row. A modulation
+     * pattern is a function of *both* axes, so it must break that — if a mode leaves the
+     * rows identical it is not actually reaching the glyph choice.
+     */
+    @Test
+    fun `every modulation mode varies the grid vertically`() {
+        listOf(
+            DitherMode.MOD_LINES,
+            DitherMode.MOD_WAVE,
+            DitherMode.MOD_RINGS,
+            DitherMode.MOD_ORB,
+            DitherMode.BEEHIVE,
+        ).forEach { mode ->
+            val params = twoLevel.copy(ditherMode = mode, modScale = 6, modAngle = 30)
+            val art = AsciiEngine.convert(gradient(64, 64), 64, 64, params, cellAspect = 1f)
+            assertTrue("$mode left every row identical", art.toText().lines().toSet().size > 1)
+        }
+    }
+
+    @Test
+    fun `pattern scale changes a modulated render but leaves an undithered one alone`() {
+        val base = twoLevel.copy(ditherMode = DitherMode.MOD_ORB, modScale = 4)
+        val small = AsciiEngine.convert(gradient(64, 64), 64, 64, base, cellAspect = 1f)
+        val large = AsciiEngine.convert(
+            gradient(64, 64), 64, 64, base.copy(ditherScale = 400), cellAspect = 1f,
+        )
+        assertTrue("pattern scale did nothing", small.toText() != large.toText())
+
+        // With no dithering there is no pattern to scale, so the control must be inert.
+        val plain = AsciiEngine.convert(gradient(64, 64), 64, 64, twoLevel, cellAspect = 1f)
+        val scaled = AsciiEngine.convert(
+            gradient(64, 64), 64, 64, twoLevel.copy(ditherScale = 400), cellAspect = 1f,
+        )
+        assertEquals(plain.toText(), scaled.toText())
+    }
+
     @Test
     fun `zero dither strength is the same as no dithering`() {
         val off = AsciiEngine.convert(gradient(64, 64), 64, 64, twoLevel, cellAspect = 1f)

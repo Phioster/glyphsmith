@@ -12,6 +12,8 @@ enum class AnimTarget(val label: String, val min: Int, val max: Int) {
     DEPTH("Depth", 1, AsciiParams.MAX_DEPTH),
     CHARACTER_OFFSET("Character Offset", 0, 64),
     DITHER_STRENGTH("Dither Strength", 0, 100),
+    /** A full sweep of a modulation period, so a sawtooth over 0..100 travels seamlessly. */
+    MOD_PHASE("Modulation Phase", 0, 100),
     EDGE_THRESHOLD("Edge Threshold", 0, 100),
     GLITCH_SEED("Glitch Seed", 1, 9999),
     CHROMATIC_OFFSET("Chromatic Offset", 0, 50),
@@ -19,13 +21,23 @@ enum class AnimTarget(val label: String, val min: Int, val max: Int) {
     STARS_ANGLE("Stars Angle", 0, 359),
 }
 
-/** How a track's value travels between its two ends over one cycle. */
-enum class AnimCurve(val label: String) {
-    SINE("Sine"),
-    TRIANGLE("Triangle"),
-    SAWTOOTH("Sawtooth"),
-    PULSE("Pulse"),
-    RANDOM("Random"),
+/**
+ * How a track's value travels between its two ends over one cycle.
+ *
+ * [seamless] says whether the curve arrives back where it started. The ramps do not: they
+ * run from one end to the other and snap back, which is what a one-shot move wants and what
+ * a looping texture does not. The panel says which is which rather than leaving it to be
+ * discovered in an exported GIF.
+ */
+enum class AnimCurve(val label: String, val seamless: Boolean) {
+    SINE("Sine", true),
+    TRIANGLE("Triangle", true),
+    SAWTOOTH("Sawtooth", false),
+    PULSE("Pulse", true),
+    RANDOM("Random", true),
+    EASE_IN("Ease In", false),
+    EASE_OUT("Ease Out", false),
+    EASE_IN_OUT("Ease In-Out", false),
 }
 
 @Serializable
@@ -84,6 +96,10 @@ object Animator {
             AnimCurve.SAWTOOTH -> phased
             AnimCurve.PULSE -> if (phased < 0.5f) 0f else 1f
             AnimCurve.RANDOM -> hash(frame, salt)
+            // Eased ramps: same journey as SAWTOOTH, different pacing along it.
+            AnimCurve.EASE_IN -> phased * phased
+            AnimCurve.EASE_OUT -> 1f - (1f - phased) * (1f - phased)
+            AnimCurve.EASE_IN_OUT -> phased * phased * (3f - 2f * phased)
         }
     }
 
@@ -104,10 +120,18 @@ object Animator {
             .coerceIn(minOf(track.from, track.to), maxOf(track.from, track.to))
     }
 
-    /** The parameters for one frame: the base settings with every enabled track applied. */
+    /**
+     * The parameters for one frame: the base settings with every enabled track applied, and
+     * the temporal clock set.
+     *
+     * The clock is set even when no track is enabled — temporal noise is an animation in its
+     * own right, and switching it on should move the picture without also having to arm a
+     * track.
+     */
     fun paramsAt(base: AsciiParams, animation: AnimationParams, frame: Int): AsciiParams {
         if (!animation.enabled) return base
-        var params = base
+        val loop = if (animation.frames <= 0) 0f else frame.toFloat() / animation.frames
+        var params = base.copy(temporal = base.temporal.copy(time = loop))
         animation.tracks.filter { it.enabled }.forEach { track ->
             val value = valueAt(track, frame, animation.frames)
             params = apply(params, track.target, value)
@@ -121,6 +145,9 @@ object Animator {
             // The offset wraps anyway, so it is never clamped to the ramp length here.
             AnimTarget.CHARACTER_OFFSET -> params.copy(offset = value)
             AnimTarget.DITHER_STRENGTH -> params.copy(ditherStrength = value.coerceIn(0, 100))
+            // Left unclamped: the phase wraps inside the pattern, so a track that runs past
+            // 100 simply keeps travelling instead of stalling at the end of its range.
+            AnimTarget.MOD_PHASE -> params.copy(modPhase = value)
             AnimTarget.EDGE_THRESHOLD -> params.copy(edgeThreshold = value.coerceIn(0, 100))
             AnimTarget.GLITCH_SEED -> params.copy(
                 effects = params.effects.copy(

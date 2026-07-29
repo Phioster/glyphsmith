@@ -83,4 +83,92 @@ class DitherTest {
         assertTrue(!Dither.isOrdered(DitherMode.FLOYD_STEINBERG))
         assertTrue(!Dither.isOrdered(DitherMode.NONE))
     }
+
+    private val modulationModes = listOf(
+        DitherMode.MOD_LINES,
+        DitherMode.MOD_WAVE,
+        DitherMode.MOD_RINGS,
+        DitherMode.MOD_ORB,
+        DitherMode.BEEHIVE,
+    )
+
+    @Test
+    fun `threshold-based covers bayer and modulation but nothing else`() {
+        modulationModes.forEach { assertTrue("$it", Dither.isModulation(it)) }
+        modulationModes.forEach { assertTrue("$it", Dither.isThresholdBased(it)) }
+        assertTrue(Dither.isThresholdBased(DitherMode.BAYER_4))
+        assertTrue(!Dither.isThresholdBased(DitherMode.FLOYD_STEINBERG))
+        assertTrue(!Dither.isThresholdBased(DitherMode.NONE))
+        assertTrue(!Dither.isModulation(DitherMode.BAYER_4))
+    }
+
+    @Test
+    fun `modulation thresholds stay inside the unit interval`() {
+        val options = PatternOptions(period = 7, angle = 37, centerX = 20f, centerY = 12f)
+        modulationModes.forEach { mode ->
+            for (y in -20..40) {
+                for (x in -20..40) {
+                    val t = Dither.threshold(mode, x, y, options)
+                    assertTrue("$mode gave $t at ($x,$y)", t in 0f..1f)
+                }
+            }
+        }
+    }
+
+    /**
+     * The pattern scale must be independent of the cell grid: at 200% the same threshold has
+     * to turn up twice as far out. If this fails the control has collapsed back into being a
+     * second cell-size slider, which is exactly what it exists not to be.
+     */
+    @Test
+    fun `doubling the pattern scale doubles the period`() {
+        val normal = PatternOptions(scale = 100, period = 4)
+        val doubled = PatternOptions(scale = 200, period = 4)
+        (modulationModes + DitherMode.BAYER_4).forEach { mode ->
+            for (y in 0 until 12) {
+                for (x in 0 until 12) {
+                    assertEquals(
+                        "$mode at ($x,$y)",
+                        Dither.threshold(mode, x, y, normal),
+                        Dither.threshold(mode, 2 * x, 2 * y, doubled),
+                        1e-5f,
+                    )
+                }
+            }
+        }
+    }
+
+    /** The honeycomb is a square orb grid with every other row pushed half a cell across. */
+    @Test
+    fun `beehive offsets odd rows and leaves even ones alone`() {
+        val options = PatternOptions(period = 6)
+        var differences = 0
+        for (x in 0 until 24) {
+            // Row 0 sits in the first band of v, row 6 in the second — one shifted, one not.
+            assertEquals(
+                Dither.threshold(DitherMode.MOD_ORB, x, 0, options),
+                Dither.threshold(DitherMode.BEEHIVE, x, 0, options),
+                1e-5f,
+            )
+            val orb = Dither.threshold(DitherMode.MOD_ORB, x, 6, options)
+            val hive = Dither.threshold(DitherMode.BEEHIVE, x, 6, options)
+            if (kotlin.math.abs(orb - hive) > 1e-3f) differences++
+        }
+        assertTrue("odd band is not offset at all", differences > 0)
+    }
+
+    @Test
+    fun `modulation phase travels a whole period and comes back`() {
+        val options = PatternOptions(period = 5)
+        modulationModes.forEach { mode ->
+            for (x in 0 until 10) {
+                assertEquals(
+                    "$mode does not close at ($x)",
+                    Dither.threshold(mode, x, 3, options.copy(phase = 0f)),
+                    Dither.threshold(mode, x, 3, options.copy(phase = 1f)),
+                    1e-4f,
+                )
+            }
+        }
+    }
 }

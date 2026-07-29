@@ -3,6 +3,7 @@ package org.phioster.glyphsmith.effects
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import kotlin.math.abs
+import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.pow
 
@@ -91,6 +92,69 @@ object PixelOps {
         val norm = if (normalise) sum else weights[radius] * weights.size
         if (norm > 0f) for (i in weights.indices) weights[i] /= norm
         return weights
+    }
+
+    /** Normalised 1-D Gaussian with σ chosen so the kernel dies out at [radius]. */
+    fun gaussianKernel(radius: Int): FloatArray {
+        val r = radius.coerceAtLeast(1)
+        val sigma = r / 3f
+        val weights = FloatArray(r * 2 + 1)
+        var sum = 0f
+        for (i in weights.indices) {
+            val d = (i - r).toFloat()
+            val w = exp(-(d * d) / (2f * sigma * sigma))
+            weights[i] = w
+            sum += w
+        }
+        for (i in weights.indices) weights[i] /= sum
+        return weights
+    }
+
+    /**
+     * Separable Gaussian blur that carries the alpha channel with it.
+     *
+     * [convolve] forces every pixel opaque, which is right for the glow passes it was built
+     * for and wrong here — blurring a glyph sitting on a transparent background has to let
+     * it fade out, not paint the background in. Colours are premultiplied for the duration
+     * so that fully transparent pixels can't bleed their (meaningless) RGB into the result.
+     */
+    fun blurRgba(source: Pixels, radius: Int): Pixels {
+        val weights = gaussianKernel(radius)
+        return blurAxis(blurAxis(source, weights, true), weights, false)
+    }
+
+    private fun blurAxis(source: Pixels, weights: FloatArray, horizontal: Boolean): Pixels {
+        val out = IntArray(source.data.size)
+        val radius = weights.size / 2
+        for (y in 0 until source.height) {
+            for (x in 0 until source.width) {
+                var a = 0f
+                var r = 0f
+                var g = 0f
+                var b = 0f
+                for (k in weights.indices) {
+                    val offset = k - radius
+                    val sx = if (horizontal) (x + offset).coerceIn(0, source.width - 1) else x
+                    val sy = if (horizontal) y else (y + offset).coerceIn(0, source.height - 1)
+                    val pixel = source.data[sy * source.width + sx]
+                    val w = weights[k]
+                    val pa = alphaOf(pixel) / 255f
+                    a += alphaOf(pixel) * w
+                    r += redOf(pixel) * pa * w
+                    g += greenOf(pixel) * pa * w
+                    b += blueOf(pixel) * pa * w
+                }
+                val alpha = a.coerceIn(0f, 255f)
+                val un = if (alpha < 0.5f) 0f else 255f / alpha
+                out[y * source.width + x] = argb(
+                    alpha.toInt(),
+                    (r * un).toInt().coerceIn(0, 255),
+                    (g * un).toInt().coerceIn(0, 255),
+                    (b * un).toInt().coerceIn(0, 255),
+                )
+            }
+        }
+        return Pixels(out, source.width, source.height)
     }
 
     fun convolve(source: Pixels, weights: FloatArray, horizontal: Boolean): Pixels {

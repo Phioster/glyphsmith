@@ -38,6 +38,7 @@ import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.export.ImageFormat
+import org.phioster.glyphsmith.export.SvgMode
 import org.phioster.glyphsmith.ui.panels.AnimPanel
 import org.phioster.glyphsmith.ui.panels.AsciiPanel
 import org.phioster.glyphsmith.ui.panels.ColorPanel
@@ -65,6 +66,8 @@ fun GlyphsmithScreen(
     onFormatChange: (ImageFormat) -> Unit,
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
+    onExportSvg: (SvgMode) -> Unit,
+    onExtractPalette: (Int) -> Unit,
     onCopy: () -> Unit,
     onShareImage: () -> Unit,
     onShareText: () -> Unit,
@@ -119,7 +122,7 @@ fun GlyphsmithScreen(
                     missingGlyphs = state.missingGlyphs,
                 )
                 Tab.MAPPING -> MappingPanel(state.params, onParamsChange)
-                Tab.COLOR -> ColorPanel(state.params, onParamsChange)
+                Tab.COLOR -> ColorPanel(state.params, onParamsChange, onExtractPalette)
                 Tab.EFFECTS -> EffectsPanel(state.params, onParamsChange)
                 Tab.ANIM -> AnimPanel(
                     state = state,
@@ -136,6 +139,7 @@ fun GlyphsmithScreen(
                     onFormatChange = onFormatChange,
                     onExportPng = onExportPng,
                     onExportTxt = onExportTxt,
+                    onExportSvg = onExportSvg,
                     onCopy = onCopy,
                     onShareImage = onShareImage,
                     onShareText = onShareText,

@@ -108,7 +108,26 @@ object AsciiRenderer {
         return best
     }
 
-    fun render(art: AsciiArt, params: AsciiParams, fontSizePx: Int, canvasScale: Float = 1f): Bitmap {
+    /**
+     * Where every glyph lands. Shared by the bitmap renderer and the SVG exporter so the two
+     * cannot drift apart — a vector export that doesn't match the preview is worse than none.
+     */
+    data class GridLayout(
+        val fontSize: Int,
+        val width: Int,
+        val height: Int,
+        val originX: Float,
+        val originY: Float,
+        val cell: CellMetrics,
+        val face: Typeface,
+    )
+
+    fun layout(
+        art: AsciiArt,
+        params: AsciiParams,
+        fontSizePx: Int,
+        canvasScale: Float = 1f,
+    ): GridLayout {
         val ramp = params.effectiveRamp().ifEmpty { " " }
         val face = faceFor(params, ramp).typeface
 
@@ -134,8 +153,30 @@ object AsciiRenderer {
             height = (art.rows * cell.height).coerceIn(1, MAX_OUTPUT_SIDE)
         }
         val cell = metrics(size, ramp, face)
-        val originX = if (params.canvasEnabled) (width - art.cols * cell.width) / 2f else 0f
-        val originY = if (params.canvasEnabled) (height - art.rows * cell.height) / 2f else 0f
+        return GridLayout(
+            fontSize = size,
+            width = width,
+            height = height,
+            originX = if (params.canvasEnabled) (width - art.cols * cell.width) / 2f else 0f,
+            originY = if (params.canvasEnabled) (height - art.rows * cell.height) / 2f else 0f,
+            cell = cell,
+            face = face,
+        )
+    }
+
+    /** A paint set up exactly as the renderer uses it — the SVG exporter measures with it. */
+    fun paintFor(layout: GridLayout): Paint = paintFor(layout.fontSize.toFloat(), layout.face)
+
+    fun render(art: AsciiArt, params: AsciiParams, fontSizePx: Int, canvasScale: Float = 1f): Bitmap {
+        val ramp = params.effectiveRamp().ifEmpty { " " }
+        val grid = layout(art, params, fontSizePx, canvasScale)
+        val size = grid.fontSize
+        val width = grid.width
+        val height = grid.height
+        val cell = grid.cell
+        val face = grid.face
+        val originX = grid.originX
+        val originY = grid.originY
 
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
