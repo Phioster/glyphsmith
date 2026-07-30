@@ -7,6 +7,7 @@ import android.graphics.Matrix
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
 import kotlin.math.max
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * Decodes a picked image down to a workable size and fixes its orientation.

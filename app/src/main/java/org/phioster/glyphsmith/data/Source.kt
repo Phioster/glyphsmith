@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import kotlin.math.max
 import kotlin.math.roundToLong
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * Where the pixels come from.

@@ -27,10 +27,7 @@ import org.phioster.glyphsmith.anim.Mp4Encoder
 import org.phioster.glyphsmith.ascii.AsciiRenderer
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.DitherMode
-import org.phioster.glyphsmith.ascii.Palettes
 import org.phioster.glyphsmith.ascii.Pipeline
-import org.phioster.glyphsmith.ascii.FontChoice
 import org.phioster.glyphsmith.ascii.GlyphCoverage
 import org.phioster.glyphsmith.data.CameraCapture
 import org.phioster.glyphsmith.data.ImageLoader
@@ -67,6 +64,15 @@ import org.phioster.glyphsmith.export.SvgMode
 import org.phioster.glyphsmith.export.TextExporters
 import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.ui.theme.TermThemes
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.color.Palettes
+import org.phioster.glyphsmith.effects.CrtWarpParams
+import org.phioster.glyphsmith.effects.BlueNoiseDitherParams
+import org.phioster.glyphsmith.effects.ColorDepthParams
+import org.phioster.glyphsmith.effects.SpotColorPrintParams
+import org.phioster.glyphsmith.effects.ModulationColorMode
+import org.phioster.glyphsmith.effects.ModulationLinesParams
+import org.phioster.glyphsmith.core.color.ColorDistance
 
 data class UiState(
     val params: AsciiParams = AsciiParams(),
@@ -143,6 +149,14 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private var source: Source? = null
     private var art: AsciiArt? = null
 
+    /**
+     * True between a slider being grabbed and released.
+     *
+     * Not in [UiState]: nothing in the interface renders differently while a slider is held, and
+     * putting it there would recompose every panel twice per drag for no visible change.
+     */
+    private var scrubbing = false
+
     init {
         // Applied before the first frame so the app never flashes the default theme on top
         // of the one the user actually chose.
@@ -175,6 +189,20 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         settings.themeId = id
         Term.palette = TermThemes.byId(id)
         _state.value = _state.value.copy(themeId = id)
+    }
+
+    /**
+     * Called when any slider is grabbed or released.
+     *
+     * While held, [rebuild] renders at [SCRUB_MAX_SIDE] instead of the preview budget, which is
+     * what makes a heavy chain track the finger. The release triggers one more pass at full
+     * preview quality — without it the user would be left looking at the coarse render and
+     * would reasonably conclude the app had got worse.
+     */
+    fun setScrubbing(active: Boolean) {
+        if (scrubbing == active) return
+        scrubbing = active
+        if (!active) viewModelScope.launch { rebuild(paramsFlow.value) }
     }
 
     /** Halving the preview resolution is the one lever that makes a heavy chain feel live. */
@@ -407,11 +435,23 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Scrubs the preview through a video. Ignored for a still, which has one frame. */
+    /**
+     * Scrubs a video's preview frame.
+     *
+     * The previous render is cancelled rather than left to finish. This is the one slider that
+     * does not go through [paramsFlow] — the params do not change, only which frame is decoded —
+     * so it never had `collectLatest`'s coalescing, and a drag used to launch one render per
+     * emission with all of them racing to write the preview. The last one to finish won, which is
+     * not necessarily the last one asked for.
+     */
     fun setPreviewPosition(position: Float) {
         if (source?.isMoving != true) return
         _state.value = _state.value.copy(previewPosition = position.coerceIn(0f, 1f))
-        viewModelScope.launch { rebuild(_state.value.params) }
+        positionJob?.cancel()
+        positionJob = viewModelScope.launch { rebuild(_state.value.params) }
     }
+
+    private var positionJob: Job? = null
 
     /** Swaps in a new source and releases whatever the old one was holding. */
     private fun adopt(next: Source) {
@@ -434,28 +474,36 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val current = source ?: return
         val pixels = current.pixelsAt(_state.value.previewPosition)
         _state.value = _state.value.copy(working = true)
+        val scrub = scrubbing
+        val budget = if (scrub) SCRUB_MAX_SIDE else _state.value.previewQuality.maxSide
         val result = withContext(Dispatchers.Default) {
-            Pipeline.run(pixels, current.width, current.height, params, _state.value.previewQuality.maxSide)
+            Pipeline.run(pixels, current.width, current.height, params, budget, isScrubbing = scrub)
         }
         art = result.art
         // Measured once per rebuild and cached inside GlyphCoverage, so a slider drag pays
-        // for the rasterisation only the first time a glyph is seen in this face.
-        val coverage = withContext(Dispatchers.Default) {
-            GlyphCoverage.profile(params.baseGlyphs(), result.face.typeface).map { it.second }
+        // for the rasterisation only the first time a glyph is seen in this face. The pixel
+        // mode has no face to profile, so there is nothing to measure and nothing to show.
+        val face = result.face
+        val coverage = if (face == null) {
+            emptyList()
+        } else {
+            withContext(Dispatchers.Default) {
+                GlyphCoverage.profile(params.baseGlyphs(), face.typeface).map { it.second }
+            }
         }
         // The old preview is deliberately not recycled: Compose may still be drawing it
         // this frame, and a recycled bitmap under the canvas is an instant crash.
         _state.value = _state.value.copy(
             preview = result.bitmap,
-            cols = result.art.cols,
-            rows = result.art.rows,
+            cols = result.cols,
+            rows = result.rows,
             outputWidth = result.outputWidth,
             outputHeight = result.outputHeight,
-            fontLabel = result.face.label,
-            missingGlyphs = result.face.missing,
+            fontLabel = face?.label ?: "",
+            missingGlyphs = face?.missing ?: "",
             rampCoverage = coverage,
             working = false,
-            status = "${result.art.cols}×${result.art.rows} cells",
+            status = "${result.cols}×${result.rows} ${if (face == null) "px" else "cells"}",
         )
     }
 
@@ -884,6 +932,48 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 EffectId.GLOW -> effects.copy(
                     glow = GlowParams(enabled = true, intensity = random.nextInt(200, 600)),
                 )
+
+                EffectId.MODULATION -> effects.copy(
+                    modulationLines = ModulationLinesParams(
+                        enabled = true,
+                        lineSpacing = random.nextInt(4, 16),
+                        amplitude = random.nextInt(3, 20),
+                        colorMode = ModulationColorMode.entries.random(random),
+                    ),
+                )
+
+                EffectId.PRINT -> effects.copy(
+                    spotPrint = SpotColorPrintParams(
+                        enabled = true,
+                        misalignment = random.nextInt(10, 60),
+                        inkCount = random.nextInt(2, 5),
+                        seed = random.nextInt(1, 999),
+                    ),
+                )
+
+                EffectId.DEPTH -> effects.copy(
+                    colorDepth = ColorDepthParams(
+                        enabled = true,
+                        colorLevels = random.nextInt(2, 10),
+                        colorSpace = ColorDistance.entries.random(random),
+                    ),
+                )
+
+                EffectId.DITHER -> effects.copy(
+                    blueNoise = BlueNoiseDitherParams(
+                        enabled = true,
+                        levels = random.nextInt(2, 6),
+                        noiseScale = random.nextInt(1, 4),
+                    ),
+                )
+
+                EffectId.WARP -> effects.copy(
+                    crtWarp = CrtWarpParams(
+                        enabled = true,
+                        warpCurvature = random.nextInt(10, 60),
+                        vignetteIntensity = random.nextInt(15, 60),
+                    ),
+                )
             }
         }
 
@@ -933,9 +1023,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(
                 preview = result.bitmap,
                 hasImage = true,
-                cols = result.art.cols,
-                rows = result.art.rows,
-                status = "live · ${result.art.cols}×${result.art.rows}",
+                cols = result.cols,
+                rows = result.rows,
+                status = "live · ${result.cols}×${result.rows}",
             )
         }
     }
@@ -1024,21 +1114,16 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(status = "preset ${preset.name}")
     }
 
-    private class Rebuilt(
-        val grid: AsciiArt,
-        val preview: Bitmap,
-        val outputWidth: Int,
-        val outputHeight: Int,
-        val face: FontChoice,
-    )
-
     private companion object {
         const val DEBOUNCE_MS = 90L
         const val MAX_HISTORY = 50
-        const val ANIM_PREVIEW_MAX_SIDE = 640
+        /**
+         * Preview budget while a slider is held. The same figure the live camera renders at,
+         * for the same reason: it is the size at which a full chain still keeps up with input.
+         */
+        const val SCRUB_MAX_SIDE = 480
         const val THUMB_MAX_SIDE = 160
         const val ANIM_EXPORT_MAX_SIDE = 1080
         const val MEMORY_BUDGET_BYTES = 96L * 1024 * 1024
-        const val REFERENCE_FONT_SIZE = 32
     }
 }

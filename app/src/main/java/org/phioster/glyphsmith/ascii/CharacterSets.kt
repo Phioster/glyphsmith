@@ -18,7 +18,7 @@ data class CharacterSet(
 }
 
 /**
- * 48 built-in sets across 11 categories, mirroring the shape of Script Slayer's library.
+ * 48 built-in sets across 11 categories, mirroring the shape of the reference app's library.
  *
  * Sets that lean on exotic Unicode (braille, runes, sextant blocks) render only as well as
  * the device font covers them; the picker shows a live preview of every set so a set with

@@ -28,7 +28,10 @@ import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.CharacterSet
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.FontStyle
+import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.ascii.GlyphFont
+import org.phioster.glyphsmith.core.color.ColorDistance
+import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton
@@ -39,9 +42,15 @@ import org.phioster.glyphsmith.ui.theme.Term
 private const val CATEGORY_ALL = "All"
 
 /**
- * Script Slayer's ASCII Settings, control for control: depth, character category and set,
- * injected characters, character offset, font style — plus cell size, which decides the
- * grid resolution and has no equivalent slider in the original's ASCII panel.
+ * Glyph rendering as an optional plugin, with the master toggle at the top.
+ *
+ * On, this is the reference app's ASCII settings control for control: depth, character set and
+ * category, injected characters, character offset, font style — plus cell size, which decides
+ * the grid resolution and has no equivalent slider in the original's ASCII panel.
+ *
+ * Off, the app is a pixel-dither tool and everything about characters is gone; what is left is
+ * [PixelModeControls]. The two are one panel rather than two tabs because they are the same
+ * decision seen from either side, and a tab the user has to find would hide that.
  */
 @Composable
 fun AsciiPanel(
@@ -66,7 +75,41 @@ fun AsciiPanel(
     val sets = if (filtered.any { it.id == params.charSetId }) filtered else CharacterSets.all
     val setIndex = sets.indexOfFirst { it.id == params.charSetId }.coerceAtLeast(0)
 
+    val glyphMode = params.renderMode.isGlyph
+
     Column(modifier.fillMaxWidth()) {
+        SectionHeader("glyph / ascii rendering")
+
+        // The master toggle. Off, the app is a pixel-dither tool: the same sampler and the same
+        // 78 algorithms, with levels becoming colours instead of characters. Everything below
+        // that is about characters therefore has nothing to say and is not drawn.
+        TerminalToggle(
+            label = "glyph rendering",
+            checked = glyphMode,
+            onCheckedChange = {
+                onChange(
+                    params.copy(
+                        renderMode = if (it) RenderMode.GlyphMatrix else RenderMode.PurePixel,
+                    ),
+                )
+            },
+        )
+        Text(
+            text = if (glyphMode) {
+                "levels become characters from the ramp"
+            } else {
+                "pixel dither — levels become colours, no character mapping"
+            },
+            color = Term.InkDim,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 6.dp),
+        )
+
+        if (!glyphMode) {
+            PixelModeControls(params, onChange)
+            return@Column
+        }
+
         SectionHeader("ascii settings")
 
         TerminalSlider(
@@ -365,5 +408,94 @@ private fun RampEditor(
         color = Term.InkFaint,
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(top = 4.dp),
+    )
+}
+
+/**
+ * What the panel still has to offer once glyph rendering is switched off.
+ *
+ * Cell size and invert survive from the glyph panel because they mean something in both modes —
+ * cell size becomes the pixel-block size, invert still flips the tone. Everything else here is
+ * specific to reducing an image to colours, which is a question the glyph mode never asked.
+ */
+@Composable
+private fun PixelModeControls(params: AsciiParams, onChange: (AsciiParams) -> Unit) {
+    SectionHeader("pixel grid")
+
+    TerminalSlider(
+        label = "block size",
+        value = params.cellSize.toFloat(),
+        range = AsciiParams.CELL_SIZE_RANGE.first.toFloat()..AsciiParams.CELL_SIZE_RANGE.last.toFloat(),
+        steps = AsciiParams.CELL_SIZE_RANGE.count() - 2,
+        valueText = "${params.cellSize}px",
+        onValueChange = { onChange(params.copy(cellSize = it.toInt())) },
+    )
+    Text(
+        text = "1 dithers at full resolution; larger values are visible pixel blocks",
+        color = Term.InkDim,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(bottom = 6.dp),
+    )
+
+    // In single-colour mode there is no palette to take a level count from, so depth is what
+    // decides how many steps sit between the background and the ink.
+    if (params.colorMode == ColorMode.SINGLE) {
+        TerminalSlider(
+            label = "levels",
+            value = params.depth.toFloat(),
+            range = 2f..AsciiParams.MAX_DEPTH.toFloat(),
+            steps = AsciiParams.MAX_DEPTH - 3,
+            valueText = "${params.depth}",
+            onValueChange = { onChange(params.copy(depth = it.toInt())) },
+        )
+        Text(
+            text = "2 is classic 1-bit dithering between background and ink",
+            color = Term.InkDim,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 6.dp),
+        )
+    }
+
+    TerminalToggle(
+        label = "invert",
+        checked = params.invert,
+        onCheckedChange = { onChange(params.copy(invert = it)) },
+    )
+
+    // Only the source-colour mode actually asks "which palette entry is this colour closest
+    // to", so the metric is only offered where it changes anything.
+    if (params.colorMode == ColorMode.SOURCE) {
+        SectionHeader("colour matching")
+
+        StepperDropdown(
+            label = "distance metric",
+            items = ColorDistance.entries.toList(),
+            selectedIndex = ColorDistance.entries.indexOf(params.colorDistance),
+            onSelect = { onChange(params.copy(colorDistance = ColorDistance.entries[it])) },
+            itemLabel = { it.name.lowercase() },
+            itemDetail = {
+                when (it) {
+                    ColorDistance.EUCLIDEAN -> "plain sRGB — fastest, over-weights the dark end"
+                    ColorDistance.CIELAB -> "ΔE*ab — roughly perceptual"
+                    ColorDistance.OKLAB -> "perceptual, fixes L*a*b*'s blues — best for photos"
+                }
+            },
+        )
+    }
+
+    TerminalButton(
+        label = "reset to default",
+        onClick = {
+            onChange(
+                AsciiParams(
+                    renderMode = params.renderMode,
+                    colorMode = params.colorMode,
+                    inkColor = params.inkColor,
+                    paletteId = params.paletteId,
+                    backgroundColor = params.backgroundColor,
+                    effects = params.effects,
+                ),
+            )
+        },
     )
 }

@@ -3,6 +3,9 @@ package org.phioster.glyphsmith.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +21,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -90,6 +96,16 @@ fun TerminalChip(
 }
 
 /**
+ * Told when any slider is being dragged.
+ *
+ * A composition local rather than a parameter because there are a hundred slider call sites and
+ * not one of them has an opinion about this: the render budget is a property of *interaction*,
+ * not of the control. Provided once, at the screen, and read once, inside [TerminalSlider] — so
+ * every slider in the app reports scrubbing without a single call site knowing it exists.
+ */
+val LocalScrubReporter = staticCompositionLocalOf<(Boolean) -> Unit> { {} }
+
+/**
  * Label + live value on one line, slider underneath. [steps] is the number of *interior*
  * stops, so an int range of n values needs n-2.
  */
@@ -103,6 +119,22 @@ fun TerminalSlider(
     steps: Int = 0,
     valueText: String = String.format(Locale.US, "%.2f", value),
 ) {
+    val reportScrub = LocalScrubReporter.current
+    val interactions = remember { MutableInteractionSource() }
+
+    // Press as well as drag: a tap on the track jumps the value, which is a render either way,
+    // and the release is what has to trigger the full-quality pass.
+    LaunchedEffect(interactions) {
+        interactions.interactions.collect { interaction ->
+            when (interaction) {
+                is DragInteraction.Start, is PressInteraction.Press -> reportScrub(true)
+                is DragInteraction.Stop, is DragInteraction.Cancel,
+                is PressInteraction.Release, is PressInteraction.Cancel,
+                -> reportScrub(false)
+            }
+        }
+    }
+
     Column(modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label.uppercase(), color = Term.InkDim, style = MaterialTheme.typography.bodySmall)
@@ -113,6 +145,8 @@ fun TerminalSlider(
             onValueChange = onValueChange,
             valueRange = range,
             steps = steps,
+            onValueChangeFinished = { reportScrub(false) },
+            interactionSource = interactions,
             colors = SliderDefaults.colors(
                 thumbColor = Term.Ink,
                 activeTrackColor = Term.InkDim,

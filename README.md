@@ -1,7 +1,12 @@
 # Glyphsmith
 
-An Android ASCII-art forge: load an image or a video, map it onto a character grid, export
-the render as a PNG, GIF, MP4 or SVG — or the grid itself as a `.txt`.
+An Android dithering and retro-effect tool. Load an image or a video, reduce it — to a
+palette as pixels, or onto a character grid as glyphs — and export the render as a PNG, GIF,
+MP4 or SVG, or the grid itself as a `.txt`.
+
+Two render modes share one engine. The 78 dither algorithms quantise into *levels*, and a
+level becomes a colour or a character depending on the mode; nothing below that seam knows
+which one it is feeding. Glyph rendering is the optional half, switched with one toggle.
 
 It rebuilds the feature set of **Script Slayer** — the ASCII module inside Studio AAA's
 Dither Boy — for the phone: the same controls, the same vocabulary, an entirely separate
@@ -85,10 +90,12 @@ categories, with individually editable stops, per-stop locks, a shuffle that res
 a palette depth independent of the glyph depth, and extraction straight from the loaded
 image. Transparent or hex-picked background.
 
-**Effects** — eleven stackable passes over the rendered glyphs, in an order you can change:
+**Effects** — seventeen stackable passes over the rendered image, in an order you can change:
 post processing, blur/sharpen, tint, chromatic aberration, JPEG databending, pixel sort,
-slice shift, diffraction stars, subtexture, CMYK halftone, and Epsilon Glow. The order is not cosmetic — glitch before glow blooms,
-glitch after glow cuts the bloom apart.
+slice shift, interlace, modulation lines, diffraction stars, subtexture, spot-colour print,
+CMYK halftone, colour depth, blue-noise dither, Epsilon Glow, and CRT warp. The order is not
+cosmetic — glitch before glow blooms, glitch after glow cuts the bloom apart, and the warp
+belongs last because the glass is the outermost thing a tube has.
 
 *Epsilon Glow* is a directional bloom: threshold with soft knee, radius with optional
 compensation, intensity, aspect ratio, direction, and an inverse-power falloff
@@ -176,10 +183,15 @@ release.
 ## Layout
 
 ```
-ascii/     CharacterSets, AsciiParams, AsciiEngine (pure Kotlin), Dither, EdgeDetect,
-           Palettes, Fonts, AsciiRenderer (Canvas), Pipeline
+core/      The parts that know nothing about glyphs: dither/ (78 algorithms, matrices),
+           color/ (palettes, three distance metrics, nearest-colour), image/ (Pixels),
+           pipeline/ (the node abstraction, buffer pool, row parallelism)
+render/    CellSampler and QuantisePass, shared by both modes; RenderMode;
+           PixelDitherRenderer and the per-channel ColorDiffusionPass
+ascii/     The glyph half: CharacterSets, AsciiParams, AsciiEngine (pure Kotlin),
+           EdgeDetect, Fonts, AsciiRenderer (Canvas), Pipeline
 anim/      Animation tracks and curves, Temporal, GifEncoder, Mp4Encoder, ColorQuantizer
-effects/   The nine passes plus PixelOps and the ordered EffectPipeline
+effects/   The seventeen passes plus PixelOps and the node-based EffectPipeline
 data/      Source (still / video), ImageLoader (decode + EXIF), PresetStore, Settings
 export/    PNG / TXT / SVG / clipboard / share
 ui/        terminal-styled Compose panels

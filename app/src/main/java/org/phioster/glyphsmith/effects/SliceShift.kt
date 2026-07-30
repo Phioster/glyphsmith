@@ -2,6 +2,7 @@ package org.phioster.glyphsmith.effects
 
 import kotlinx.serialization.Serializable
 import kotlin.random.Random
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * Bands of the image displaced sideways — the other half of the glitch vocabulary.

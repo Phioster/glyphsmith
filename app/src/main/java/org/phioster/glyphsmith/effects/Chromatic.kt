@@ -10,6 +10,7 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * Channel separation plus row displacement.
@@ -56,7 +57,7 @@ object Chromatic {
             }
         }
 
-        val out = IntArray(source.data.size)
+        val out = source.buffer()
         for (y in 0 until source.height) {
             val shift = rowShift[y]
             for (x in 0 until source.width) {
@@ -72,7 +73,7 @@ object Chromatic {
                 )
             }
         }
-        return Pixels(out, source.width, source.height)
+        return source.derive(out)
     }
 
     /** Nearest-neighbour on purpose: interpolation softens exactly the hard edges we want. */

@@ -12,8 +12,6 @@ import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
 import org.phioster.glyphsmith.anim.TemporalPattern
 import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.DitherCategory
-import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
 import org.phioster.glyphsmith.effects.ChromaticParams
@@ -30,6 +28,20 @@ import org.phioster.glyphsmith.effects.GlowParams
 import org.phioster.glyphsmith.effects.JpegGlitchParams
 import org.phioster.glyphsmith.effects.PostProcessingParams
 import java.io.File
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.dither.DitherCategory
+import org.phioster.glyphsmith.core.color.ColorDistance
+import org.phioster.glyphsmith.effects.CrtWarpParams
+import org.phioster.glyphsmith.effects.ColorDepthParams
+import org.phioster.glyphsmith.effects.SpotColorPrintParams
+import org.phioster.glyphsmith.effects.ModulationColorMode
+import org.phioster.glyphsmith.effects.ModulationLinesParams
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.decodeFromJsonElement
+import org.phioster.glyphsmith.effects.InterlaceParams
+import org.phioster.glyphsmith.effects.BlueNoiseDitherParams
+import org.phioster.glyphsmith.effects.TintMode
+import org.phioster.glyphsmith.effects.TintParams
 
 @Serializable
 data class Preset(
@@ -58,8 +70,25 @@ class PresetStore(context: Context) {
 
     fun load(): List<Preset> {
         if (!file.exists()) return builtIns
-        return runCatching { json.decodeFromString<List<Preset>>(file.readText()) }
-            .getOrElse { builtIns }
+        val text = runCatching { file.readText() }.getOrNull() ?: return builtIns
+        return decodeEach(text).ifEmpty { builtIns }
+    }
+
+    /**
+     * Decodes the array one entry at a time, dropping whatever will not read.
+     *
+     * Not `decodeFromString<List<Preset>>`, which is what this used to be: the effect order
+     * serialises as effect *names*, and an unknown name throws no matter what `ignoreUnknownKeys`
+     * says. Decoding the array as one value therefore means a single preset written by a newer
+     * build — one that has an effect this one does not — silently discards the entire library.
+     * Per entry, that costs exactly the preset that cannot be read.
+     */
+    private fun decodeEach(text: String): List<Preset> {
+        val elements = runCatching { json.parseToJsonElement(text).jsonArray }.getOrNull()
+            ?: return emptyList()
+        return elements.mapNotNull { element ->
+            runCatching { json.decodeFromJsonElement<Preset>(element) }.getOrNull()
+        }
     }
 
     fun save(presets: List<Preset>) {
@@ -74,8 +103,9 @@ class PresetStore(context: Context) {
      * when the text isn't a preset export at all.
      */
     fun importJson(text: String): List<Preset>? {
-        val imported = runCatching { json.decodeFromString<List<Preset>>(text) }.getOrNull()
-            ?: return null
+        // Per entry for the same reason [load] is: an export from a build with an effect this one
+        // lacks should cost that preset, not the whole import.
+        val imported = decodeEach(text).ifEmpty { return null }
         val names = imported.map { it.name.lowercase() }.toSet()
         val merged = load().filterNot { it.name.lowercase() in names } + imported
         save(merged)
@@ -404,7 +434,10 @@ class PresetStore(context: Context) {
                 ),
             ),
             preset(
-                "risograph", CATEGORY_PRINT,
+                // Named for the process, not the machine: a coarse halftone screen on warm
+                // uncoated stock. The newer "spot colour print" is the same family done with real
+                // plate misregistration rather than with a screen.
+                "duplicator print", CATEGORY_PRINT,
                 AsciiParams(
                     charSetId = "block-shade",
                     cellSize = 5,
@@ -524,7 +557,7 @@ class PresetStore(context: Context) {
             ),
 
             // --- signature ----------------------------------------------------------
-            // Modelled on the looks Studio AAA show in their public preview clips, not on
+            // Modelled on the looks the vendor shows in their public preview clips, not on
             // their presets — those are not published, and neither is the maths behind the
             // styles. Each of these is this app's own approximation of a look, built from
             // controls that already existed, and each one animates so that applying it and
@@ -1003,6 +1036,159 @@ class PresetStore(context: Context) {
                     ditherMode = DitherMode.CONTRAST_AWARE_Y,
                     colorMode = ColorMode.PALETTE,
                     paletteId = "ice",
+                ),
+            ),
+
+            // The four that showcase the newer passes. Each one leans on a single new node and
+            // uses the older chain only to finish it, so what the node does is legible rather
+            // than buried under four other effects.
+            preset(
+                "duotone grain", CATEGORY_DITHER,
+                // Two colours and nothing between them, held together by grain rather than by
+                // tone. The blue-noise pass is what makes that readable: the same look with
+                // ordered dithering reads as a printed pattern, which is a different thing.
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 4,
+                    depth = 4,
+                    contrast = 1.25f,
+                    ditherMode = DitherMode.NONE,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        tint = TintParams(
+                            enabled = true,
+                            mode = TintMode.DUOTONE,
+                            shadowColor = 0xFF120A2E.toInt(),
+                            highlightColor = 0xFFFFD9A0.toInt(),
+                            amount = 90,
+                        ),
+                        blueNoise = BlueNoiseDitherParams(
+                            enabled = true,
+                            levels = 3,
+                            noiseScale = 2,
+                            monochrome = true,
+                        ),
+                    ),
+                ),
+            ),
+            preset(
+                "modulation cyberpunk", CATEGORY_SIGNATURE,
+                // The plot is the picture here: lines carry the image and the glow gives the
+                // dots their bloom, which is what stops a line drawing reading as a diagram.
+                AsciiParams(
+                    charSetId = "misc-dots",
+                    cellSize = 3,
+                    depth = 4,
+                    contrast = 1.3f,
+                    ditherMode = DitherMode.NONE,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "neon",
+                    backgroundColor = 0xFF05000E.toInt(),
+                    effects = EffectStack(
+                        modulationLines = ModulationLinesParams(
+                            enabled = true,
+                            lineSpacing = 7,
+                            amplitude = 9,
+                            dotSize = 2,
+                            waveMix = 35,
+                            waveSpeed = 40,
+                            colorMode = ModulationColorMode.SOURCE,
+                            backgroundColor = 0xFF05000E.toInt(),
+                        ),
+                        chromatic = ChromaticParams(enabled = true, maxDisplace = 6),
+                        glow = GlowParams(
+                            enabled = true,
+                            threshold = 38,
+                            radius = 90,
+                            intensity = 520,
+                        ),
+                    ),
+                ),
+            ),
+            preset(
+                "crt arcade monitor", CATEGORY_SIGNATURE,
+                // The order matters more than the values: interlace and the colour crush belong
+                // to the signal, the warp belongs to the glass, so the warp has to come last or
+                // the scan lines curve the wrong way — flat lines on curved glass.
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 4,
+                    depth = 6,
+                    contrast = 1.2f,
+                    ditherMode = DitherMode.BAYER_4,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        interlace = InterlaceParams(enabled = true, shift = 3, density = 45),
+                        colorDepth = ColorDepthParams(
+                            enabled = true,
+                            colorLevels = 5,
+                            colorSpace = ColorDistance.OKLAB,
+                            dithered = true,
+                        ),
+                        crtWarp = CrtWarpParams(
+                            enabled = true,
+                            warpCurvature = 30,
+                            vignetteIntensity = 45,
+                        ),
+                    ),
+                ),
+            ),
+            preset(
+                "spot colour print", CATEGORY_PRINT,
+                // Three plates, badly registered, on toned stock. The subtexture pass adds the
+                // fibre the ink sits in; the node's own grain is the ink, not the paper.
+                AsciiParams(
+                    charSetId = "block-quadrant",
+                    cellSize = 5,
+                    depth = 4,
+                    ditherMode = DitherMode.NONE,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        spotPrint = SpotColorPrintParams(
+                            enabled = true,
+                            misalignment = 38,
+                            inkOpacity = 82,
+                            inkBleed = 28,
+                            paperTextureBlend = 30,
+                            inkCount = 3,
+                            paperTone = 8,
+                        ),
+                        subtexture = SubtextureParams(
+                            enabled = true,
+                            kind = TextureKind.PAPER_FIBRE,
+                            intensity = 22,
+                        ),
+                    ),
+                ),
+            ),
+            preset(
+                "matrix particles", CATEGORY_MOTION,
+                // Animated, because the whole point is the wave travelling: the lines are the
+                // rain and the glitch is the transmission it is falling through. The phase track
+                // is what actually moves it — the node reads the clock, but a track makes the
+                // motion editable like every other animated preset in here.
+                AsciiParams(
+                    charSetId = "misc-dots",
+                    cellSize = 3,
+                    depth = 5,
+                    contrast = 1.35f,
+                    ditherMode = DitherMode.NONE,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFF00FF41.toInt(),
+                    backgroundColor = 0xFF000000.toInt(),
+                    effects = EffectStack(
+                        modulationLines = ModulationLinesParams(
+                            enabled = true,
+                            lineSpacing = 5,
+                            amplitude = 14,
+                            dotSize = 1,
+                            waveMix = 70,
+                            waveSpeed = 65,
+                            colorMode = ModulationColorMode.PHOSPHOR,
+                        ),
+                        jpegGlitch = JpegGlitchParams(enabled = true, quality = 24, corruption = 55),
+                    ),
+                    animation = animation(sweep(AnimTarget.MODULATION_PHASE, 0, 100), frames = 30),
                 ),
             ),
 

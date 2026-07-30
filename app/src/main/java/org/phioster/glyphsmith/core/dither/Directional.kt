@@ -1,4 +1,4 @@
-package org.phioster.glyphsmith.ascii
+package org.phioster.glyphsmith.core.dither
 
 import kotlin.math.atan2
 import kotlin.math.hypot

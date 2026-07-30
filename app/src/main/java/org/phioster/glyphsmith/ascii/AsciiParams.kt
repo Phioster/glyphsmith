@@ -3,7 +3,14 @@ package org.phioster.glyphsmith.ascii
 import kotlinx.serialization.Serializable
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
+import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.effects.EffectStack
+import org.phioster.glyphsmith.render.RenderMode
+import org.phioster.glyphsmith.core.image.Adjustments
+import org.phioster.glyphsmith.core.dither.OrbOptions
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.color.Palettes
+import org.phioster.glyphsmith.core.color.Palette
 
 enum class ColorMode { SINGLE, SOURCE, PALETTE }
 
@@ -13,12 +20,20 @@ enum class FontStyle { REGULAR, BOLD, ITALIC, BOLD_ITALIC }
  * Every knob that turns a bitmap into a character grid. Serializable because a preset is
  * literally this object written to disk.
  *
- * The control set mirrors Script Slayer's ASCII Settings panel: depth, character category
- * and set, injected characters, character offset, font style, palette / transparent
- * background / background colour.
+ * The control set mirrors the reference app's ASCII settings panel: depth, character
+ * category and set, injected characters, character offset, font style, palette /
+ * transparent background / background colour.
  */
 @Serializable
 data class AsciiParams(
+    /**
+     * Whether levels become characters or colours.
+     *
+     * Lives here rather than in the UI state because this object *is* a preset and the undo
+     * unit — putting the mode anywhere else would mean presets and undo silently losing it.
+     * Defaults to the glyph mode so a preset written before the field existed is unchanged.
+     */
+    val renderMode: RenderMode = RenderMode.GlyphMatrix,
     val charSetId: String = "ascii-standard-10",
     /** Width in source pixels of one glyph cell — the single biggest quality/size lever. */
     val cellSize: Int = 8,
@@ -116,6 +131,14 @@ data class AsciiParams(
      * harder posterisation than the character ramp.
      */
     val paletteDepth: Int = 0,
+    /**
+     * Which metric decides "nearest colour" when the pixel path reduces an image to a palette.
+     *
+     * Only read in [RenderMode.PurePixel] with [ColorMode.SOURCE] — the glyph path samples a
+     * palette by luminance and never asks the question. OKLAB by default because it is the one
+     * of the three that agrees with the eye about which of two entries is closer.
+     */
+    val colorDistance: ColorDistance = ColorDistance.OKLAB,
     val transparentBackground: Boolean = false,
     val backgroundColor: Int = DEFAULT_BACKGROUND,
     /** Glyph size in output pixels; the exported image is grid × this. Ignored in canvas mode. */

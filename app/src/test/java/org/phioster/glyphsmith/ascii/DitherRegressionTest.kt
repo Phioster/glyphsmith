@@ -3,6 +3,9 @@ package org.phioster.glyphsmith.ascii
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.phioster.glyphsmith.core.dither.PatternOptions
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.dither.Dither
 
 /**
  * The net under the algorithm round.

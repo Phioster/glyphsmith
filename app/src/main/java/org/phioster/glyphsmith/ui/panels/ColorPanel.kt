@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.anim.QuantizeMethod
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.Palettes
 import org.phioster.glyphsmith.ui.HexColorField
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
@@ -38,6 +37,8 @@ import org.phioster.glyphsmith.ui.TerminalToggle
 import org.phioster.glyphsmith.ui.hexOf
 import org.phioster.glyphsmith.ui.theme.Term
 import kotlin.random.Random
+import org.phioster.glyphsmith.core.color.Palettes
+import org.phioster.glyphsmith.core.color.Palette
 
 /** How many colours the extraction offers to pull out — a short ramp or a rich one. */
 private val EXTRACT_COUNTS = listOf(5, 8, 16)
@@ -151,7 +152,7 @@ private fun PaletteSection(
     categories: List<String>,
     category: String,
     onCategoryChange: (String) -> Unit,
-    palettes: List<org.phioster.glyphsmith.ascii.Palette>,
+    palettes: List<org.phioster.glyphsmith.core.color.Palette>,
 ) {
     val selected = palettes.indexOfFirst { it.id == params.paletteId }.coerceAtLeast(0)
     val stops = params.activePalette().colors

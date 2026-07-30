@@ -16,7 +16,7 @@ enum class LayerBlend(val label: String) {
 /**
  * A second rendering of the same picture, stacked on the first.
  *
- * Dither Boy's layer stack is how one image ends up carrying two different treatments at
+ * The reference app's layer stack is how one image ends up carrying two treatments at
  * once — a coarse ramp underneath, a fine one on top, offset and screened together. This is
  * the same idea: a layer holds a complete set of settings of its own, renders separately,
  * and is then transformed and blended over the result so far.

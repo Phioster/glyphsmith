@@ -1,4 +1,4 @@
-package org.phioster.glyphsmith.ascii
+package org.phioster.glyphsmith.core.dither
 
 import kotlin.math.PI
 import kotlin.math.abs
@@ -8,6 +8,7 @@ import kotlin.math.min
 import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.sin
+import kotlin.math.roundToInt
 
 /**
  * Everything the position-dependent modes need beyond a cell's coordinates.
@@ -28,7 +29,7 @@ data class PatternOptions(
     val centerX: Float = 0f,
     val centerY: Float = 0f,
     /**
-     * The orb family's own controls, mirroring the six sliders Dither Boy's orb styles
+     * The orb family's own controls, mirroring the six sliders the reference app's orb styles
      * carry. They only reach [DitherMode.MOD_ORB] and [DitherMode.BEEHIVE]; the other
      * modulation modes have no orbs to shape.
      */
@@ -82,6 +83,18 @@ data class DiffusionTap(val dx: Int, val dy: Int, val weight: Float)
  * error has to be spread across.
  */
 object Dither {
+
+    /**
+     * A normalised value to a level index, before any offset.
+     *
+     * Lives here rather than in a renderer because every algorithm in this package needs it and
+     * none of them should have to reach into a render path to get it — that was the import that
+     * used to tie the dither core to the glyph engine.
+     */
+    fun quantise(value: Float, levels: Int): Int {
+        if (levels <= 1) return 0
+        return (value.coerceIn(0f, 1f) * (levels - 1)).roundToInt()
+    }
 
     /** Matrix-driven modes: the threshold comes from a fixed tile. */
     /**
@@ -283,7 +296,7 @@ object Dither {
     /**
      * The modulation family: a threshold surface sampled at a scaled cell coordinate.
      *
-     * Studio AAA publishes neither the maths nor the names behind Dither Boy's modulation
+     * The vendor publishes neither the maths nor the names behind the reference app's modulation
      * category — only that "Modulation Lines", "Waveform" and "Beehive" exist. These five
      * are this app's own reading of that category, not a reconstruction of theirs.
      */
@@ -477,7 +490,7 @@ object Dither {
 
             // --- glitch and special -------------------------------------------------
             /*
-             * The rest of the catalogue. Studio AAA names these and describes them in a line;
+             * The rest of the catalogue. The vendor names these and describes them in a line;
              * the mathematics is this app's own, and that is stated here rather than left for
              * someone to assume otherwise. What their controls are called told us what each
              * one is *for*, which turned out to be most of the work.

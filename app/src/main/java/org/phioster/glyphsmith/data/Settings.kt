@@ -1,11 +1,12 @@
 package org.phioster.glyphsmith.data
 
 import android.content.Context
+import org.phioster.glyphsmith.core.dither.DitherMode
 
 /**
  * How much work the preview is allowed to do.
  *
- * Dither Boy's bottom bar carries five playback buttons — FULL, LIVE, ANIMATED, LOOPED,
+ * The reference app's bottom bar carries five playback buttons — FULL, LIVE, ANIMATED, LOOPED,
  * RENDERED — but what each of them switches is nowhere documented, and guessing at five
  * meanings would produce five controls that do not quite do what their labels say. These
  * two are the distinctions that actually exist here, named for what they do.
@@ -65,7 +66,7 @@ class Settings(context: Context) {
         set(value) = prefs.edit().putStringSet(KEY_FAV_PALETTES, value).apply()
 
     /**
-     * Names of [org.phioster.glyphsmith.ascii.DitherMode] entries the user starred.
+     * Names of [org.phioster.glyphsmith.core.dither.DitherMode] entries the user starred.
      *
      * Stored by name rather than by ordinal: the list is going to keep growing, and a
      * favourite that silently becomes a different style because something was inserted above

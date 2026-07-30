@@ -135,43 +135,61 @@ fun OutputPanel(
         }
 
         val enabled = state.hasImage && !state.working
+        // Seven of the exports read the character grid, which the pixel mode does not produce.
+        // They are disabled rather than hidden: a control that vanishes reads as a bug, and the
+        // note below says which switch brings them back.
+        val glyphMode = state.params.renderMode.isGlyph
+        val textEnabled = enabled && glyphMode
+
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TerminalButton("save image", onExportPng, Modifier.weight(1f), enabled)
-            TerminalButton("save txt", onExportTxt, Modifier.weight(1f), enabled)
+            TerminalButton("save txt", onExportTxt, Modifier.weight(1f), textEnabled)
         }
         Row(
             Modifier.fillMaxWidth().padding(top = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            TerminalButton("copy txt", onCopy, Modifier.weight(1f), enabled)
+            TerminalButton("copy txt", onCopy, Modifier.weight(1f), textEnabled)
             TerminalButton("share img", onShareImage, Modifier.weight(1f), enabled)
-            TerminalButton("share txt", onShareText, Modifier.weight(1f), enabled)
+            TerminalButton("share txt", onShareText, Modifier.weight(1f), textEnabled)
+        }
+
+        if (!glyphMode) {
+            Text(
+                "txt, svg, html and ansi need a character grid — switch glyph rendering back " +
+                    "on in the SET panel. png, gif and mp4 work in both modes.",
+                color = Term.Amber,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 6.dp),
+            )
         }
 
         SectionHeader("vector")
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TerminalButton(
-                "svg text", { onExportSvg(SvgMode.TEXT) }, Modifier.weight(1f), enabled,
+                "svg text", { onExportSvg(SvgMode.TEXT) }, Modifier.weight(1f), textEnabled,
             )
             TerminalButton(
-                "svg outlines", { onExportSvg(SvgMode.OUTLINES) }, Modifier.weight(1f), enabled,
+                "svg outlines", { onExportSvg(SvgMode.OUTLINES) }, Modifier.weight(1f), textEnabled,
             )
         }
         SectionHeader("text formats")
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TerminalButton("save html", onExportHtml, Modifier.weight(1f), enabled)
-            TerminalButton("save ansi", onExportAnsi, Modifier.weight(1f), enabled)
+            TerminalButton("save html", onExportHtml, Modifier.weight(1f), textEnabled)
+            TerminalButton("save ansi", onExportAnsi, Modifier.weight(1f), textEnabled)
         }
-        Text(
-            "the .txt export drops the colour, which is right for a README and wrong for " +
-                "everything else. html is a self-contained page; ansi is 24-bit escapes a " +
-                "terminal renders straight from cat.",
-            color = Term.InkFaint,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(top = 6.dp),
-        )
+        if (glyphMode) {
+            Text(
+                "the .txt export drops the colour, which is right for a README and wrong for " +
+                    "everything else. html is a self-contained page; ansi is 24-bit escapes a " +
+                    "terminal renders straight from cat.",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
 
         SectionHeader("batch")
 
@@ -207,14 +225,16 @@ fun OutputPanel(
             modifier = Modifier.padding(top = 6.dp),
         )
 
-        Text(
-            "text keeps the glyphs editable but needs the font on the other machine; " +
-                "outlines are real paths and render anywhere — that is the one for print " +
-                "and embroidery. Effects are not included: they work on pixels.",
-            color = Term.InkFaint,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(top = 6.dp),
-        )
+        if (glyphMode) {
+            Text(
+                "text keeps the glyphs editable but needs the font on the other machine; " +
+                    "outlines are real paths and render anywhere — that is the one for print " +
+                    "and embroidery. Effects are not included: they work on pixels.",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
     }
 }
 

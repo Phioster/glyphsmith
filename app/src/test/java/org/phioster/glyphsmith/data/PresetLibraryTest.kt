@@ -6,8 +6,9 @@ import org.junit.Test
 import org.phioster.glyphsmith.anim.AnimTarget
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.DitherMode
-import org.phioster.glyphsmith.ascii.Palettes
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.color.Palettes
+import org.phioster.glyphsmith.effects.EffectId
 
 class PresetLibraryTest {
 
@@ -132,5 +133,22 @@ class PresetLibraryTest {
                 (Palettes.all.first { it.id == preset.params.paletteId }).colors.size >= 2,
             )
         }
+    }
+
+    /**
+     * Every pass in the chain has to be shown off by at least one shipped preset.
+     *
+     * An effect nobody can find is an effect nobody uses: the panel lists twelve-odd collapsed
+     * sections, and the realistic way anyone meets a new one is by applying a preset that already
+     * uses it. This is what pins the four presets that came with the newer passes.
+     */
+    @Test
+    fun `every effect is used by at least one shipped preset`() {
+        val used = PresetStore.builtIns
+            .flatMap { preset -> EffectId.entries.filter { preset.params.effects.enabledOf(it) } }
+            .toSet()
+
+        val unused = EffectId.entries.filterNot { it in used }
+        assertTrue("no preset demonstrates: $unused", unused.isEmpty())
     }
 }

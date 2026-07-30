@@ -9,8 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.ascii.AsciiParams
-import org.phioster.glyphsmith.ascii.Dither
-import org.phioster.glyphsmith.ascii.DitherMode
 import org.phioster.glyphsmith.ascii.EdgeDetect
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
@@ -20,6 +18,8 @@ import org.phioster.glyphsmith.ui.TerminalSlider
 import org.phioster.glyphsmith.ui.TerminalToggle
 import org.phioster.glyphsmith.ui.theme.Term
 import java.util.Locale
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.dither.Dither
 
 /**
  * Everything between a cell's luminance and the glyph it ends up with: the tone curve, the

@@ -2,26 +2,12 @@ package org.phioster.glyphsmith.effects
 
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import org.phioster.glyphsmith.core.image.Pixels
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.max
 import kotlin.math.pow
 
-/** A loose pixel buffer — the currency every effect in this package trades in. */
-class Pixels(val data: IntArray, val width: Int, val height: Int) {
-
-    fun copy(): Pixels = Pixels(data.copyOf(), width, height)
-
-    fun toBitmap(): Bitmap = Bitmap.createBitmap(data, width, height, Bitmap.Config.ARGB_8888)
-
-    companion object {
-        fun of(bitmap: Bitmap): Pixels {
-            val data = IntArray(bitmap.width * bitmap.height)
-            bitmap.getPixels(data, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-            return Pixels(data, bitmap.width, bitmap.height)
-        }
-    }
-}
 
 /**
  * Shared pixel maths. The rotate-blur-rotate trick and the inverse-power kernel live here
@@ -52,7 +38,7 @@ object PixelOps {
 
     /** Everything below the soft knee goes to black; the rest keeps its colour. */
     fun brightPass(source: Pixels, threshold: Int, smoothing: Int): Pixels {
-        val out = IntArray(source.data.size)
+        val out = source.buffer()
         val knee = threshold / 100f
         val soft = (smoothing / 100f).coerceAtLeast(0.001f)
         val low = knee - soft / 2f
@@ -67,7 +53,7 @@ object PixelOps {
                 (blueOf(pixel) * weight).toInt(),
             )
         }
-        return Pixels(out, source.width, source.height)
+        return source.derive(out)
     }
 
     /** 1-D inverse-power kernel: `w(d) = 1 / ((d·scale)ⁿ + ε)`, optionally energy-normalised. */
@@ -124,7 +110,7 @@ object PixelOps {
     }
 
     private fun blurAxis(source: Pixels, weights: FloatArray, horizontal: Boolean): Pixels {
-        val out = IntArray(source.data.size)
+        val out = source.buffer()
         val radius = weights.size / 2
         for (y in 0 until source.height) {
             for (x in 0 until source.width) {
@@ -154,11 +140,11 @@ object PixelOps {
                 )
             }
         }
-        return Pixels(out, source.width, source.height)
+        return source.derive(out)
     }
 
     fun convolve(source: Pixels, weights: FloatArray, horizontal: Boolean): Pixels {
-        val out = IntArray(source.data.size)
+        val out = source.buffer()
         val radius = weights.size / 2
         for (y in 0 until source.height) {
             for (x in 0 until source.width) {
@@ -178,7 +164,7 @@ object PixelOps {
                 out[y * source.width + x] = argb(255, r.toInt(), g.toInt(), b.toInt())
             }
         }
-        return Pixels(out, source.width, source.height)
+        return source.derive(out)
     }
 
     /**
@@ -215,7 +201,7 @@ object PixelOps {
         if (source.width == width && source.height == height) return source
         val offsetX = (source.width - width) / 2
         val offsetY = (source.height - height) / 2
-        val out = IntArray(width * height)
+        val out = source.buffer(width * height)
         for (y in 0 until height) {
             val sy = (y + offsetY).coerceIn(0, source.height - 1)
             for (x in 0 until width) {
@@ -223,7 +209,7 @@ object PixelOps {
                 out[y * width + x] = source.data[sy * source.width + sx]
             }
         }
-        return Pixels(out, width, height)
+        return source.derive(out, width, height)
     }
 
     fun scale(source: Pixels, width: Int, height: Int): Pixels {

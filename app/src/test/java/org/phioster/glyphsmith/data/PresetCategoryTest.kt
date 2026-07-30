@@ -3,7 +3,7 @@ package org.phioster.glyphsmith.data
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.DitherMode
+import org.phioster.glyphsmith.core.dither.DitherMode
 
 class PresetCategoryTest {
 

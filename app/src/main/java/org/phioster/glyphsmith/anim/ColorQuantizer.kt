@@ -1,5 +1,8 @@
 package org.phioster.glyphsmith.anim
 
+import org.phioster.glyphsmith.core.color.ColorDistance
+import org.phioster.glyphsmith.core.color.PaletteQuantizer
+
 /**
  * Median-cut reduction to a GIF-sized palette.
  *
@@ -140,30 +143,19 @@ object ColorQuantizer {
 
     fun isOpaque(pixel: Int): Boolean = ((pixel ushr 24) and 0xFF) >= 128
 
-    /** Nearest palette entry, cached — the same handful of colours recur constantly. */
-    class Mapper(private val palette: IntArray) {
-        private val cache = HashMap<Int, Int>()
+    /**
+     * Nearest palette entry, cached — the same handful of colours recur constantly.
+     *
+     * Delegates to the shared [PaletteQuantizer] so there is one nearest-colour search in the
+     * codebase rather than two that could drift apart. [ColorDistance.EUCLIDEAN] is squared
+     * distance over the raw channels, which is exactly what this class computed by hand, so GIF
+     * output is unchanged. A GIF palette is built from the frames themselves rather than chosen
+     * for perceptual spacing, so a perceptual metric would be measuring against the wrong thing.
+     */
+    class Mapper(palette: IntArray) {
+        private val quantizer = PaletteQuantizer(palette, ColorDistance.EUCLIDEAN)
 
-        fun indexOf(pixel: Int): Int {
-            val rgb = pixel and 0xFFFFFF
-            cache[rgb]?.let { return it }
-            var best = 0
-            var bestDistance = Int.MAX_VALUE
-            for (i in palette.indices) {
-                val candidate = palette[i]
-                val dr = ((rgb shr 16) and 0xFF) - ((candidate shr 16) and 0xFF)
-                val dg = ((rgb shr 8) and 0xFF) - ((candidate shr 8) and 0xFF)
-                val db = (rgb and 0xFF) - (candidate and 0xFF)
-                val distance = dr * dr + dg * dg + db * db
-                if (distance < bestDistance) {
-                    bestDistance = distance
-                    best = i
-                    if (distance == 0) break
-                }
-            }
-            cache[rgb] = best
-            return best
-        }
+        fun indexOf(pixel: Int): Int = quantizer.indexOf(pixel and 0xFFFFFF)
     }
 
     private class Box(val colors: IntArray, val counts: Map<Int, Int>) {

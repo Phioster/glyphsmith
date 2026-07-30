@@ -98,7 +98,7 @@ object TermThemes {
     )
 
     /**
-     * The one light theme. Parchment and iron gall, for the medieval look Script Slayer
+     * The one light theme. Parchment and iron gall, for the medieval look the reference app
      * itself wears — and a useful reminder that the panels have to stay readable when the
      * ground is brighter than the ink rather than darker.
      */

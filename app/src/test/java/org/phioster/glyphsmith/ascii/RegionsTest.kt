@@ -3,6 +3,10 @@ package org.phioster.glyphsmith.ascii
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.phioster.glyphsmith.core.dither.Regions
+import org.phioster.glyphsmith.core.dither.PatternOptions
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.dither.Dither
 
 class RegionsTest {
 

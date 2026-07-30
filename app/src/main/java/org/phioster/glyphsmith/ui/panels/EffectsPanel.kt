@@ -106,6 +106,23 @@ fun EffectsPanel(
                 EffectId.CMYK -> CmykSection(fx.cmyk, move) { p -> update { copy(cmyk = p) } }
 
                 EffectId.GLOW -> GlowSection(fx.glow, move) { p -> update { copy(glow = p) } }
+
+                EffectId.MODULATION ->
+                    ModulationLinesSection(fx.modulationLines, move) { p ->
+                        update { copy(modulationLines = p) }
+                    }
+
+                EffectId.PRINT ->
+                    SpotPrintSection(fx.spotPrint, move) { p -> update { copy(spotPrint = p) } }
+
+                EffectId.DEPTH ->
+                    ColorDepthSection(fx.colorDepth, move) { p -> update { copy(colorDepth = p) } }
+
+                EffectId.DITHER ->
+                    BlueNoiseSection(fx.blueNoise, move) { p -> update { copy(blueNoise = p) } }
+
+                EffectId.WARP ->
+                    CrtWarpSection(fx.crtWarp, move) { p -> update { copy(crtWarp = p) } }
             }
         }
 

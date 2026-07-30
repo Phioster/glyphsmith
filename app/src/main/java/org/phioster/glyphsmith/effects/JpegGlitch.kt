@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import java.io.ByteArrayOutputStream
 import kotlin.random.Random
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * Databending, for real: encode to JPEG, corrupt bytes in the compressed scan, decode.

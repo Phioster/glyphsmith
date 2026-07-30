@@ -32,6 +32,13 @@ import org.phioster.glyphsmith.ui.TerminalChip
 import org.phioster.glyphsmith.ui.TerminalSlider
 import org.phioster.glyphsmith.ui.TerminalToggle
 import org.phioster.glyphsmith.ui.theme.Term
+import org.phioster.glyphsmith.core.color.ColorDistance
+import org.phioster.glyphsmith.effects.BlueNoiseDitherParams
+import org.phioster.glyphsmith.effects.ColorDepthParams
+import org.phioster.glyphsmith.effects.CrtWarpParams
+import org.phioster.glyphsmith.effects.ModulationColorMode
+import org.phioster.glyphsmith.effects.ModulationLinesParams
+import org.phioster.glyphsmith.effects.SpotColorPrintParams
 
 /**
  * The per-effect control blocks. Split out of [EffectsPanel] so that file stays about the
@@ -599,6 +606,264 @@ internal fun GlowSection(params: GlowParams, move: MoveHandler, onChange: (GlowP
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+@Composable
+internal fun ModulationLinesSection(
+    params: ModulationLinesParams,
+    move: MoveHandler,
+    onChange: (ModulationLinesParams) -> Unit,
+) {
+    EffectSection("modulation lines", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "the image redrawn as a stack of horizontal lines that ride over it: brightness " +
+                "pushes each line up, a travelling wave moves it sideways. The space between " +
+                "the lines is left empty on purpose — a plot needs somewhere to be read against.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        TerminalSlider(
+            "line spacing", params.lineSpacing.toFloat(), 2f..64f,
+            { onChange(params.copy(lineSpacing = it.toInt())) },
+            valueText = "${params.lineSpacing}px",
+        )
+        TerminalSlider(
+            "amplitude", params.amplitude.toFloat(), 0f..64f,
+            { onChange(params.copy(amplitude = it.toInt())) },
+            valueText = "${params.amplitude}px",
+        )
+        TerminalSlider(
+            "dot size", params.dotSize.toFloat(), 1f..8f, steps = 6,
+            onValueChange = { onChange(params.copy(dotSize = it.toInt())) },
+            valueText = "${params.dotSize}px",
+        )
+        TerminalSlider(
+            "wave mix", params.waveMix.toFloat(), 0f..100f,
+            { onChange(params.copy(waveMix = it.toInt())) },
+            valueText = "${params.waveMix}/100",
+        )
+        TerminalSlider(
+            "wave speed", params.waveSpeed.toFloat(), 0f..100f,
+            { onChange(params.copy(waveSpeed = it.toInt())) },
+            valueText = "${params.waveSpeed}/100",
+        )
+        Text(
+            "speed only does anything while an animation is rendering — a still has no clock. " +
+                "Use phase to place the wave on a single frame.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        TerminalSlider(
+            "phase", params.phase.toFloat(), 0f..100f,
+            { onChange(params.copy(phase = it.toInt())) },
+            valueText = "${params.phase}%",
+        )
+        StepperDropdown(
+            label = "colour",
+            items = ModulationColorMode.entries.toList(),
+            selectedIndex = ModulationColorMode.entries.indexOf(params.colorMode),
+            onSelect = { onChange(params.copy(colorMode = ModulationColorMode.entries[it])) },
+            itemLabel = { it.name.lowercase() },
+            itemDetail = {
+                when (it) {
+                    ModulationColorMode.SOURCE -> "the colour each sample was lifted from"
+                    ModulationColorMode.INK -> "one colour throughout"
+                    ModulationColorMode.PHOSPHOR -> "brightness mapped onto terminal green"
+                }
+            },
+        )
+        if (params.colorMode == ModulationColorMode.INK) {
+            HexColorField(
+                label = "ink",
+                color = params.inkColor,
+                onColorChange = { onChange(params.copy(inkColor = it)) },
+            )
+        }
+        HexColorField(
+            label = "background",
+            color = params.backgroundColor,
+            onColorChange = { onChange(params.copy(backgroundColor = it)) },
+        )
+    }
+}
+
+@Composable
+internal fun CrtWarpSection(
+    params: CrtWarpParams,
+    move: MoveHandler,
+    onChange: (CrtWarpParams) -> Unit,
+) {
+    EffectSection("crt warp", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "the geometry of curved glass: the picture is resampled so that straight lines bow " +
+                "outwards, most at the corners and not at all in the middle. Sits last in the " +
+                "chain by default, because the glass is the outermost thing a tube has.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        TerminalSlider(
+            "curvature", params.warpCurvature.toFloat(), 0f..100f,
+            { onChange(params.copy(warpCurvature = it.toInt())) },
+            valueText = "${params.warpCurvature}/100",
+        )
+        TerminalSlider(
+            "corner shadow", params.vignetteIntensity.toFloat(), 0f..100f,
+            { onChange(params.copy(vignetteIntensity = it.toInt())) },
+            valueText = "${params.vignetteIntensity}/100",
+        )
+        Text(
+            "post has a vignette of its own; both together darken the corners twice.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        TerminalSlider(
+            "bezel bleed", params.bezelBleed.toFloat(), 0f..100f,
+            { onChange(params.copy(bezelBleed = it.toInt())) },
+            valueText = if (params.bezelBleed == 0) "black" else "${params.bezelBleed}/100",
+        )
+    }
+}
+
+@Composable
+internal fun BlueNoiseSection(
+    params: BlueNoiseDitherParams,
+    move: MoveHandler,
+    onChange: (BlueNoiseDitherParams) -> Unit,
+) {
+    EffectSection("blue noise", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "dithers the finished picture against a blue-noise mask. Blue noise has no repeating " +
+                "structure, so what it leaves behind reads as grain rather than as the " +
+                "cross-hatch an ordered matrix leaves. Not the same control as the blue-noise " +
+                "dither styles — those quantise the source before anything is drawn.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        TerminalSlider(
+            "levels", params.levels.toFloat(), 2f..16f, steps = 13,
+            onValueChange = { onChange(params.copy(levels = it.toInt())) },
+            valueText = "${params.levels}",
+        )
+        TerminalSlider(
+            "grain scale", params.noiseScale.toFloat(), 1f..8f, steps = 6,
+            onValueChange = { onChange(params.copy(noiseScale = it.toInt())) },
+            valueText = "×${params.noiseScale}",
+        )
+        TerminalSlider(
+            "threshold", params.threshold.toFloat(), 0f..100f,
+            { onChange(params.copy(threshold = it.toInt())) },
+            valueText = "${params.threshold}/100",
+        )
+        TerminalToggle(
+            label = "keep the hue, dither only tone",
+            checked = params.monochrome,
+            onCheckedChange = { onChange(params.copy(monochrome = it)) },
+        )
+    }
+}
+
+@Composable
+internal fun SpotPrintSection(
+    params: SpotColorPrintParams,
+    move: MoveHandler,
+    onChange: (SpotColorPrintParams) -> Unit,
+) {
+    EffectSection("spot print", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "a multi-plate press, one ink at a time onto toned stock. Each plate lands slightly " +
+                "out of register, which is the coloured fringe along every edge, and the ink " +
+                "creeps into the fibre it lands on. Perfect registration is what makes a " +
+                "simulated print look simulated.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        TerminalSlider(
+            "plates", params.inkCount.toFloat(), 2f..4f, steps = 1,
+            onValueChange = { onChange(params.copy(inkCount = it.toInt())) },
+            valueText = "${params.inkCount}",
+        )
+        TerminalSlider(
+            "misregistration", params.misalignment.toFloat(), 0f..100f,
+            { onChange(params.copy(misalignment = it.toInt())) },
+            valueText = "${params.misalignment}/100",
+        )
+        TerminalSlider(
+            "ink opacity", params.inkOpacity.toFloat(), 0f..100f,
+            { onChange(params.copy(inkOpacity = it.toInt())) },
+            valueText = "${params.inkOpacity}%",
+        )
+        TerminalSlider(
+            "ink bleed", params.inkBleed.toFloat(), 0f..100f,
+            { onChange(params.copy(inkBleed = it.toInt())) },
+            valueText = "${params.inkBleed}/100",
+        )
+        TerminalSlider(
+            "paper grain", params.paperTextureBlend.toFloat(), 0f..100f,
+            { onChange(params.copy(paperTextureBlend = it.toInt())) },
+            valueText = "${params.paperTextureBlend}/100",
+        )
+        TerminalSlider(
+            "paper tone", params.paperTone.toFloat(), 0f..100f,
+            { onChange(params.copy(paperTone = it.toInt())) },
+            valueText = "${params.paperTone}/100",
+        )
+        SeedRow(params.seed) { onChange(params.copy(seed = it)) }
+    }
+}
+
+@Composable
+internal fun ColorDepthSection(
+    params: ColorDepthParams,
+    move: MoveHandler,
+    onChange: (ColorDepthParams) -> Unit,
+) {
+    EffectSection("colour depth", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "how many values each colour axis is allowed. In rgb this is the bit-crush old " +
+                "hardware did, banding and all. In the perceptual spaces the same number of " +
+                "levels is spread where the eye can actually see the difference, which loses " +
+                "far less in the shadows.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        TerminalSlider(
+            "levels", params.colorLevels.toFloat(), 2f..64f,
+            { onChange(params.copy(colorLevels = it.toInt())) },
+            valueText = "${params.colorLevels}",
+        )
+        StepperDropdown(
+            label = "space",
+            items = ColorDistance.entries.toList(),
+            selectedIndex = ColorDistance.entries.indexOf(params.colorSpace),
+            onSelect = { onChange(params.copy(colorSpace = ColorDistance.entries[it])) },
+            itemLabel = { it.name.lowercase() },
+            itemDetail = {
+                when (it) {
+                    ColorDistance.EUCLIDEAN -> "the stored channels — a true bit-crush"
+                    ColorDistance.CIELAB -> "perceptual, even steps in lightness"
+                    ColorDistance.OKLAB -> "perceptual, better behaved in blue"
+                }
+            },
+        )
+        TerminalToggle(
+            label = "dither the banding away",
+            checked = params.dithered,
+            onCheckedChange = { onChange(params.copy(dithered = it)) },
+        )
+        Text(
+            "this is usually what you want instead of stacking the blue-noise pass on top.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 2.dp),
         )
     }
 }

@@ -11,7 +11,7 @@ import kotlin.math.sin
 /**
  * The nine noise patterns.
  *
- * Dither Boy's Temporal Variation advertises nine controllable animated noise patterns but
+ * The reference app's temporal variation advertises nine controllable noise patterns but
  * publishes none of their names or maths. These nine are this app's own set, named after
  * what they do rather than after anything of theirs.
  */
@@ -55,7 +55,7 @@ data class TemporalParams(
  * Animated noise added to the dither threshold.
  *
  * It goes onto the *threshold* rather than onto the image so that it works with every dither
- * mode rather than only the threshold-based ones — Dither Boy describes its temporal effects
+ * mode rather than only the threshold-based ones — the reference app describes its effects
  * as compatible with any of its algorithms, and this is what that has to mean.
  *
  * Every pattern is periodic in [time] with period 1. A loop that does not close is the one
