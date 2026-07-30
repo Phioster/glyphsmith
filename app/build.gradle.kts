@@ -16,12 +16,12 @@ android {
         applicationId = "org.phioster.glyphsmith"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     signingConfigs {
-        // Committed debug keystore so every build (local + CI) signs with the same key —
+        // Committed debug keystore so every debug build (local + CI) signs with the same key —
         // lets the app update in place instead of forcing an uninstall on each new APK.
         getByName("debug") {
             storeFile = file("debug.keystore")
@@ -29,14 +29,42 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+
+        // The real signing key, supplied by the environment and never committed. Release builds
+        // used to be signed with the debug key above, which is in a public repository with a
+        // published password — anyone could have signed an update that installed over a real one.
+        //
+        // Registered unconditionally but only *used* when the environment carries the key, so a
+        // local `assembleRelease` still works (debug-signed, and not shippable) without anyone
+        // having to hold the secret.
+        create("release") {
+            val keystore = System.getenv("RELEASE_KEYSTORE_PATH")
+            if (keystore != null && file(keystore).exists()) {
+                storeFile = file(keystore)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "glyphsmith"
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            // No release keystore yet: sign release with the same committed debug key so the
-            // rolling dev build installs over previous ones. Swap in a real key when publishing.
-            signingConfig = signingConfigs.getByName("debug")
+            // R8 on: most of the 12 MB was Compose and serialisation code nothing reaches.
+            // kotlinx.serialization generates its serialisers at compile time, so it needs only a
+            // few keep rules — those are in proguard-rules.pro with the reason for each.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            signingConfig = if (System.getenv("RELEASE_KEYSTORE_PATH") != null) {
+                signingConfigs.getByName("release")
+            } else {
+                // Debug-signed, so a local release build is testable but obviously not publishable.
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
