@@ -434,7 +434,10 @@ class PresetStore(context: Context) {
                 ),
             ),
             preset(
-                "risograph", CATEGORY_PRINT,
+                // Named for the process, not the machine: a coarse halftone screen on warm
+                // uncoated stock. The newer "spot colour print" is the same family done with real
+                // plate misregistration rather than with a screen.
+                "duplicator print", CATEGORY_PRINT,
                 AsciiParams(
                     charSetId = "block-shade",
                     cellSize = 5,
