@@ -3,6 +3,7 @@ package org.phioster.glyphsmith.core.color
 import kotlinx.serialization.Serializable
 import kotlin.math.cbrt
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
@@ -53,6 +54,23 @@ enum class ColorDistance {
 
     /** Straight-line distance between two colours in this metric's space. */
     fun distance(a: Int, b: Int): Float = distanceBetween(coordsOf(a), coordsOf(b))
+
+    /**
+     * The opaque colour a set of coordinates stands for — the exact inverse of [coordsOf].
+     *
+     * Needed by anything that wants to *modify* a colour in a perceptual space rather than merely
+     * compare two: quantising lightness, for instance, has to come back out again. Comparison
+     * alone never needed a way back, which is why this arrived later than [coordsOf].
+     *
+     * Coordinates outside the sRGB gamut — easy to produce, since L\*a\*b\* and OKLab are both far
+     * larger than sRGB — are clamped per channel. Clamping distorts such a colour, but the
+     * alternative is a channel wrapping from bright to black, which reads as a hole in the image.
+     */
+    fun rgbOf(coords: FloatArray): Int = when (this) {
+        EUCLIDEAN -> pack(coords[0], coords[1], coords[2])
+        CIELAB -> fromLab(coords)
+        OKLAB -> fromOkLab(coords)
+    }
 
     companion object {
 
@@ -110,5 +128,58 @@ enum class ColorDistance {
                 0.0259040371f * l3 + 0.7827717662f * m3 - 0.8086757660f * s3,
             )
         }
+
+        /** sRGB transfer function, forward: linear light back to a gamma-encoded channel. */
+        private fun encoded(c: Float): Float =
+            if (c <= 0.0031308f) 12.92f * c else 1.055f * c.pow(1f / 2.4f) - 0.055f
+
+        /**
+         * [pivot] undone. The branch is on the *pivoted* value rather than on the original, since
+         * that is all we have coming back; `6/29` is the pivoted form of the `0.008856` break, so
+         * the two functions change branch at exactly the same colour.
+         */
+        private fun unpivot(f: Float): Float =
+            if (f > 6f / 29f) f * f * f else (f - 16f / 116f) / 7.787f
+
+        private fun fromLab(lab: FloatArray): Int {
+            val fy = (lab[0] + 16f) / 116f
+            val fx = fy + lab[1] / 500f
+            val fz = fy - lab[2] / 200f
+            val x = unpivot(fx) * XN
+            val y = unpivot(fy) * YN
+            val z = unpivot(fz) * ZN
+            return fromLinear(
+                3.2404542f * x - 1.5371385f * y - 0.4985314f * z,
+                -0.9692660f * x + 1.8760108f * y + 0.0415560f * z,
+                0.0556434f * x - 0.2040259f * y + 1.0572252f * z,
+            )
+        }
+
+        private fun fromOkLab(lab: FloatArray): Int {
+            val l3 = lab[0] + 0.3963377774f * lab[1] + 0.2158037573f * lab[2]
+            val m3 = lab[0] - 0.1055613458f * lab[1] - 0.0638541728f * lab[2]
+            val s3 = lab[0] - 0.0894841775f * lab[1] - 1.2914855480f * lab[2]
+            val l = l3 * l3 * l3
+            val m = m3 * m3 * m3
+            val s = s3 * s3 * s3
+            return fromLinear(
+                4.0767416621f * l - 3.3077115913f * m + 0.2309699292f * s,
+                -1.2684380046f * l + 2.6097574011f * m - 0.3413193965f * s,
+                -0.0041960863f * l - 0.7034186147f * m + 1.7076147010f * s,
+            )
+        }
+
+        /** Linear light to a packed opaque colour, gamma-encoded and clamped into gamut. */
+        private fun fromLinear(r: Float, g: Float, b: Float): Int = pack(
+            encoded(r.coerceIn(0f, 1f)) * 255f,
+            encoded(g.coerceIn(0f, 1f)) * 255f,
+            encoded(b.coerceIn(0f, 1f)) * 255f,
+        )
+
+        private fun pack(r: Float, g: Float, b: Float): Int =
+            (0xFF shl 24) or
+                (r.roundToInt().coerceIn(0, 255) shl 16) or
+                (g.roundToInt().coerceIn(0, 255) shl 8) or
+                b.roundToInt().coerceIn(0, 255)
     }
 }

@@ -7,17 +7,20 @@ import org.phioster.glyphsmith.core.image.Pixels
 /**
  * A node built from one entry of an [EffectStack].
  *
- * The effect itself is a lambda rather than a subclass per effect: all twelve already share
- * the signature `(Pixels, Params) -> Pixels`, so there is nothing for twelve classes to say
- * that this one cannot. The [enabled] flag is read once when the node is built, which is
- * correct because a node lives exactly as long as the render it was built for.
+ * The effect itself is a lambda rather than a subclass per effect: they all share the shape
+ * `(Pixels, Params) -> Pixels`, so there is nothing for a dozen-odd classes to say that this one
+ * cannot. The [enabled] flag is read once when the node is built, which is correct because a node
+ * lives exactly as long as the render it was built for.
+ *
+ * The lambda takes the [RenderContext] as well, because the newer effects need the clock and the
+ * output budget from it. The older ones ignore it.
  */
 private class EffectNode(
     override val id: String,
     override val enabled: Boolean,
-    private val apply: (Pixels) -> Pixels,
+    private val apply: (Pixels, RenderContext) -> Pixels,
 ) : ImageProcessorNode {
-    override fun process(input: Pixels, ctx: RenderContext): Pixels = apply(input)
+    override fun process(input: Pixels, ctx: RenderContext): Pixels = apply(input, ctx)
 }
 
 /**
@@ -33,7 +36,7 @@ object EffectNodes {
         stack.effectiveOrder().map { id -> nodeFor(id, stack) }
 
     private fun nodeFor(id: EffectId, stack: EffectStack): ImageProcessorNode =
-        EffectNode(id.name, stack.enabledOf(id)) { pixels ->
+        EffectNode(id.name, stack.enabledOf(id)) { pixels, ctx ->
             when (id) {
                 EffectId.POST -> PostProcessing.apply(pixels, stack.postProcessing)
                 EffectId.BLUR -> BlurSharpen.apply(pixels, stack.blurSharpen)
@@ -47,6 +50,13 @@ object EffectNodes {
                 EffectId.SUBTEXTURE -> Subtexture.apply(pixels, stack.subtexture)
                 EffectId.CMYK -> CmykHalftone.apply(pixels, stack.cmyk)
                 EffectId.GLOW -> EpsilonGlow.apply(pixels, stack.glow)
+                // The newer effects take the context: the clock for anything that moves, and the
+                // pool through the buffer they are handed.
+                EffectId.MODULATION -> ModulationLines.apply(pixels, stack.modulationLines, ctx)
+                EffectId.PRINT -> SpotColorPrint.apply(pixels, stack.spotPrint, ctx)
+                EffectId.DEPTH -> ColorDepth.apply(pixels, stack.colorDepth, ctx)
+                EffectId.DITHER -> BlueNoiseDither.apply(pixels, stack.blueNoise, ctx)
+                EffectId.WARP -> CrtWarp.apply(pixels, stack.crtWarp, ctx)
             }
         }
 }

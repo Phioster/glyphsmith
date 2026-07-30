@@ -66,6 +66,13 @@ import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.ui.theme.TermThemes
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.color.Palettes
+import org.phioster.glyphsmith.effects.CrtWarpParams
+import org.phioster.glyphsmith.effects.BlueNoiseDitherParams
+import org.phioster.glyphsmith.effects.ColorDepthParams
+import org.phioster.glyphsmith.effects.SpotColorPrintParams
+import org.phioster.glyphsmith.effects.ModulationColorMode
+import org.phioster.glyphsmith.effects.ModulationLinesParams
+import org.phioster.glyphsmith.core.color.ColorDistance
 
 data class UiState(
     val params: AsciiParams = AsciiParams(),
@@ -924,6 +931,48 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
                 EffectId.GLOW -> effects.copy(
                     glow = GlowParams(enabled = true, intensity = random.nextInt(200, 600)),
+                )
+
+                EffectId.MODULATION -> effects.copy(
+                    modulationLines = ModulationLinesParams(
+                        enabled = true,
+                        lineSpacing = random.nextInt(4, 16),
+                        amplitude = random.nextInt(3, 20),
+                        colorMode = ModulationColorMode.entries.random(random),
+                    ),
+                )
+
+                EffectId.PRINT -> effects.copy(
+                    spotPrint = SpotColorPrintParams(
+                        enabled = true,
+                        misalignment = random.nextInt(10, 60),
+                        inkCount = random.nextInt(2, 5),
+                        seed = random.nextInt(1, 999),
+                    ),
+                )
+
+                EffectId.DEPTH -> effects.copy(
+                    colorDepth = ColorDepthParams(
+                        enabled = true,
+                        colorLevels = random.nextInt(2, 10),
+                        colorSpace = ColorDistance.entries.random(random),
+                    ),
+                )
+
+                EffectId.DITHER -> effects.copy(
+                    blueNoise = BlueNoiseDitherParams(
+                        enabled = true,
+                        levels = random.nextInt(2, 6),
+                        noiseScale = random.nextInt(1, 4),
+                    ),
+                )
+
+                EffectId.WARP -> effects.copy(
+                    crtWarp = CrtWarpParams(
+                        enabled = true,
+                        warpCurvature = random.nextInt(10, 60),
+                        vignetteIntensity = random.nextInt(15, 60),
+                    ),
                 )
             }
         }

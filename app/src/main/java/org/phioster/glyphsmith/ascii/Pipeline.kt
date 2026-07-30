@@ -55,7 +55,14 @@ object Pipeline {
         maxSide: Int,
         isScrubbing: Boolean = false,
     ): Result {
-        val ctx = RenderContext(maxSide = maxSide, isScrubbing = isScrubbing)
+        // The clock the effect chain animates from. It already travels inside the params —
+        // renderFrames writes the frame's normalised loop position into `temporal.time` — so
+        // handing it to the nodes costs one argument rather than a second plumbing path.
+        val ctx = RenderContext(
+            maxSide = maxSide,
+            isScrubbing = isScrubbing,
+            time = params.temporal.time,
+        )
         val base = when (params.renderMode) {
             RenderMode.GlyphMatrix -> glyphRender(pixels, sourceWidth, sourceHeight, params, maxSide, ctx)
             RenderMode.PurePixel -> pixelRender(pixels, sourceWidth, sourceHeight, params, maxSide, ctx)

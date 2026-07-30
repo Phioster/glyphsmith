@@ -167,10 +167,15 @@ enum class EffectId(val label: String) {
     SORT("pixel sort"),
     SLICE("slice shift"),
     INTERLACE("interlace"),
+    MODULATION("modulation lines"),
     STARS("stars"),
     SUBTEXTURE("subtexture"),
+    PRINT("spot print"),
     CMYK("cmyk halftone"),
+    DEPTH("colour depth"),
+    DITHER("blue noise"),
     GLOW("glow"),
+    WARP("crt warp"),
 }
 
 /**
@@ -199,6 +204,11 @@ data class EffectStack(
     val pixelSort: PixelSortParams = PixelSortParams(),
     val sliceShift: SliceShiftParams = SliceShiftParams(),
     val interlace: InterlaceParams = InterlaceParams(),
+    val modulationLines: ModulationLinesParams = ModulationLinesParams(),
+    val spotPrint: SpotColorPrintParams = SpotColorPrintParams(),
+    val colorDepth: ColorDepthParams = ColorDepthParams(),
+    val blueNoise: BlueNoiseDitherParams = BlueNoiseDitherParams(),
+    val crtWarp: CrtWarpParams = CrtWarpParams(),
     val order: List<EffectId> = EffectId.entries.toList(),
 ) {
     fun enabledOf(id: EffectId): Boolean = when (id) {
@@ -214,6 +224,11 @@ data class EffectStack(
         EffectId.SUBTEXTURE -> subtexture.enabled
         EffectId.CMYK -> cmyk.enabled
         EffectId.GLOW -> glow.enabled
+        EffectId.MODULATION -> modulationLines.enabled
+        EffectId.PRINT -> spotPrint.enabled
+        EffectId.DEPTH -> colorDepth.enabled
+        EffectId.DITHER -> blueNoise.enabled
+        EffectId.WARP -> crtWarp.enabled
     }
 
     /**

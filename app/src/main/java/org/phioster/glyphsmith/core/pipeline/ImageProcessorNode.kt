@@ -47,4 +47,13 @@ class RenderContext(
     val isScrubbing: Boolean = false,
     /** Where a node gets a working buffer from, so a repeated render stops churning the heap. */
     val pool: BufferPool = BufferPool(),
+    /**
+     * Normalised loop position, 0..1. Zero for a still.
+     *
+     * A node that wants to move over an animation reads this rather than counting its own calls:
+     * frames may be rendered out of order, and a preview deliberately skips some, so a call
+     * counter would drift out of step with the frame it is drawing. Zero on a still means a
+     * time-driven node still has a defined look — the first frame of its cycle.
+     */
+    val time: Float = 0f,
 )

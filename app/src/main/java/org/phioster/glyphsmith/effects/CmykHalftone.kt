@@ -48,10 +48,10 @@ object CmykHalftone {
     /** Yellow, cyan, black, magenta — the classic separation angles, in degrees. */
     private val INK_ANGLES = floatArrayOf(0f, 15f, 45f, 75f)
 
-    private const val CYAN = 0
-    private const val MAGENTA = 1
-    private const val YELLOW = 2
-    private const val BLACK = 3
+    internal const val CYAN = 0
+    internal const val MAGENTA = 1
+    internal const val YELLOW = 2
+    internal const val BLACK = 3
 
     fun apply(source: Pixels, params: CmykHalftoneParams): Pixels {
         if (!params.enabled) return source
@@ -126,7 +126,11 @@ object CmykHalftone {
      * and yellow, which on paper turns muddy brown and on screen just looks dirty. Pulling
      * the common minimum out into black is what keeps neutrals neutral.
      */
-    private fun separate(pixel: Int, gcr: Float, gain: Float, out: FloatArray) {
+    /**
+     * Internal rather than private so the spot-colour print node can share it. There must be one
+     * grey-component-replacement implementation, not two that drift apart.
+     */
+    internal fun separate(pixel: Int, gcr: Float, gain: Float, out: FloatArray) {
         val c = 1f - PixelOps.redOf(pixel) / 255f
         val m = 1f - PixelOps.greenOf(pixel) / 255f
         val y = 1f - PixelOps.blueOf(pixel) / 255f
