@@ -62,13 +62,26 @@ jobs:
       # the giveaway, so the build fails if it appears.
       - name: Verify the APK is signed with the release key
         run: |
+          set -euo pipefail
           APK=app/build/outputs/apk/release/app-release.apk
-          SIGNER=$("$ANDROID_HOME"/build-tools/*/apksigner verify --print-certs "$APK" | head -20)
+          # One binary, chosen explicitly. A glob here matches every installed build-tools
+          # version, and the extra paths get passed to apksigner as arguments — which fails with
+          # "Unsupported command" while the step still reports success, because a pipe hides the
+          # exit code. A verification that cannot fail is worse than none.
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          test -x "$APKSIGNER"
+          echo "using $APKSIGNER"
+          SIGNER=$("$APKSIGNER" verify --print-certs "$APK")
           echo "$SIGNER"
           if echo "$SIGNER" | grep -q "CN=Android Debug"; then
             echo "::error::this APK is debug-signed"
             exit 1
           fi
+          if ! echo "$SIGNER" | grep -q "CN=Glyphsmith"; then
+            echo "::error::unexpected signer — release key not used"
+            exit 1
+          fi
+          echo "signed with the release key"
 
       - name: Stage APK
         run: |
