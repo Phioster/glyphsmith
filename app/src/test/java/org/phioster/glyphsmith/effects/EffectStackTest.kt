@@ -2,6 +2,7 @@ package org.phioster.glyphsmith.effects
 
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -135,5 +136,35 @@ class EffectStackTest {
         assertEquals(before, source.data.toList())
         BlurSharpen.apply(source, BlurSharpenParams(enabled = true, amount = 0))
         assertEquals(before, source.data.toList())
+    }
+
+    /**
+     * Five passes arrived after presets were already on disk. Every stored order predates them, so
+     * they have to be appended rather than dropped — otherwise a saved preset would silently lack
+     * the newer half of the chain, and the only symptom would be an effect toggle that does nothing.
+     */
+    @Test
+    fun `the passes added after presets shipped are appended to a stored order`() {
+        val old = EffectStack(order = listOf(EffectId.POST, EffectId.GLOW))
+        val order = old.effectiveOrder()
+
+        for (id in listOf(
+            EffectId.MODULATION, EffectId.PRINT, EffectId.DEPTH, EffectId.DITHER, EffectId.WARP,
+        )) {
+            assertTrue("$id was dropped from a stored order", id in order)
+        }
+        assertEquals(EffectId.entries.size, order.size)
+    }
+
+    @Test
+    fun `a stack serialised before the new passes existed still decodes`() {
+        val decoded = json.decodeFromString<EffectStack>("""{"glow":{"enabled":true}}""")
+
+        assertFalse(decoded.modulationLines.enabled)
+        assertFalse(decoded.spotPrint.enabled)
+        assertFalse(decoded.colorDepth.enabled)
+        assertFalse(decoded.blueNoise.enabled)
+        assertFalse(decoded.crtWarp.enabled)
+        assertEquals(EffectId.entries.toList(), decoded.effectiveOrder())
     }
 }
