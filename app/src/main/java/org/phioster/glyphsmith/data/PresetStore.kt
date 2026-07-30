@@ -38,6 +38,7 @@ import org.phioster.glyphsmith.effects.ModulationColorMode
 import org.phioster.glyphsmith.effects.ModulationLinesParams
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.decodeFromJsonElement
+import org.phioster.glyphsmith.effects.InterlaceParams
 
 @Serializable
 data class Preset(
@@ -1120,7 +1121,7 @@ class PresetStore(context: Context) {
                         subtexture = SubtextureParams(
                             enabled = true,
                             kind = TextureKind.PAPER_FIBRE,
-                            amount = 22,
+                            intensity = 22,
                         ),
                     ),
                 ),
