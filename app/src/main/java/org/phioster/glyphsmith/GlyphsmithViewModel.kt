@@ -428,11 +428,23 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Scrubs the preview through a video. Ignored for a still, which has one frame. */
+    /**
+     * Scrubs a video's preview frame.
+     *
+     * The previous render is cancelled rather than left to finish. This is the one slider that
+     * does not go through [paramsFlow] — the params do not change, only which frame is decoded —
+     * so it never had `collectLatest`'s coalescing, and a drag used to launch one render per
+     * emission with all of them racing to write the preview. The last one to finish won, which is
+     * not necessarily the last one asked for.
+     */
     fun setPreviewPosition(position: Float) {
         if (source?.isMoving != true) return
         _state.value = _state.value.copy(previewPosition = position.coerceIn(0f, 1f))
-        viewModelScope.launch { rebuild(_state.value.params) }
+        positionJob?.cancel()
+        positionJob = viewModelScope.launch { rebuild(_state.value.params) }
     }
+
+    private var positionJob: Job? = null
 
     /** Swaps in a new source and releases whatever the old one was holding. */
     private fun adopt(next: Source) {
