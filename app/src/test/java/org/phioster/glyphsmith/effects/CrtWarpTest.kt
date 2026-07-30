@@ -94,8 +94,7 @@ class CrtWarpTest {
      * Bilinear sampling is the reason this looks smooth rather than staircased. On a sharp edge it
      * has to produce values that were in neither neighbour — that is what interpolation means, and
      * nearest-neighbour sampling could not.
-     */
-    /**
+     *
      * The edge is deliberately **off** centre.
      *
      * A vertical edge through the middle is the one place a barrel warp does not interpolate
