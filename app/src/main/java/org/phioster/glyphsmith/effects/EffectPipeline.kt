@@ -3,6 +3,7 @@ package org.phioster.glyphsmith.effects
 import android.graphics.Bitmap
 import org.phioster.glyphsmith.core.pipeline.NodePipeline
 import org.phioster.glyphsmith.core.pipeline.RenderContext
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * The bitmap-facing edge of the effect chain.

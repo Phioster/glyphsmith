@@ -10,6 +10,7 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * Channel separation plus row displacement.

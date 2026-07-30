@@ -2,6 +2,7 @@ package org.phioster.glyphsmith.effects
 
 import kotlinx.serialization.Serializable
 import kotlin.random.Random
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * Interlace corruption — damage that follows the scan pattern of an interlaced signal.

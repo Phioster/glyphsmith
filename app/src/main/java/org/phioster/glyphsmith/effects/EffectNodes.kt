@@ -2,6 +2,7 @@ package org.phioster.glyphsmith.effects
 
 import org.phioster.glyphsmith.core.pipeline.ImageProcessorNode
 import org.phioster.glyphsmith.core.pipeline.RenderContext
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * A node built from one entry of an [EffectStack].

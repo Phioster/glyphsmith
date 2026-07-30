@@ -3,6 +3,7 @@ package org.phioster.glyphsmith.effects
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * Threshold → anisotropic blur → add.

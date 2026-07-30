@@ -1,6 +1,6 @@
 package org.phioster.glyphsmith.core.pipeline
 
-import org.phioster.glyphsmith.effects.Pixels
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * One step in the render chain.

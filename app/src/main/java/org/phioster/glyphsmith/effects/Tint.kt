@@ -6,6 +6,7 @@ import org.phioster.glyphsmith.effects.PixelOps.blueOf
 import org.phioster.glyphsmith.effects.PixelOps.greenOf
 import org.phioster.glyphsmith.effects.PixelOps.luminance
 import org.phioster.glyphsmith.effects.PixelOps.redOf
+import org.phioster.glyphsmith.core.image.Pixels
 
 /** Colour wash. [TintMode.DUOTONE] remaps the whole tonal range between two colours. */
 object Tint {

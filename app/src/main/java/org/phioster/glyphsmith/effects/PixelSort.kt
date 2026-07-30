@@ -2,6 +2,7 @@ package org.phioster.glyphsmith.effects
 
 import kotlinx.serialization.Serializable
 import kotlin.math.abs
+import org.phioster.glyphsmith.core.image.Pixels
 
 enum class SortAxis(val label: String) {
     HORIZONTAL("Horizontal"),

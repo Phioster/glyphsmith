@@ -4,7 +4,7 @@ import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.core.color.PaletteQuantizer
-import org.phioster.glyphsmith.effects.Pixels
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * The pixel path: a quantised grid painted as colours instead of characters.

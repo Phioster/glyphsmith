@@ -1,6 +1,6 @@
 package org.phioster.glyphsmith.core.pipeline
 
-import org.phioster.glyphsmith.effects.Pixels
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * Runs an ordered list of [ImageProcessorNode]s over one buffer.

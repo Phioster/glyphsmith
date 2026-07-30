@@ -7,6 +7,7 @@ import org.phioster.glyphsmith.effects.PixelOps.redOf
 import kotlin.math.min
 import kotlin.math.sqrt
 import kotlin.random.Random
+import org.phioster.glyphsmith.core.image.Pixels
 
 /** Grading and film-y damage, all in one pass over the pixels. */
 object PostProcessing {

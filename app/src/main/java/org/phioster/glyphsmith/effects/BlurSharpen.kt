@@ -1,5 +1,7 @@
 package org.phioster.glyphsmith.effects
 
+import org.phioster.glyphsmith.core.image.Pixels
+
 /**
  * Blur and sharpen from one slider, because they are the same operation read in opposite
  * directions: an unsharp mask is the blurred image subtracted back out of the original.

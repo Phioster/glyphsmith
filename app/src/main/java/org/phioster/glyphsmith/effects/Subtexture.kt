@@ -7,6 +7,7 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.sin
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * Overlay textures, generated rather than shipped.

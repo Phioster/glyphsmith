@@ -8,6 +8,7 @@ import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import org.phioster.glyphsmith.core.image.Pixels
 
 /**
  * A four-colour halftone screen, the way process printing does it.
