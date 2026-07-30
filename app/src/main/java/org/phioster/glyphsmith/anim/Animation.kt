@@ -37,6 +37,15 @@ enum class AnimTarget(
     CHROMATIC_OFFSET("Chromatic Offset", 0, 50),
     GLOW_DIRECTION("Glow Direction", 0, 359, cyclic = true),
     STARS_ANGLE("Stars Angle", 0, 359, cyclic = true),
+
+    /**
+     * The travelling phase of the modulation-lines pass, one full cycle over 0..100.
+     *
+     * That pass also moves on its own from the render clock, which is enough for a plain loop.
+     * A track exists so the motion can be *shaped* — eased, held, reversed, or run at a
+     * different rate from the rest of the animation — like every other animated parameter.
+     */
+    MODULATION_PHASE("Modulation Phase (lines)", 0, 100, cyclic = true),
 }
 
 /**
@@ -271,6 +280,11 @@ object Animator {
             // Left unclamped: the phase wraps inside the pattern, so a track that runs past
             // 100 simply keeps travelling instead of stalling at the end of its range.
             AnimTarget.MOD_PHASE -> params.copy(modPhase = value)
+            AnimTarget.MODULATION_PHASE -> params.copy(
+                effects = params.effects.copy(
+                    modulationLines = params.effects.modulationLines.copy(phase = value),
+                ),
+            )
             AnimTarget.PATTERN_DENSITY -> params.copy(patternDensity = value.coerceIn(0, 100))
             AnimTarget.EDGE_THRESHOLD -> params.copy(edgeThreshold = value.coerceIn(0, 100))
             AnimTarget.GLITCH_SEED -> params.copy(
