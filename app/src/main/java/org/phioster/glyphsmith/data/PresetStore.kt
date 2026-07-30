@@ -39,6 +39,9 @@ import org.phioster.glyphsmith.effects.ModulationLinesParams
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.decodeFromJsonElement
 import org.phioster.glyphsmith.effects.InterlaceParams
+import org.phioster.glyphsmith.effects.BlueNoiseDitherParams
+import org.phioster.glyphsmith.effects.TintMode
+import org.phioster.glyphsmith.effects.TintParams
 
 @Serializable
 data class Preset(
@@ -1036,6 +1039,35 @@ class PresetStore(context: Context) {
             // The four that showcase the newer passes. Each one leans on a single new node and
             // uses the older chain only to finish it, so what the node does is legible rather
             // than buried under four other effects.
+            preset(
+                "duotone grain", CATEGORY_DITHER,
+                // Two colours and nothing between them, held together by grain rather than by
+                // tone. The blue-noise pass is what makes that readable: the same look with
+                // ordered dithering reads as a printed pattern, which is a different thing.
+                AsciiParams(
+                    charSetId = "block-shade",
+                    cellSize = 4,
+                    depth = 4,
+                    contrast = 1.25f,
+                    ditherMode = DitherMode.NONE,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        tint = TintParams(
+                            enabled = true,
+                            mode = TintMode.DUOTONE,
+                            shadowColor = 0xFF120A2E.toInt(),
+                            highlightColor = 0xFFFFD9A0.toInt(),
+                            amount = 90,
+                        ),
+                        blueNoise = BlueNoiseDitherParams(
+                            enabled = true,
+                            levels = 3,
+                            noiseScale = 2,
+                            monochrome = true,
+                        ),
+                    ),
+                ),
+            ),
             preset(
                 "modulation cyberpunk", CATEGORY_SIGNATURE,
                 // The plot is the picture here: lines carry the image and the glow gives the

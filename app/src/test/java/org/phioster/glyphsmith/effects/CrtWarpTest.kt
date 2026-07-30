@@ -95,11 +95,20 @@ class CrtWarpTest {
      * has to produce values that were in neither neighbour — that is what interpolation means, and
      * nearest-neighbour sampling could not.
      */
+    /**
+     * The edge is deliberately **off** centre.
+     *
+     * A vertical edge through the middle is the one place a barrel warp does not interpolate
+     * horizontally: there `nx` is zero, so the sampled x lands exactly on a pixel centre however
+     * much the glass bulges, and the test would fail while the sampler was perfectly correct. Off
+     * centre, the radius is non-zero and the sample falls between two pixels, which is where
+     * bilinear differs from nearest-neighbour at all.
+     */
     @Test
     fun `sampling interpolates rather than snapping to a neighbour`() {
-        // A hard vertical split, black on the left and white on the right.
+        // A hard vertical split at a quarter width, black on the left and white on the right.
         val data = IntArray(side * side) { i ->
-            if (i % side < side / 2) 0xFF000000.toInt() else 0xFFFFFFFF.toInt()
+            if (i % side < side / 4) 0xFF000000.toInt() else 0xFFFFFFFF.toInt()
         }
         val out = CrtWarp.apply(
             Pixels(data, side, side),

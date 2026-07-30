@@ -125,14 +125,32 @@ class EffectNodeContractTest {
     /**
      * Only the modulation pass reads the clock, and it must actually read it — that path exists
      * solely so an animation moves, and nothing else in the test suite can prove it does.
+     *
+     * The time is 0.3 rather than a half or a quarter on purpose. Phase advances by
+     * `time * speed / 10` cycles, so at a speed of 80 a time of 0.5 is *exactly four whole cycles*
+     * and the wave is back where it started — correct behaviour, and it closes an animation loop
+     * seamlessly, but it would make this assertion fail against a sampler that was working.
      */
     @Test
     fun `the modulation pass moves with the clock`() {
         val params = ModulationLinesParams(enabled = true, waveSpeed = 80, waveMix = 90)
         val atStart = ModulationLines.apply(image(), params, ctx(time = 0f)).data
-        val laterOn = ModulationLines.apply(image(), params, ctx(time = 0.5f)).data
+        val laterOn = ModulationLines.apply(image(), params, ctx(time = 0.3f)).data
 
         assertTrue("the wave did not move between frames", !atStart.contentEquals(laterOn))
+    }
+
+    /**
+     * The other half of that: a whole number of cycles *must* land back on the same image, which is
+     * what lets an animated loop close without a visible seam.
+     */
+    @Test
+    fun `a whole number of cycles returns the wave to its start`() {
+        val params = ModulationLinesParams(enabled = true, waveSpeed = 80, waveMix = 90)
+        val atStart = ModulationLines.apply(image(), params, ctx(time = 0f)).data
+        val fourCycles = ModulationLines.apply(image(), params, ctx(time = 0.5f)).data
+
+        assertArrayEquals("the loop does not close", atStart, fourCycles)
     }
 
     @Test
