@@ -57,6 +57,9 @@ import org.phioster.glyphsmith.ui.panels.OutputPanel
 import org.phioster.glyphsmith.ui.panels.PresetPanel
 import org.phioster.glyphsmith.ui.panels.MappingPanel
 import org.phioster.glyphsmith.ui.theme.Term
+import org.phioster.glyphsmith.data.PresetStore
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.foundation.text.BasicTextField
 
 private enum class Tab(val label: String) {
     ASCII("SET"),
@@ -232,6 +235,13 @@ fun GlyphsmithScreen(
         Preview(state, Modifier.weight(1f))
 
         StatusLine(state)
+
+        PresetBar(
+            presets = state.presets,
+            onApply = onApplyPreset,
+            onSave = onSavePreset,
+            onImport = onImportPresets,
+        )
 
         // Switching to pixel mode while sitting on a glyph-only tab would leave the user on a
         // panel that is no longer offered, so the selection follows the mode back to the top.
@@ -472,3 +482,121 @@ private fun TabRow(selected: Tab, glyphMode: Boolean, onSelect: (Tab) -> Unit) {
         }
     }
 }
+
+/**
+ * Presets within reach of the picture, rather than four tabs away.
+ *
+ * A preset is the one control people reach for while *looking* at the image, and having to leave
+ * the preview to find it is what made the PRE tab feel like a filing cabinet. This is the short
+ * version: filter by category, tap to apply, and the two transfer actions. The tab keeps
+ * everything the bar cannot fit — thumbnails, favourites, delete, rename, appearance.
+ *
+ * Collapsed by default so it costs one line until it is wanted.
+ */
+@Composable
+private fun PresetBar(
+    presets: List<Preset>,
+    onApply: (Preset) -> Unit,
+    onSave: (String) -> Unit,
+    onImport: (android.net.Uri) -> Unit,
+) {
+    var open by remember { mutableStateOf(false) }
+    var category by remember { mutableStateOf(PRESET_FILTER_ALL) }
+    var name by remember { mutableStateOf("") }
+
+    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(onImport)
+    }
+
+    // Only the categories that actually have presets — an empty filter chip is a dead end.
+    val available = remember(presets) {
+        listOf(PRESET_FILTER_ALL) +
+            PresetStore.categories.filter { c -> presets.any { it.category == c } }
+    }
+    val shown = remember(presets, category) {
+        val matching = if (category == PRESET_FILTER_ALL) presets else presets.filter { it.category == category }
+        matching.sortedWith(compareByDescending<Preset> { it.favourite }.thenBy { it.name })
+    }
+
+    Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            TerminalButton(
+                label = if (open) "presets ▾" else "presets ▸",
+                onClick = { open = !open },
+            )
+            Text(
+                text = "${presets.size} saved",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+
+        if (!open) return@Column
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            available.forEach { entry ->
+                TerminalChip(
+                    label = entry.lowercase(),
+                    selected = entry == category,
+                    onClick = { category = entry },
+                )
+            }
+        }
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            shown.forEach { preset ->
+                TerminalChip(
+                    label = if (preset.favourite) "★ ${preset.name}" else preset.name,
+                    selected = false,
+                    onClick = { onApply(preset) },
+                )
+            }
+        }
+
+        Row(
+            Modifier.fillMaxWidth().padding(top = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            BasicTextField(
+                value = name,
+                onValueChange = { name = it },
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Term.Ink),
+                cursorBrush = SolidColor(Term.Ink),
+                modifier = Modifier
+                    .weight(1f)
+                    .border(1.dp, Term.InkDim, RectangleShape)
+                    .background(Term.SurfaceHigh)
+                    .padding(horizontal = 8.dp, vertical = 9.dp),
+            )
+            TerminalButton(
+                label = "save",
+                enabled = name.isNotBlank(),
+                onClick = {
+                    onSave(name)
+                    name = ""
+                },
+            )
+            TerminalButton(
+                label = "import",
+                onClick = { importer.launch(arrayOf("application/json", "text/plain", "*/*")) },
+            )
+        }
+    }
+}
+
+private const val PRESET_FILTER_ALL = "ALL"
