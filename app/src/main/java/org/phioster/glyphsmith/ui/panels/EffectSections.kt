@@ -677,11 +677,17 @@ internal fun ModulationLinesSection(
             },
         )
         if (params.colorMode == ModulationColorMode.INK) {
-            HexColorField("ink", params.inkColor) { onChange(params.copy(inkColor = it)) }
+            HexColorField(
+                label = "ink",
+                color = params.inkColor,
+                onColorChange = { onChange(params.copy(inkColor = it)) },
+            )
         }
-        HexColorField("background", params.backgroundColor) {
-            onChange(params.copy(backgroundColor = it))
-        }
+        HexColorField(
+            label = "background",
+            color = params.backgroundColor,
+            onColorChange = { onChange(params.copy(backgroundColor = it)) },
+        )
     }
 }
 
