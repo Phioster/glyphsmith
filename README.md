@@ -4,9 +4,10 @@ An Android dithering and retro-effect tool. Load an image or a video, reduce it 
 palette as pixels, or onto a character grid as glyphs — and export the render as a PNG, GIF,
 MP4 or SVG, or the grid itself as a `.txt`.
 
-Two render modes share one engine. The 78 dither algorithms quantise into *levels*, and a
+Two render modes share one engine. The 79 dither algorithms quantise into *levels*, and a
 level becomes a colour or a character depending on the mode; nothing below that seam knows
-which one it is feeding. Glyph rendering is the optional half, switched with one toggle.
+which one it is feeding. Pixel dithering is the default; glyph art is the optional half,
+switched with one toggle.
 
 It rebuilds the feature set of **Script Slayer** — the ASCII module inside Studio AAA's
 Dither Boy — for the phone: the same controls, the same vocabulary, an entirely separate
@@ -39,7 +40,7 @@ blocks, braille, geometric, languages, cards, unicode, lines, misc. Every ramp i
 ink coverage, and the panel shows the live ramp — narrowed, injected and inverted exactly as
 the engine will use it.
 
-**ASCII settings**
+**Glyph settings**
 
 | Control | Range | Effect |
 | --- | --- | --- |
@@ -62,7 +63,7 @@ Both together are under 170 KB. See `app/src/main/assets/fonts/NOTICE.md`.
 **Tone** — gamma → contrast → brightness, applied to each cell's luminance before it picks a
 glyph. Without it a flat photo only ever reaches the middle third of the ramp.
 
-**Dithering** — 26 algorithms. Error diffusion with serpentine scanning: Floyd–Steinberg,
+**Dithering** — 79 algorithms in seven families. Error diffusion with serpentine scanning: Floyd–Steinberg,
 False Floyd–Steinberg, Jarvis–Judice–Ninke, Stucki, Burkes, Sierra, Sierra Two-Row, Sierra
 Lite, Atkinson and the hexagonal Stevenson–Arce from the halftoning literature, Riemersma
 walking a Hilbert curve with a decaying error queue instead of a kernel at all, plus axis-dominant Diffuse Y and Diffuse X
@@ -73,7 +74,9 @@ from their construction rules rather than transcribed, because a rule can be tes
 1024-entry table cannot. And a modulation family whose threshold is a
 continuous function of position: lines, wave, rings, orb and beehive. A separate **pattern
 scale** sizes the pattern independently of the cell, which is what lets an algorithm be
-driven until it visibly breaks down.
+driven until it visibly breaks down. Beyond those come the pattern, geometry, polygon and
+glitch families — tiles, tessellations, region fills and deliberate signal faults — each filed
+by what it does to the image rather than by how loud it looks.
 
 **Edges** — Sobel over the cell grid; a cell whose gradient clears the threshold takes a
 glyph matching the edge's direction rather than its brightness. Four edge sets, plus an
@@ -85,7 +88,7 @@ measured — drawn and counted, in the face that will actually render it — and
 by the result, injected characters included. The panel shows every glyph's measured coverage
 and lets the order be changed by hand.
 
-**Colour** — single ink colour, source-sampled colour, or a palette. 19 palettes in 6
+**Colour** — single ink colour, source-sampled colour, or a palette. 44 palettes in 11
 categories, with individually editable stops, per-stop locks, a shuffle that respects them,
 a palette depth independent of the glyph depth, and extraction straight from the loaded
 image. Transparent or hex-picked background.
@@ -129,15 +132,19 @@ a loop), and **Temporal Variation**: nine animated noise patterns that shift the
 threshold itself. Every pattern is periodic over the loop, so the last frame lands back on
 the first.
 
-**Presets** — 56 shipped starting points in seven categories, plus whatever you save. A
-preset holds the *complete* state, effects and animation included, so applying one is a
-single tap. The MOTION and SIGNATURE sets arrive with animation already aimed: apply, press play.
-SIGNATURE is this app's own approximation of the looks Studio AAA show in their public
-preview clips — not their presets, which aren't published. Each one
-renders a thumbnail from your loaded image, favourites sort to the top, and `surprise me`
-rolls a look within ranges chosen to actually produce something. The LAB category is a
-comparison bench: one preset per dithering algorithm at otherwise identical settings,
-generated from the enum so an algorithm added later cannot be left without one.
+**Presets** — 89 shipped starting points, plus whatever you save. 83 of them are the curated
+library, shelved by mechanism across eleven categories — Classic Dither, Error Diffusion,
+Ordered Dither, Pattern, Print, Geometry, Color, Glitch, Motion, Layered and Glyph Art — and
+the split is deliberately 80–90 % pixel dithers, with glyph art present as a clearly named
+minority. A preset holds the *complete* state, effects and animation included, so applying one
+is a single tap. The Motion set arrives with animation already aimed: apply, press play. Each
+one renders a thumbnail from your loaded image, favourites sort to the top, and `surprise me`
+rolls a look within ranges chosen to actually produce something.
+
+The remaining 6 are the Algorithm Lab, kept off the curated shelves and counted separately: one
+preset per kernel at otherwise identical settings, so the algorithm is the only thing that
+differs. A library that opened on six versions of the same picture would describe a test bench
+rather than an application.
 
 **Layers** — extra renderings of the same picture stacked over the first, each with its own
 complete settings plus blend mode, opacity, offset, scale, rotation and flip. A layer is
@@ -159,9 +166,9 @@ ANSI escapes a terminal renders straight from `cat`.
 **Preview** — Live halves the preview resolution for a heavy effect chain; the export is
 untouched. Playback can loop or stop on the last frame.
 
-**Themes** — six interface looks (Matrix, Amber CRT, Ice, Handheld, Rose, and the one light
-theme, Parchment). The theme is an app setting rather than part of a preset: loading someone
-else's preset should not repaint your interface.
+**Themes** — seven interface looks: Matrix, Amber CRT, Ice, Handheld and Rose are dark;
+Parchment and Medieval are light. The theme is an app setting rather than part of a preset:
+loading someone else's preset should not repaint your interface.
 
 SVG comes in two modes. *Text* keeps the glyphs editable as type but needs the font at the
 other end. *Outlines* flattens each glyph to a real path — no font dependency, which is what
@@ -176,23 +183,30 @@ gradle testDebugUnitTest    # engine, ramps, character sets
 gradle assembleDebug
 ```
 
-Release builds are signed with the committed debug key, so every build installs over the
-previous one. `release.yml` on `workflow_dispatch` publishes the APK to a rolling `dev`
-release.
+Release builds are signed with a key that never enters the repository: `release.yml` decodes
+it from a secret into the runner for one job, and the build fails rather than publishes if the
+resulting APK is not signed by it. Without that secret a local `assembleRelease` falls back to
+debug signing, so it still works.
+
+A `workflow_dispatch` run builds an APK and uploads it as a run artifact, publishing nothing;
+pushing a `vX.Y.Z` tag is what cuts a GitHub Release.
 
 ## Layout
 
 ```
-core/      The parts that know nothing about glyphs: dither/ (78 algorithms, matrices),
-           color/ (palettes, three distance metrics, nearest-colour), image/ (Pixels),
-           pipeline/ (the node abstraction, buffer pool, row parallelism)
-render/    CellSampler and QuantisePass, shared by both modes; RenderMode;
-           PixelDitherRenderer and the per-channel ColorDiffusionPass
-ascii/     The glyph half: CharacterSets, AsciiParams, AsciiEngine (pure Kotlin),
-           EdgeDetect, Fonts, AsciiRenderer (Canvas), Pipeline
+core/      The parts that know nothing about any render module: dither/ (79 algorithms,
+           matrices), color/ (palettes, three distance metrics, nearest-colour),
+           image/ (Pixels), pipeline/ (the node abstraction, buffer pool, row parallelism)
+render/    Shared render infrastructure: RenderSettings, RenderMode, Layer, EdgeDetect,
+           CellSampler and QuantisePass, PixelDitherRenderer and ColorDiffusionPass
+glyph/     The glyph module: CharacterSets, GlyphEngine (pure Kotlin), GlyphRenderer
+           (Canvas), Fonts, the ramp helpers
+pipeline/  RenderPipeline, LayerCompositor, RandomLook — the only code that knows both
+           render modules exist
 anim/      Animation tracks and curves, Temporal, GifEncoder, Mp4Encoder, ColorQuantizer
 effects/   The seventeen passes plus PixelOps and the node-based EffectPipeline
-data/      Source (still / video), ImageLoader (decode + EXIF), PresetStore, Settings
+data/      Source (still / video), ImageLoader (decode + EXIF), PresetLibrary,
+           PresetStore, Settings
 export/    PNG / TXT / SVG / clipboard / share
 ui/        terminal-styled Compose panels
 ```
