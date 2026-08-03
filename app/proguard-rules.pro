@@ -9,7 +9,7 @@
 # reflection over the class itself — but the generated `Companion.serializer()` and the synthetic
 # `$serializer` class are only ever reached through generated code that R8 reads as dead.
 #
-# This matters concretely: AsciiParams *is* the preset format. If a serialiser were stripped, the
+# This matters concretely: RenderSettings *is* the preset format. If a serialiser were stripped, the
 # symptom would not be a crash on startup — it would be presets.json failing to decode at runtime,
 # which the decode-per-entry fallback would then quietly report as an empty library.
 -keepattributes *Annotation*, InnerClasses
