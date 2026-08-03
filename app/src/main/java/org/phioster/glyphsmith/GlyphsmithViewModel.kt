@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.phioster.glyphsmith.glyph.GlyphGrid
 import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.state.HistoryController
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.Animator
 import org.phioster.glyphsmith.anim.ColorQuantizer
@@ -124,15 +125,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     private val paramsFlow = MutableStateFlow(RenderSettings.newSession())
 
-    // History is captured at the debounce point rather than in updateParams(): one slider
-    // drag emits dozens of values but only ever settles once, so this turns a drag into a
-    // single undo step without any gesture tracking.
-    private val undoStack = ArrayDeque<RenderSettings>()
-    private val redoStack = ArrayDeque<RenderSettings>()
-    // Seeded with the same value the session opens on, or the first edit would record an undo
-    // step back to a mode the user never saw.
-    private var lastCommitted = RenderSettings.newSession()
-    private var suppressHistory = false
+    // Captured at the debounce point rather than in updateParams(), so a slider drag is one
+    // undo step rather than dozens — see HistoryController, which owns the rule.
+    private val history = HistoryController(RenderSettings.newSession())
 
     private var source: Source? = null
     private var art: GlyphGrid? = null
@@ -154,13 +149,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 // Coalesce slider spam: collectLatest cancels the previous pass, so a drag
                 // only ever renders the value the finger came to rest on.
                 delay(DEBOUNCE_MS)
-                if (!suppressHistory && params != lastCommitted) {
-                    undoStack.addLast(lastCommitted)
-                    if (undoStack.size > MAX_HISTORY) undoStack.removeFirst()
-                    redoStack.clear()
-                }
-                suppressHistory = false
-                lastCommitted = params
+                history.commit(params)
                 publishHistory()
                 rebuild(params)
             }
@@ -310,21 +299,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         "loaded ${file.name} · ${colors.size} colours"
     }
 
-    fun undo() {
-        val previous = undoStack.removeLastOrNull() ?: return
-        redoStack.addLast(lastCommitted)
-        restore(previous)
-    }
+    fun undo() = history.undo()?.let(::restore)
 
-    fun redo() {
-        val next = redoStack.removeLastOrNull() ?: return
-        undoStack.addLast(lastCommitted)
-        restore(next)
-    }
+    fun redo() = history.redo()?.let(::restore)
 
     private fun restore(params: RenderSettings) {
-        suppressHistory = true
-        lastCommitted = params
         _state.value = _state.value.copy(params = params)
         paramsFlow.value = params
         publishHistory()
@@ -332,8 +311,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun publishHistory() {
         _state.value = _state.value.copy(
-            canUndo = undoStack.isNotEmpty(),
-            canRedo = redoStack.isNotEmpty(),
+            canUndo = history.canUndo,
+            canRedo = history.canRedo,
         )
     }
 
@@ -978,7 +957,6 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val DEBOUNCE_MS = 90L
-        const val MAX_HISTORY = 50
         /**
          * Preview budget while a slider is held. The same figure the live camera renders at,
          * for the same reason: it is the size at which a full chain still keeps up with input.
