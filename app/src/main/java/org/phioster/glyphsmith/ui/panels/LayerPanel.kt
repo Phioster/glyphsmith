@@ -15,10 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
-import org.phioster.glyphsmith.ascii.RenderSettings
-import org.phioster.glyphsmith.ascii.CharacterSets
-import org.phioster.glyphsmith.ascii.Layer
-import org.phioster.glyphsmith.ascii.LayerBlend
+import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.glyph.CharacterSets
+import org.phioster.glyphsmith.render.Layer
+import org.phioster.glyphsmith.render.LayerBlend
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton

@@ -8,9 +8,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.phioster.glyphsmith.anim.AnimTarget
-import org.phioster.glyphsmith.ascii.RenderSettings
-import org.phioster.glyphsmith.ascii.CharacterSets
-import org.phioster.glyphsmith.ascii.ColorMode
+import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.glyph.CharacterSets
+import org.phioster.glyphsmith.render.ColorMode
 import org.phioster.glyphsmith.core.dither.DitherCategory
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.color.Palettes

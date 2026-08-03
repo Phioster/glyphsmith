@@ -14,7 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
-import org.phioster.glyphsmith.ascii.RenderSettings
+import org.phioster.glyphsmith.render.RenderSettings
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgMode
 import org.phioster.glyphsmith.ui.NumberField

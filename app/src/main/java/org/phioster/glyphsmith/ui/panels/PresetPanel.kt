@@ -29,7 +29,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.phioster.glyphsmith.ascii.CharacterSets
+import org.phioster.glyphsmith.glyph.CharacterSets
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
 import org.phioster.glyphsmith.data.PlaybackQuality

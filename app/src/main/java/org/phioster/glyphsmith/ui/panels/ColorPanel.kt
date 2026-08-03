@@ -25,8 +25,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.anim.QuantizeMethod
-import org.phioster.glyphsmith.ascii.RenderSettings
-import org.phioster.glyphsmith.ascii.ColorMode
+import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.render.ColorMode
 import org.phioster.glyphsmith.ui.HexColorField
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown

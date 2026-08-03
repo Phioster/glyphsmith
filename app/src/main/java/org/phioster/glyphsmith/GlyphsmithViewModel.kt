@@ -16,21 +16,21 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.phioster.glyphsmith.ascii.GlyphGrid
-import org.phioster.glyphsmith.ascii.RenderSettings
+import org.phioster.glyphsmith.glyph.GlyphGrid
+import org.phioster.glyphsmith.render.RenderSettings
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.Animator
 import org.phioster.glyphsmith.anim.ColorQuantizer
 import org.phioster.glyphsmith.anim.QuantizeMethod
 import org.phioster.glyphsmith.anim.GifEncoder
 import org.phioster.glyphsmith.anim.Mp4Encoder
-import org.phioster.glyphsmith.ascii.GlyphRenderer
-import org.phioster.glyphsmith.ascii.CharacterSets
-import org.phioster.glyphsmith.ascii.RandomLook
+import org.phioster.glyphsmith.glyph.GlyphRenderer
+import org.phioster.glyphsmith.glyph.CharacterSets
+import org.phioster.glyphsmith.pipeline.RandomLook
 import org.phioster.glyphsmith.render.RenderMode
-import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.RenderPipeline
-import org.phioster.glyphsmith.ascii.GlyphCoverage
+import org.phioster.glyphsmith.render.ColorMode
+import org.phioster.glyphsmith.pipeline.RenderPipeline
+import org.phioster.glyphsmith.glyph.GlyphCoverage
 import org.phioster.glyphsmith.data.CameraCapture
 import org.phioster.glyphsmith.data.ImageLoader
 import org.phioster.glyphsmith.data.LiveCamera
@@ -52,6 +52,8 @@ import org.phioster.glyphsmith.export.TextExporters
 import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.ui.theme.TermThemes
 import org.phioster.glyphsmith.core.color.Palettes
+import org.phioster.glyphsmith.glyph.baseGlyphs
+import org.phioster.glyphsmith.glyph.effectiveRamp
 
 data class UiState(
     /**

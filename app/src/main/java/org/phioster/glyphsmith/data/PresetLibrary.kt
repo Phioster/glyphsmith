@@ -1,15 +1,15 @@
 package org.phioster.glyphsmith.data
 
-import org.phioster.glyphsmith.ascii.RenderSettings
+import org.phioster.glyphsmith.render.RenderSettings
 import org.phioster.glyphsmith.anim.AnimCurve
 import org.phioster.glyphsmith.anim.AnimTarget
 import org.phioster.glyphsmith.anim.AnimTrack
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
 import org.phioster.glyphsmith.anim.TemporalPattern
-import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.Layer
-import org.phioster.glyphsmith.ascii.LayerBlend
+import org.phioster.glyphsmith.render.ColorMode
+import org.phioster.glyphsmith.render.Layer
+import org.phioster.glyphsmith.render.LayerBlend
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
