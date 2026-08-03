@@ -29,7 +29,7 @@ import org.phioster.glyphsmith.glyph.CharacterSet
 import org.phioster.glyphsmith.glyph.CharacterSets
 import org.phioster.glyphsmith.render.FontStyle
 import org.phioster.glyphsmith.render.ColorMode
-import org.phioster.glyphsmith.glyph.GlyphFont
+import org.phioster.glyphsmith.render.GlyphFont
 import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.ui.SectionHeader
