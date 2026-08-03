@@ -42,15 +42,14 @@ import org.phioster.glyphsmith.ui.theme.Term
 private const val CATEGORY_ALL = "All"
 
 /**
- * Glyph rendering as an optional plugin, with the master toggle at the top.
+ * The render mode, and whichever stage's controls that mode actually uses.
  *
- * On, this is the reference app's ASCII settings control for control: depth, character set and
- * category, injected characters, character offset, font style — plus cell size, which decides
- * the grid resolution and has no equivalent slider in the original's ASCII panel.
+ * Pixel Dither shows [PixelModeControls] and nothing about characters. Glyph Art shows the
+ * character settings — depth, set and category, injected characters, offset, font style. The
+ * chained mode runs both stages and therefore shows both sets, in the order they run.
  *
- * Off, the app is a pixel-dither tool and everything about characters is gone; what is left is
- * [PixelModeControls]. The two are one panel rather than two tabs because they are the same
- * decision seen from either side, and a tab the user has to find would hide that.
+ * One panel rather than a tab per mode: the mode decides which controls exist at all, and a tab
+ * the user has to find would hide that relationship instead of showing it.
  */
 @Composable
 fun AsciiPanel(
@@ -80,35 +79,39 @@ fun AsciiPanel(
     Column(modifier.fillMaxWidth()) {
         SectionHeader("glyph / ascii rendering")
 
-        // The master toggle. Off, the app is a pixel-dither tool: the same sampler and the same
-        // 78 algorithms, with levels becoming colours instead of characters. Everything below
-        // that is about characters therefore has nothing to say and is not drawn.
-        TerminalToggle(
-            label = "glyph rendering",
-            checked = glyphMode,
-            onCheckedChange = {
-                onChange(
-                    params.copy(
-                        renderMode = if (it) RenderMode.GlyphMatrix else RenderMode.PurePixel,
-                    ),
-                )
+        // Three modes rather than the old toggle, because the third is not a middle setting
+        // between the other two: it runs both, in order. A boolean cannot say that.
+        StepperDropdown(
+            label = "mode",
+            items = RenderMode.entries.toList(),
+            selectedIndex = RenderMode.entries.indexOf(params.renderMode),
+            onSelect = { onChange(params.copy(renderMode = RenderMode.entries[it])) },
+            itemLabel = { labelOf(it) },
+            itemDetail = {
+                when (it) {
+                    RenderMode.PurePixel -> "levels become palette colours"
+                    RenderMode.GlyphMatrix -> "levels become characters from the ramp"
+                    RenderMode.PixelThenGlyph -> "dither to the palette first, then read glyphs off it"
+                }
             },
         )
-        Text(
-            text = if (glyphMode) {
-                "levels become characters from the ramp"
-            } else {
-                "pixel dither — levels become colours, no character mapping"
-            },
-            color = Term.InkDim,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(bottom = 6.dp),
-        )
-
-        if (!glyphMode) {
-            PixelModeControls(params, onChange)
-            return@Column
+        if (params.renderMode == RenderMode.PixelThenGlyph) {
+            Text(
+                text = "the dither settings belong to the first stage; the glyph stage only maps " +
+                    "what it finds. This is the one mode that gives you a paletted dither and a " +
+                    ".txt of the same render.",
+                color = Term.InkDim,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
         }
+
+        // The pixel stage runs in both of the modes that dither first, so its controls belong to
+        // both of them.
+        if (params.renderMode.ditherFirst) {
+            PixelModeControls(params, onChange)
+        }
+        if (!glyphMode) return@Column
 
         SectionHeader("ascii settings")
 
@@ -437,6 +440,24 @@ private fun PixelModeControls(params: AsciiParams, onChange: (AsciiParams) -> Un
         modifier = Modifier.padding(bottom = 6.dp),
     )
 
+    // Sampling and magnification used to be the same number, so a chunky dither could only ever
+    // be a small image. Zero keeps that old behaviour.
+    TerminalSlider(
+        label = "output block",
+        value = params.pixelBlock.toFloat(),
+        range = 0f..24f,
+        steps = 23,
+        valueText = if (params.pixelBlock == 0) "fit" else "${params.pixelBlock}px",
+        onValueChange = { onChange(params.copy(pixelBlock = it.toInt())) },
+    )
+    Text(
+        text = "fit fills the available size. A pinned value keeps the blocks that size, so a " +
+            "coarse dither can still be a large image.",
+        color = Term.InkDim,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(bottom = 6.dp),
+    )
+
     // In single-colour mode there is no palette to take a level count from, so depth is what
     // decides how many steps sit between the background and the ink.
     if (params.colorMode == ColorMode.SINGLE) {
@@ -489,6 +510,7 @@ private fun PixelModeControls(params: AsciiParams, onChange: (AsciiParams) -> Un
             onChange(
                 AsciiParams(
                     renderMode = params.renderMode,
+                    pixelBlock = params.pixelBlock,
                     colorMode = params.colorMode,
                     inkColor = params.inkColor,
                     paletteId = params.paletteId,
@@ -498,4 +520,11 @@ private fun PixelModeControls(params: AsciiParams, onChange: (AsciiParams) -> Un
             )
         },
     )
+}
+
+/** Display names for the modes. The serialised enum entries are deliberately left alone. */
+private fun labelOf(mode: RenderMode): String = when (mode) {
+    RenderMode.PurePixel -> "pixel dither"
+    RenderMode.GlyphMatrix -> "glyph rendering"
+    RenderMode.PixelThenGlyph -> "pixel dither → glyphs"
 }

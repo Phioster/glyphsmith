@@ -66,6 +66,8 @@ object Pipeline {
         val base = when (params.renderMode) {
             RenderMode.GlyphMatrix -> glyphRender(pixels, sourceWidth, sourceHeight, params, maxSide, ctx)
             RenderMode.PurePixel -> pixelRender(pixels, sourceWidth, sourceHeight, params, maxSide, ctx)
+            RenderMode.PixelThenGlyph ->
+                chainedRender(pixels, sourceWidth, sourceHeight, params, maxSide, ctx)
         }
 
         // Each layer is a full render of the same source at the base's size, transformed and
@@ -145,9 +147,7 @@ object Pipeline {
         val grid = CellSampler.sample(pixels, sourceWidth, sourceHeight, params, cell, cell)
         val indexed = QuantisePass.run(params, grid, PixelDitherRenderer.levelsFor(params))
 
-        // Blocks grow to fill the budget, the same way glyphs do in the other mode, so the two
-        // modes produce comparably sized output for the same settings.
-        val block = (maxSide / max(grid.cols, grid.rows)).coerceAtLeast(1)
+        val block = blockFor(params, grid.cols, grid.rows, maxSide)
         val rendered = PixelDitherRenderer.render(indexed, params, block)
         val bitmap = EffectPipeline.apply(rendered.toBitmap(), params.effects, ctx)
 
@@ -161,6 +161,80 @@ object Pipeline {
             rows = grid.rows,
             outputWidth = grid.cols * exportBlock,
             outputHeight = grid.rows * exportBlock,
+        )
+    }
+
+    /**
+     * How many output pixels one dithered cell becomes.
+     *
+     * Zero — the default, and what every stored preset has — keeps the original behaviour: blocks
+     * grow to fill the budget, the same way glyphs do in the other mode, so both modes produce
+     * comparably sized output for the same settings. A pinned value separates *how coarsely the
+     * image was sampled* from *how large that is drawn*, which used to be one number: a chunky
+     * dither could only ever be a small image. Still clamped to the budget, because a preview that
+     * ignored it would stop being a preview.
+     */
+    private fun blockFor(params: AsciiParams, cols: Int, rows: Int, maxSide: Int): Int {
+        val fill = (maxSide / max(cols, rows)).coerceAtLeast(1)
+        val pinned = params.pixelBlock
+        return if (pinned <= 0) fill else pinned.coerceIn(1, fill.coerceAtLeast(1))
+    }
+
+    /**
+     * A render of the source as a palette dither, handed on to the glyph stage as its input.
+     *
+     * The other two modes fork at the quantised level, so a palette dither and a character grid
+     * could never both happen. Here the dither finishes into a real bitmap first and the glyphs are
+     * read off *that* — which is what makes the character stage a step rather than an alternative,
+     * and what lets this mode produce a `.txt` of a paletted dither.
+     *
+     * Effects run once, at the end, on the glyph render. Running them on the intermediate bitmap
+     * would mean the glyph stage described the effects rather than the dither.
+     */
+    @Suppress("LongParameterList")
+    private fun chainedRender(
+        pixels: IntArray,
+        sourceWidth: Int,
+        sourceHeight: Int,
+        params: AsciiParams,
+        maxSide: Int,
+        ctx: RenderContext,
+    ): Result {
+        val cell = effectiveCell(sourceWidth, sourceHeight, params.cellSize, maxSide)
+        val grid = CellSampler.sample(pixels, sourceWidth, sourceHeight, params, cell, cell)
+        val indexed = QuantisePass.run(params, grid, PixelDitherRenderer.levelsFor(params))
+        val dithered = PixelDitherRenderer.render(indexed, params, blockFor(params, grid.cols, grid.rows, maxSide))
+
+        val ramp = params.effectiveRamp().ifEmpty { " " }
+        val face = AsciiRenderer.faceFor(params, ramp)
+        val aspect = AsciiRenderer.metrics(REFERENCE_FONT_SIZE, ramp, face.typeface).aspect
+        val art = GlyphFromBitmap.convert(dithered, params, aspect)
+
+        val fontSize = AsciiRenderer.fitFontSize(
+            art.cols, art.rows, ramp, params.fontSizePx, maxSide, face.typeface,
+        )
+        val bitmap = EffectPipeline.apply(
+            AsciiRenderer.render(art, params, fontSize, 1f),
+            params.effects,
+            ctx,
+        )
+
+        val cellMetrics = AsciiRenderer.metrics(
+            AsciiRenderer.fitFontSize(
+                art.cols, art.rows, ramp, params.fontSizePx,
+                AsciiRenderer.MAX_OUTPUT_SIDE, face.typeface,
+            ),
+            ramp,
+            face.typeface,
+        )
+        return Result(
+            art = art,
+            bitmap = bitmap,
+            face = face,
+            cols = art.cols,
+            rows = art.rows,
+            outputWidth = art.cols * cellMetrics.width,
+            outputHeight = art.rows * cellMetrics.height,
         )
     }
 
