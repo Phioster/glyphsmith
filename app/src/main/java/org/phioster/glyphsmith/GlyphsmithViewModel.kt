@@ -73,6 +73,7 @@ import org.phioster.glyphsmith.effects.SpotColorPrintParams
 import org.phioster.glyphsmith.effects.ModulationColorMode
 import org.phioster.glyphsmith.effects.ModulationLinesParams
 import org.phioster.glyphsmith.core.color.ColorDistance
+import org.phioster.glyphsmith.render.RenderMode
 
 data class UiState(
     val params: AsciiParams = AsciiParams(),
@@ -979,6 +980,10 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
         updateParams(
             _state.value.params.copy(
+                // Surprise Me is a general-purpose action, and the general-purpose mode is the
+                // pixel dither — landing in Glyph Art would make the character settings decide a
+                // look the user did not ask for.
+                renderMode = RenderMode.PurePixel,
                 charSetId = set.id,
                 cellSize = random.nextInt(4, 13),
                 depth = random.nextInt(3, 24),

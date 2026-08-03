@@ -139,6 +139,16 @@ data class AsciiParams(
      * of the three that agrees with the eye about which of two entries is closer.
      */
     val colorDistance: ColorDistance = ColorDistance.OKLAB,
+    /**
+     * Output size of one dithered cell, in pixels. 0 lets the render decide.
+     *
+     * Splits resolution from magnification, which used to be one number: [cellSize] says how
+     * coarsely the image is *sampled*, and this says how large each of those cells is *drawn*.
+     * Fused, a chunky dither could only ever be a small image. Zero keeps the old behaviour —
+     * blocks grow to fill whatever the preview or export budget allows — so no stored preset
+     * changes.
+     */
+    val pixelBlock: Int = 0,
     val transparentBackground: Boolean = false,
     val backgroundColor: Int = DEFAULT_BACKGROUND,
     /** Glyph size in output pixels; the exported image is grid × this. Ignored in canvas mode. */
