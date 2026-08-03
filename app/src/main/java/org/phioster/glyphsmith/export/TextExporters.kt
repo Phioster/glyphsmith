@@ -1,7 +1,7 @@
 package org.phioster.glyphsmith.export
 
-import org.phioster.glyphsmith.ascii.AsciiArt
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.GlyphGrid
+import org.phioster.glyphsmith.ascii.RenderSettings
 import java.util.Locale
 
 /**
@@ -20,7 +20,7 @@ object TextExporters {
      * Runs rather than a span per glyph, because a 200×120 grid is 24,000 cells and a span
      * each would be a megabyte of markup for an image that is mostly flat colour.
      */
-    fun html(art: AsciiArt, params: AsciiParams): String {
+    fun html(art: GlyphGrid, params: RenderSettings): String {
         val out = StringBuilder(art.cols * art.rows * 4)
         val background = if (params.transparentBackground) "transparent" else hex(params.backgroundColor)
 
@@ -60,7 +60,7 @@ object TextExporters {
      * matters: without it a terminal keeps painting the last colour across everything that
      * follows, including the shell prompt.
      */
-    fun ansi(art: AsciiArt, params: AsciiParams): String {
+    fun ansi(art: GlyphGrid, params: RenderSettings): String {
         val out = StringBuilder(art.cols * art.rows * 2)
         for (row in 0 until art.rows) {
             var current = -1

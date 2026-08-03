@@ -25,7 +25,7 @@ class DitherRegressionTest {
      * lattice rows before the stagger exists at all. On a coarser grid those pairs render
      * identically — correctly so — and the test below would call it a collision.
      */
-    private val params = AsciiParams(charSetId = "ascii-standard-10", depth = 10, cellSize = 2)
+    private val params = RenderSettings(charSetId = "ascii-standard-10", depth = 10, cellSize = 2)
 
     /** A gradient with a hard diagonal through it — flat fields alone hide most mistakes. */
     private fun testImage(width: Int = SIDE, height: Int = SIDE): IntArray = IntArray(width * height) { i ->
@@ -37,7 +37,7 @@ class DitherRegressionTest {
     }
 
     private fun render(mode: DitherMode): String =
-        AsciiEngine.convert(testImage(), SIDE, SIDE, params.copy(ditherMode = mode)).toText()
+        GlyphEngine.convert(testImage(), SIDE, SIDE, params.copy(ditherMode = mode)).toText()
 
     /**
      * The one property this phase can actually prove about itself.
@@ -88,7 +88,7 @@ class DitherRegressionTest {
     @Test
     fun `every style produces a full grid of glyphs`() {
         DitherMode.entries.forEach { mode ->
-            val art = AsciiEngine.convert(testImage(), SIDE, SIDE, params.copy(ditherMode = mode))
+            val art = GlyphEngine.convert(testImage(), SIDE, SIDE, params.copy(ditherMode = mode))
             assertEquals("$mode returned the wrong size", art.cols * art.rows, art.glyphs.size)
             assertTrue("$mode produced no glyphs", art.glyphs.isNotEmpty())
         }
@@ -98,7 +98,7 @@ class DitherRegressionTest {
     @Test
     fun `every style survives a single cell`() {
         DitherMode.entries.forEach { mode ->
-            val art = AsciiEngine.convert(IntArray(4) { -1 }, 2, 2, params.copy(ditherMode = mode))
+            val art = GlyphEngine.convert(IntArray(4) { -1 }, 2, 2, params.copy(ditherMode = mode))
             assertTrue("$mode failed on a 2x2 image", art.glyphs.isNotEmpty())
         }
     }

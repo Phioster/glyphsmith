@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.Layer
 import org.phioster.glyphsmith.ascii.LayerBlend
@@ -36,8 +36,8 @@ import org.phioster.glyphsmith.ui.theme.Term
  */
 @Composable
 fun LayerPanel(
-    params: AsciiParams,
-    onChange: (AsciiParams) -> Unit,
+    params: RenderSettings,
+    onChange: (RenderSettings) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val layers = params.layers

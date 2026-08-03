@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.effects.EffectId
 import org.phioster.glyphsmith.effects.EffectStack
 import org.phioster.glyphsmith.ui.TerminalButton
@@ -41,8 +41,8 @@ internal data class MoveHandler(
  */
 @Composable
 fun EffectsPanel(
-    params: AsciiParams,
-    onChange: (AsciiParams) -> Unit,
+    params: RenderSettings,
+    onChange: (RenderSettings) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val fx = params.effects

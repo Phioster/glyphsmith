@@ -14,7 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgMode
 import org.phioster.glyphsmith.ui.NumberField
@@ -32,7 +32,7 @@ import org.phioster.glyphsmith.ui.theme.Term
 @Composable
 fun OutputPanel(
     state: UiState,
-    onChange: (AsciiParams) -> Unit,
+    onChange: (RenderSettings) -> Unit,
     onFormatChange: (ImageFormat) -> Unit,
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
@@ -60,14 +60,14 @@ fun OutputPanel(
                 NumberField(
                     label = "width",
                     value = params.canvasWidth,
-                    range = AsciiParams.CANVAS_SIZE_RANGE,
+                    range = RenderSettings.CANVAS_SIZE_RANGE,
                     onValueChange = { onChange(params.copy(canvasWidth = it)) },
                     modifier = Modifier.weight(1f),
                 )
                 NumberField(
                     label = "height",
                     value = params.canvasHeight,
-                    range = AsciiParams.CANVAS_SIZE_RANGE,
+                    range = RenderSettings.CANVAS_SIZE_RANGE,
                     onValueChange = { onChange(params.copy(canvasHeight = it)) },
                     modifier = Modifier.weight(1f),
                 )
@@ -95,8 +95,8 @@ fun OutputPanel(
             TerminalSlider(
                 label = "glyph size",
                 value = params.fontSizePx.toFloat(),
-                range = AsciiParams.FONT_SIZE_RANGE.first.toFloat()..AsciiParams.FONT_SIZE_RANGE.last.toFloat(),
-                steps = AsciiParams.FONT_SIZE_RANGE.count() - 2,
+                range = RenderSettings.FONT_SIZE_RANGE.first.toFloat()..RenderSettings.FONT_SIZE_RANGE.last.toFloat(),
+                steps = RenderSettings.FONT_SIZE_RANGE.count() - 2,
                 valueText = "${params.fontSizePx}px",
                 onValueChange = { onChange(params.copy(fontSizePx = it.toInt())) },
             )
@@ -156,7 +156,7 @@ fun OutputPanel(
 
         if (!glyphMode) {
             Text(
-                "txt, svg, html and ansi need a character grid — switch glyph rendering back " +
+                "txt, svg, html and ansi need a character grid — switch glyph art back " +
                     "on in the SET panel. png, gif and mp4 work in both modes.",
                 color = Term.Amber,
                 style = MaterialTheme.typography.bodySmall,

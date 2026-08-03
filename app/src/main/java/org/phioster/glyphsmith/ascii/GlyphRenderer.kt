@@ -23,7 +23,7 @@ data class CellMetrics(
  * The cell is sized by the *widest* glyph in the active ramp, so sets with wide glyphs
  * (CJK, braille) still land on a true grid instead of drifting out of column.
  */
-object AsciiRenderer {
+object GlyphRenderer {
 
     /** Hard ceiling on either output dimension — beyond this a bitmap allocation fails. */
     const val MAX_OUTPUT_SIDE = 8192
@@ -32,7 +32,7 @@ object AsciiRenderer {
     private const val MAX_CANVAS_FONT_SIZE = 400
 
     /** The face this ramp will actually be drawn with — see [Fonts.resolve]. */
-    fun faceFor(params: AsciiParams, ramp: String): FontChoice =
+    fun faceFor(params: RenderSettings, ramp: String): FontChoice =
         Fonts.resolve(params.glyphFont, params.fontStyle, ramp)
 
     private fun paintFor(fontSizePx: Float, face: Typeface) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -70,18 +70,18 @@ object AsciiRenderer {
         maxSide: Int,
         face: Typeface,
     ): Int {
-        var size = requested.coerceIn(AsciiParams.FONT_SIZE_RANGE)
-        while (size > AsciiParams.FONT_SIZE_RANGE.first) {
+        var size = requested.coerceIn(RenderSettings.FONT_SIZE_RANGE)
+        while (size > RenderSettings.FONT_SIZE_RANGE.first) {
             val cell = metrics(size, ramp, face)
             if (cols * cell.width <= maxSide && rows * cell.height <= maxSide) return size
             size--
         }
-        return AsciiParams.FONT_SIZE_RANGE.first
+        return RenderSettings.FONT_SIZE_RANGE.first
     }
 
     /**
      * Largest glyph size at which the grid still fits inside a fixed canvas. Not bounded by
-     * [AsciiParams.FONT_SIZE_RANGE] — with a fixed canvas the glyph size is an *output* of
+     * [RenderSettings.FONT_SIZE_RANGE] — with a fixed canvas the glyph size is an *output* of
      * the layout, not something the user dials in.
      */
     fun fitFontSizeToCanvas(
@@ -123,8 +123,8 @@ object AsciiRenderer {
     )
 
     fun layout(
-        art: AsciiArt,
-        params: AsciiParams,
+        art: GlyphGrid,
+        params: RenderSettings,
         fontSizePx: Int,
         canvasScale: Float = 1f,
     ): GridLayout {
@@ -167,7 +167,7 @@ object AsciiRenderer {
     /** A paint set up exactly as the renderer uses it — the SVG exporter measures with it. */
     fun paintFor(layout: GridLayout): Paint = paintFor(layout.fontSize.toFloat(), layout.face)
 
-    fun render(art: AsciiArt, params: AsciiParams, fontSizePx: Int, canvasScale: Float = 1f): Bitmap {
+    fun render(art: GlyphGrid, params: RenderSettings, fontSizePx: Int, canvasScale: Float = 1f): Bitmap {
         val ramp = params.effectiveRamp().ifEmpty { " " }
         val grid = layout(art, params, fontSizePx, canvasScale)
         val size = grid.fontSize

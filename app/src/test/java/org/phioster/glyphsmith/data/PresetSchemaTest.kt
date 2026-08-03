@@ -8,7 +8,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.ascii.Layer
 import org.phioster.glyphsmith.core.dither.DitherMode
@@ -28,7 +28,7 @@ class PresetSchemaTest {
 
     @Test
     fun `the written format carries an explicit schema version`() {
-        val text = PresetSchema.encode(listOf(Preset("one", AsciiParams())))
+        val text = PresetSchema.encode(listOf(Preset("one", RenderSettings())))
 
         val version = Json.parseToJsonElement(text).jsonObject["schemaVersion"]?.jsonPrimitive?.int
         assertEquals(PresetSchema.CURRENT_VERSION, version)
@@ -39,7 +39,7 @@ class PresetSchemaTest {
         val presets = listOf(
             Preset(
                 name = "loaded",
-                params = AsciiParams(
+                params = RenderSettings(
                     renderMode = RenderMode.PurePixel,
                     charSetId = "block-shade",
                     cellSize = 5,
@@ -53,7 +53,7 @@ class PresetSchemaTest {
                 favourite = true,
                 description = "why this look",
             ),
-            Preset("plain", AsciiParams()),
+            Preset("plain", RenderSettings()),
         )
 
         assertEquals(presets, PresetSchema.decode(PresetSchema.encode(presets)))
@@ -61,7 +61,7 @@ class PresetSchemaTest {
 
     @Test
     fun `the written format can be read by the version it declares`() {
-        val text = PresetSchema.encode(listOf(Preset("one", AsciiParams())))
+        val text = PresetSchema.encode(listOf(Preset("one", RenderSettings())))
 
         assertTrue(
             "$text does not read back as version ${PresetSchema.CURRENT_VERSION}",
@@ -171,7 +171,7 @@ class PresetSchemaTest {
     fun `the written format names things by their stable ids`() {
         val preset = Preset(
             "written",
-            AsciiParams(renderMode = RenderMode.PurePixel, ditherMode = DitherMode.ATKINSON),
+            RenderSettings(renderMode = RenderMode.PurePixel, ditherMode = DitherMode.ATKINSON),
         )
 
         val params = Json.parseToJsonElement(PresetSchema.encode(listOf(preset)))
@@ -194,7 +194,7 @@ class PresetSchemaTest {
     @Test
     fun `every render mode survives being saved and reloaded`() {
         RenderMode.entries.forEach { mode ->
-            val preset = Preset("saved in $mode", AsciiParams(renderMode = mode))
+            val preset = Preset("saved in $mode", RenderSettings(renderMode = mode))
 
             val reloaded = PresetSchema.decode(PresetSchema.encode(listOf(preset))).single()
 
@@ -207,7 +207,7 @@ class PresetSchemaTest {
     fun `a preset written now survives being read back whole`() {
         val preset = Preset(
             name = "everything",
-            params = AsciiParams(
+            params = RenderSettings(
                 renderMode = RenderMode.PixelThenGlyph,
                 ditherMode = DitherMode.OSTROMOUKHOV,
                 cellSize = 5,
@@ -216,7 +216,7 @@ class PresetSchemaTest {
                     chromatic = ChromaticParams(enabled = true, maxDisplace = 9),
                     order = listOf(EffectId.GLOW, EffectId.WARP) + (EffectId.entries - EffectId.GLOW - EffectId.WARP),
                 ),
-                layers = listOf(Layer(name = "over", params = AsciiParams(ditherMode = DitherMode.BAYER_8))),
+                layers = listOf(Layer(name = "over", params = RenderSettings(ditherMode = DitherMode.BAYER_8))),
             ),
             category = PresetStore.CATEGORY_DITHER,
         )
@@ -352,7 +352,7 @@ class PresetSchemaTest {
         assertEquals(PresetStore.CATEGORY_CUSTOM, preset.category)
         assertEquals(false, preset.favourite)
         assertEquals("", preset.description)
-        assertEquals(AsciiParams(), preset.params)
+        assertEquals(RenderSettings(), preset.params)
     }
 
     // --- documents that are not preset documents -------------------------------------

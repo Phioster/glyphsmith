@@ -1,7 +1,7 @@
 package org.phioster.glyphsmith.render
 
 import org.phioster.glyphsmith.anim.Temporal
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.EdgeDetect
 import org.phioster.glyphsmith.ascii.EdgeField
 import kotlin.math.max
@@ -50,7 +50,7 @@ class IndexGrid(
  */
 object QuantisePass {
 
-    fun run(params: AsciiParams, grid: CellGrid, levels: Int): IndexGrid {
+    fun run(params: RenderSettings, grid: CellGrid, levels: Int): IndexGrid {
         val cols = grid.cols
         val rows = grid.rows
         val lumaGrid = grid.luma
@@ -148,7 +148,7 @@ object QuantisePass {
     @Suppress("LongParameterList")
     private fun precomputedIndices(
         mode: DitherMode,
-        params: AsciiParams,
+        params: RenderSettings,
         lumaGrid: FloatArray,
         cols: Int,
         rows: Int,

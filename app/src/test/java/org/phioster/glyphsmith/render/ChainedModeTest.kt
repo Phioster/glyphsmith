@@ -5,7 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.ascii.GlyphFromBitmap
 import org.phioster.glyphsmith.core.dither.DitherMode
@@ -26,7 +26,7 @@ class ChainedModeTest {
         (0xFF shl 24) or (v shl 16) or (v shl 8) or v
     }
 
-    private fun params(mode: RenderMode) = AsciiParams(
+    private fun params(mode: RenderMode) = RenderSettings(
         renderMode = mode,
         cellSize = 2,
         colorMode = ColorMode.PALETTE,
@@ -35,7 +35,7 @@ class ChainedModeTest {
     )
 
     /** A palette dither, exactly as the first stage of the chain produces it. */
-    private fun dithered(p: AsciiParams): Pixels {
+    private fun dithered(p: RenderSettings): Pixels {
         val grid = CellSampler.sample(gradient(), side, side, p, p.cellSize, p.cellSize)
         val indexed = QuantisePass.run(p, grid, PixelDitherRenderer.levelsFor(p))
         return PixelDitherRenderer.render(indexed, p, 1)
@@ -117,7 +117,7 @@ class ChainedModeTest {
     @Test
     fun `a preset without a render mode still loads as glyph art`() {
         val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-        val decoded = json.decodeFromString<AsciiParams>("""{"cellSize":6}""")
+        val decoded = json.decodeFromString<RenderSettings>("""{"cellSize":6}""")
 
         assertEquals(RenderMode.GlyphMatrix, decoded.renderMode)
         assertEquals("the new block control must default to auto", 0, decoded.pixelBlock)
@@ -126,8 +126,8 @@ class ChainedModeTest {
     @Test
     fun `the chained mode survives a round trip`() {
         val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-        val encoded = json.encodeToString(AsciiParams.serializer(), params(RenderMode.PixelThenGlyph))
-        val decoded = json.decodeFromString(AsciiParams.serializer(), encoded)
+        val encoded = json.encodeToString(RenderSettings.serializer(), params(RenderMode.PixelThenGlyph))
+        val decoded = json.decodeFromString(RenderSettings.serializer(), encoded)
 
         assertEquals(RenderMode.PixelThenGlyph, decoded.renderMode)
     }

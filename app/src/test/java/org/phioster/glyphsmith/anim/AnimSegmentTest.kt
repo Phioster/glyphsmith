@@ -5,11 +5,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 
 class AnimSegmentTest {
 
-    private val base = AsciiParams(depth = 12)
+    private val base = RenderSettings(depth = 12)
 
     private fun animation(vararg segments: AnimSegment) = AnimationParams(
         enabled = true,

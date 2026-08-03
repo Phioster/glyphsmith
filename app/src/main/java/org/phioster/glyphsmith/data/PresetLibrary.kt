@@ -1,6 +1,6 @@
 package org.phioster.glyphsmith.data
 
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.anim.AnimCurve
 import org.phioster.glyphsmith.anim.AnimTarget
 import org.phioster.glyphsmith.anim.AnimTrack
@@ -61,11 +61,11 @@ object PresetLibrary {
      * shipped preset that said nothing would ship as glyph art by accident. Every entry
      * below goes through one of these two functions, so no built-in inherits a mode.
      */
-    private fun pixel(name: String, category: String, params: AsciiParams) =
+    private fun pixel(name: String, category: String, params: RenderSettings) =
         Preset(name, params.copy(renderMode = RenderMode.PurePixel), category)
 
     /** A Glyph Art preset: the render module, chosen deliberately. */
-    private fun glyph(name: String, category: String, params: AsciiParams) =
+    private fun glyph(name: String, category: String, params: RenderSettings) =
         Preset(name, params.copy(renderMode = RenderMode.GlyphMatrix), category)
 
     /** A track that sweeps one parameter across a whole loop and closes seamlessly. */
@@ -115,7 +115,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_CLASSIC,
             // Floyd-Steinberg at two levels and one cell per two source pixels: the
             // default meaning of "dithered" for forty years.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 2,
                 depth = 2,
                 contrast = 1.15f,
@@ -130,7 +130,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_CLASSIC,
             // Atkinson throws away a quarter of the error, which is why it keeps highlights
             // open and reads lighter than Floyd-Steinberg on the same picture.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 2,
                 depth = 3,
                 ditherMode = DitherMode.ATKINSON,
@@ -144,7 +144,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_CLASSIC,
             // No dither at all — the control case. Worth shipping because it is the thing
             // every other preset in this category is an improvement on.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 2,
                 contrast = 1.35f,
@@ -157,7 +157,7 @@ object PresetLibrary {
         pixel(
             "chalk on slate",
             PresetStore.CATEGORY_CLASSIC,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 4,
                 brightness = 0.05f,
@@ -172,7 +172,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_CLASSIC,
             // The coarse reduction with no algorithm in the way: each cell keeps its own
             // averaged colour. In pixel mode the cell size *is* the block size.
-            AsciiParams(cellSize = 6, colorMode = ColorMode.SOURCE),
+            RenderSettings(cellSize = 6, colorMode = ColorMode.SOURCE),
         ),
 
         // --- error diffusion -----------------------------------------------------
@@ -181,7 +181,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_DIFFUSION,
             // Error pushed almost entirely downward travels in a line, which is what turns
             // grain into wavering vertical columns.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 5,
                 contrast = 1.55f,
@@ -214,7 +214,7 @@ object PresetLibrary {
         pixel(
             "line diffuse",
             PresetStore.CATEGORY_DIFFUSION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 contrast = 1.45f,
@@ -232,7 +232,7 @@ object PresetLibrary {
         pixel(
             "cracked",
             PresetStore.CATEGORY_DIFFUSION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 contrast = 1.3f,
@@ -245,7 +245,7 @@ object PresetLibrary {
         pixel(
             "edge keeper",
             PresetStore.CATEGORY_DIFFUSION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 5,
                 contrast = 1.25f,
@@ -259,7 +259,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_DIFFUSION,
             // Diffusion along a space-filling curve rather than along rows: the grain has
             // no direction at all, which is the one thing row-order diffusion cannot do.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 2,
                 depth = 4,
                 contrast = 1.1f,
@@ -272,7 +272,7 @@ object PresetLibrary {
         pixel(
             "spiral grain",
             PresetStore.CATEGORY_DIFFUSION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 8,
                 ditherMode = DitherMode.VORTEX_DIFFUSION,
@@ -288,7 +288,7 @@ object PresetLibrary {
         pixel(
             "bayer eight",
             PresetStore.CATEGORY_ORDERED,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 4,
                 ditherMode = DitherMode.BAYER_8,
@@ -302,7 +302,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_ORDERED,
             // Four thresholds and two levels: the coarsest ordered dither there is, and the
             // one whose weave you can count.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 2,
                 contrast = 1.25f,
@@ -317,7 +317,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_ORDERED,
             // A matrix with no periodicity to find: the grain reads as texture rather than
             // as a screen, which is what makes it survive being printed or scaled.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 2,
                 depth = 3,
                 ditherMode = DitherMode.BLUE_NOISE_32,
@@ -331,7 +331,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_ORDERED,
             // Thresholds ordered outward from the centre of the tile, so ink lands in
             // growing blobs — the ordered matrix that behaves like a printing screen.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 4,
                 ditherMode = DitherMode.CLUSTER_8,
@@ -345,7 +345,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_ORDERED,
             // The pattern scale is pulled far past the cell size on purpose: this is the
             // documented way to drive an ordered dither until it visibly falls apart.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 3,
                 ditherMode = DitherMode.BAYER_8,
@@ -361,7 +361,7 @@ object PresetLibrary {
         pixel(
             "waveform",
             PresetStore.CATEGORY_PATTERN,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 6,
                 ditherMode = DitherMode.MOD_WAVE,
@@ -374,7 +374,7 @@ object PresetLibrary {
         pixel(
             "ripple",
             PresetStore.CATEGORY_PATTERN,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 6,
                 depth = 5,
                 ditherMode = DitherMode.MOD_RINGS,
@@ -386,7 +386,7 @@ object PresetLibrary {
         pixel(
             "honeycomb",
             PresetStore.CATEGORY_PATTERN,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 ditherMode = DitherMode.BEEHIVE,
@@ -398,7 +398,7 @@ object PresetLibrary {
         pixel(
             "orbital",
             PresetStore.CATEGORY_PATTERN,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 4,
                 ditherMode = DitherMode.MOD_ORB,
@@ -409,7 +409,7 @@ object PresetLibrary {
         pixel(
             "scanlines",
             PresetStore.CATEGORY_PATTERN,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 4,
                 ditherMode = DitherMode.MOD_LINES,
@@ -423,7 +423,7 @@ object PresetLibrary {
         pixel(
             "pen and ink",
             PresetStore.CATEGORY_PATTERN,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 3,
                 contrast = 1.3f,
@@ -438,7 +438,7 @@ object PresetLibrary {
         pixel(
             "stipple study",
             PresetStore.CATEGORY_PATTERN,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 3,
                 contrast = 1.25f,
@@ -453,7 +453,7 @@ object PresetLibrary {
         pixel(
             "copperplate",
             PresetStore.CATEGORY_PATTERN,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 contrast = 1.4f,
@@ -468,7 +468,7 @@ object PresetLibrary {
         pixel(
             "survey map",
             PresetStore.CATEGORY_PATTERN,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 ditherMode = DitherMode.TOPOGRAPHY,
@@ -482,7 +482,7 @@ object PresetLibrary {
         pixel(
             "hot iron",
             PresetStore.CATEGORY_PATTERN,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 8,
                 ditherMode = DitherMode.MOD_ORB,
@@ -500,7 +500,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_PATTERN,
             // The plot is the picture here: lines carry the image and the glow gives the
             // dots their bloom, which is what stops a line drawing reading as a diagram.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 4,
                 contrast = 1.3f,
@@ -534,7 +534,7 @@ object PresetLibrary {
         pixel(
             "newsprint",
             PresetStore.CATEGORY_PRINT,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 colorMode = ColorMode.SOURCE,
                 backgroundColor = 0xFFF2EDE0.toInt(),
@@ -556,7 +556,7 @@ object PresetLibrary {
             // misregistration rather than with a screen.
             "duplicator print",
             PresetStore.CATEGORY_PRINT,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 colorMode = ColorMode.PALETTE,
                 paletteId = "sunset",
@@ -575,7 +575,7 @@ object PresetLibrary {
         pixel(
             "process rosette",
             PresetStore.CATEGORY_PRINT,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 5,
                 ditherMode = DitherMode.PRINT_PATTERN,
@@ -586,7 +586,7 @@ object PresetLibrary {
         pixel(
             "press halftone",
             PresetStore.CATEGORY_PRINT,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 4,
                 contrast = 1.35f,
@@ -600,7 +600,7 @@ object PresetLibrary {
         pixel(
             "low bit halftone",
             PresetStore.CATEGORY_PRINT,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 ditherMode = DitherMode.BIT_TONE,
@@ -614,7 +614,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_PRINT,
             // Three plates, badly registered, on toned stock. The subtexture pass adds the
             // fibre the ink sits in; the node's own grain is the ink, not the paper.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 4,
                 ditherMode = DitherMode.NONE,
@@ -643,7 +643,7 @@ object PresetLibrary {
             // Two inks and a clustered screen, which is what a duplicator can actually
             // lay down. The palette is the whole colour budget, so the dither is doing
             // the mixing.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 ditherMode = DitherMode.CLUSTER_4,
@@ -674,7 +674,7 @@ object PresetLibrary {
             //
             // Coarser facets than "shifting facets", which animates the cut: at rest the
             // two would otherwise be one preset with a slider in a different place.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 8,
                 depth = 5,
                 ditherMode = DitherMode.LOW_POLY,
@@ -687,7 +687,7 @@ object PresetLibrary {
         pixel(
             "hex tiles",
             PresetStore.CATEGORY_GEOMETRY,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 6,
                 ditherMode = DitherMode.HEXA_POLY,
@@ -699,7 +699,7 @@ object PresetLibrary {
         pixel(
             "camouflage",
             PresetStore.CATEGORY_GEOMETRY,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 4,
                 contrast = 1.2f,
@@ -714,7 +714,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_GEOMETRY,
             // Palette for the same reason as "low poly": a region style needs the level
             // to choose the colour, or the tiles it draws are thrown away.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 6,
                 ditherMode = DitherMode.SQUARE_MOSAIC,
@@ -727,7 +727,7 @@ object PresetLibrary {
         pixel(
             "dot grid",
             PresetStore.CATEGORY_GEOMETRY,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 5,
                 ditherMode = DitherMode.CIRCLE_GRID,
@@ -744,7 +744,7 @@ object PresetLibrary {
         pixel(
             "gameboy",
             PresetStore.CATEGORY_COLOR,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 7,
                 colorMode = ColorMode.PALETTE,
                 paletteId = "gameboy",
@@ -754,7 +754,7 @@ object PresetLibrary {
         pixel(
             "c64 lores",
             PresetStore.CATEGORY_COLOR,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 ditherMode = DitherMode.BAYER_4,
                 colorMode = ColorMode.PALETTE,
@@ -767,7 +767,7 @@ object PresetLibrary {
             // Source colour reduced to a palette through the diffusion pass rather than
             // indexed by luminance: the metric picks the entry, so the same picture in
             // OKLAB and in RGB comes back different.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 ditherMode = DitherMode.FLOYD_STEINBERG,
                 colorMode = ColorMode.SOURCE,
@@ -780,7 +780,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_COLOR,
             // The colour-depth pass instead of a palette: levels per channel, chosen in a
             // perceptual space, with its own dither to hide the banding.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 2,
                 ditherMode = DitherMode.NONE,
                 colorMode = ColorMode.SOURCE,
@@ -800,7 +800,7 @@ object PresetLibrary {
             // Two colours and nothing between them, held together by grain rather than by
             // tone. The blue-noise pass is what makes that readable: the same look with
             // ordered dithering reads as a printed pattern, which is a different thing.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 contrast = 1.25f,
@@ -832,7 +832,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_GLITCH,
             // The artefact-glitch style is the dither *being* the fault, rather than a
             // clean dither with damage applied afterwards.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 contrast = 1.6f,
@@ -846,7 +846,7 @@ object PresetLibrary {
         pixel(
             "databend",
             PresetStore.CATEGORY_GLITCH,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 colorMode = ColorMode.SOURCE,
                 effects = EffectStack(
@@ -864,7 +864,7 @@ object PresetLibrary {
         pixel(
             "crt",
             PresetStore.CATEGORY_GLITCH,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 colorMode = ColorMode.PALETTE,
                 paletteId = "phosphor",
@@ -887,7 +887,7 @@ object PresetLibrary {
             // The order matters more than the values: interlace and the colour crush belong
             // to the signal, the warp belongs to the glass, so the warp has to come last or
             // the scan lines curve the wrong way — flat lines on curved glass.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 6,
                 contrast = 1.2f,
@@ -912,7 +912,7 @@ object PresetLibrary {
         pixel(
             "tape damage",
             PresetStore.CATEGORY_GLITCH,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 5,
                 ditherMode = DitherMode.ATKINSON_VHS,
@@ -926,7 +926,7 @@ object PresetLibrary {
         pixel(
             "vhs dub",
             PresetStore.CATEGORY_GLITCH,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 colorMode = ColorMode.SOURCE,
                 effects = EffectStack(
@@ -946,7 +946,7 @@ object PresetLibrary {
         pixel(
             "meltdown",
             PresetStore.CATEGORY_GLITCH,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 colorMode = ColorMode.SOURCE,
                 effects = EffectStack(
@@ -964,7 +964,7 @@ object PresetLibrary {
         pixel(
             "shredder",
             PresetStore.CATEGORY_GLITCH,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 colorMode = ColorMode.SOURCE,
                 effects = EffectStack(
@@ -1001,7 +1001,7 @@ object PresetLibrary {
         pixel(
             "drifting wave",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 5,
                 ditherMode = DitherMode.MOD_WAVE,
@@ -1016,7 +1016,7 @@ object PresetLibrary {
         pixel(
             "bad signal",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 colorMode = ColorMode.SOURCE,
                 temporal = TemporalParams(
@@ -1034,7 +1034,7 @@ object PresetLibrary {
         pixel(
             "static storm",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 colorMode = ColorMode.SINGLE,
@@ -1051,7 +1051,7 @@ object PresetLibrary {
         pixel(
             "rolling glow",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 6,
                 colorMode = ColorMode.PALETTE,
                 paletteId = "ember",
@@ -1064,7 +1064,7 @@ object PresetLibrary {
         pixel(
             "modulation lines",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 5,
                 ditherMode = DitherMode.MOD_LINES,
@@ -1081,7 +1081,7 @@ object PresetLibrary {
         pixel(
             "waveform glitch",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 6,
                 ditherMode = DitherMode.MOD_WAVE,
@@ -1106,7 +1106,7 @@ object PresetLibrary {
         pixel(
             "cyberpunk",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 colorMode = ColorMode.PALETTE,
                 paletteId = "neon",
@@ -1128,7 +1128,7 @@ object PresetLibrary {
         pixel(
             "gemstone",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 5,
                 depth = 6,
                 ditherMode = DitherMode.MOD_ORB,
@@ -1159,7 +1159,7 @@ object PresetLibrary {
             // through. The phase track is what actually moves it — the node reads the
             // clock, but a track makes the motion editable like every other animated
             // preset in here.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 5,
                 contrast = 1.35f,
@@ -1185,7 +1185,7 @@ object PresetLibrary {
         pixel(
             "winding vortex",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 6,
                 ditherMode = DitherMode.VORTEX,
@@ -1203,7 +1203,7 @@ object PresetLibrary {
         pixel(
             "breathing contours",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 ditherMode = DitherMode.TOPOGRAPHY,
@@ -1217,7 +1217,7 @@ object PresetLibrary {
         pixel(
             "ripple peaks",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 5,
                 ditherMode = DitherMode.RADIAL_PEAKS,
@@ -1234,7 +1234,7 @@ object PresetLibrary {
         pixel(
             "moire drift",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 3,
                 ditherMode = DitherMode.SINE_DISTORT,
@@ -1248,7 +1248,7 @@ object PresetLibrary {
         pixel(
             "waveform scan",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 5,
                 ditherMode = DitherMode.WAVEFORM,
@@ -1266,7 +1266,7 @@ object PresetLibrary {
         pixel(
             "spinning burst",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 ditherMode = DitherMode.RADIAL_BURST,
@@ -1283,7 +1283,7 @@ object PresetLibrary {
         pixel(
             "tearing signal",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 ditherMode = DitherMode.GLITCH,
@@ -1302,7 +1302,7 @@ object PresetLibrary {
         pixel(
             "crawling hatch",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 3,
                 contrast = 1.3f,
@@ -1321,7 +1321,7 @@ object PresetLibrary {
         pixel(
             "pulsing stipple",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 3,
                 depth = 3,
                 ditherMode = DitherMode.STIPPLING,
@@ -1335,7 +1335,7 @@ object PresetLibrary {
         pixel(
             "rolling gridlock",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 4,
                 ditherMode = DitherMode.GRIDLOCK,
@@ -1356,7 +1356,7 @@ object PresetLibrary {
         pixel(
             "shifting facets",
             PresetStore.CATEGORY_MOTION,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 6,
                 depth = 5,
                 ditherMode = DitherMode.LOW_POLY,
@@ -1381,7 +1381,7 @@ object PresetLibrary {
         pixel(
             "two pass screen",
             PresetStore.CATEGORY_LAYERED,
-            AsciiParams(
+            RenderSettings(
                 cellSize = 6,
                 depth = 3,
                 ditherMode = DitherMode.CLUSTER_8,
@@ -1391,7 +1391,7 @@ object PresetLibrary {
                 layers = listOf(
                     Layer(
                         name = "fine screen",
-                        params = AsciiParams(
+                        params = RenderSettings(
                             renderMode = RenderMode.PurePixel,
                             cellSize = 3,
                             depth = 3,
@@ -1411,7 +1411,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_LAYERED,
             // Two inks laid down slightly out of register — the misalignment is the
             // picture, so the layer offset carries the whole effect.
-            AsciiParams(
+            RenderSettings(
                 cellSize = 4,
                 depth = 2,
                 ditherMode = DitherMode.FLOYD_STEINBERG,
@@ -1421,7 +1421,7 @@ object PresetLibrary {
                 layers = listOf(
                     Layer(
                         name = "second plate",
-                        params = AsciiParams(
+                        params = RenderSettings(
                             renderMode = RenderMode.PurePixel,
                             cellSize = 4,
                             depth = 2,
@@ -1446,14 +1446,14 @@ object PresetLibrary {
         glyph(
             "terminal",
             PresetStore.CATEGORY_GLYPH,
-            AsciiParams(charSetId = "ascii-standard-10", cellSize = 6, contrast = 1.2f),
+            RenderSettings(charSetId = "ascii-standard-10", cellSize = 6, contrast = 1.2f),
         ),
         glyph(
             "phosphor",
             PresetStore.CATEGORY_GLYPH,
             // Seventy steps: the long ramp, where the mapping has enough glyphs to render
             // a tonal photograph rather than a poster.
-            AsciiParams(
+            RenderSettings(
                 charSetId = "ascii-standard-70",
                 cellSize = 5,
                 colorMode = ColorMode.PALETTE,
@@ -1464,12 +1464,12 @@ object PresetLibrary {
         glyph(
             "braille",
             PresetStore.CATEGORY_GLYPH,
-            AsciiParams(charSetId = "braille-ramp", cellSize = 4, contrast = 1.4f, gamma = 1.2f),
+            RenderSettings(charSetId = "braille-ramp", cellSize = 4, contrast = 1.4f, gamma = 1.2f),
         ),
         glyph(
             "matrix",
             PresetStore.CATEGORY_GLYPH,
-            AsciiParams(
+            RenderSettings(
                 charSetId = "lang-katakana",
                 cellSize = 8,
                 colorMode = ColorMode.PALETTE,
@@ -1482,7 +1482,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_GLYPH,
             // Injection: characters of your own appended to the dense end of the ramp, so
             // the darkest parts of the picture are drawn with them.
-            AsciiParams(
+            RenderSettings(
                 charSetId = "ascii-standard-10",
                 cellSize = 6,
                 depth = 8,
@@ -1498,7 +1498,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_GLYPH,
             // Characters carrying the source colour, one hue per cell — the thing the
             // pixel path cannot do, because there is no character to colour.
-            AsciiParams(
+            RenderSettings(
                 charSetId = "ascii-standard-70",
                 cellSize = 5,
                 contrast = 1.15f,
@@ -1510,7 +1510,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_GLYPH,
             // Edge glyphs only: the Sobel pass picks a line character per cell and the
             // tonal mapping is switched off entirely.
-            AsciiParams(
+            RenderSettings(
                 charSetId = "line-box",
                 cellSize = 6,
                 edgeEnabled = true,
@@ -1525,7 +1525,7 @@ object PresetLibrary {
             "engraving",
             PresetStore.CATEGORY_GLYPH,
             // The same edge pass laid *over* a tonal ramp rather than replacing it.
-            AsciiParams(
+            RenderSettings(
                 charSetId = "ascii-standard-70",
                 cellSize = 4,
                 edgeEnabled = true,
@@ -1541,7 +1541,7 @@ object PresetLibrary {
             PresetStore.CATEGORY_GLYPH,
             // Animated glyph art: the ramp length itself is the track, so the picture is
             // redrawn with more and then fewer characters.
-            AsciiParams(
+            RenderSettings(
                 charSetId = "ascii-standard-70",
                 cellSize = 5,
                 colorMode = ColorMode.PALETTE,
@@ -1560,14 +1560,14 @@ object PresetLibrary {
      * on six versions of the same grey gradient would describe a laboratory rather than
      * an application.
      *
-     * Everything here is deliberately identical apart from [AsciiParams.ditherMode]: same
+     * Everything here is deliberately identical apart from [RenderSettings.ditherMode]: same
      * cell size, same level count, same neutral ink, no effects, no palette. That is the
      * whole point — a difference you can see is a difference the algorithm made.
      */
     private fun lab(name: String, mode: DitherMode) = pixel(
         name,
         PresetStore.CATEGORY_LAB,
-        AsciiParams(
+        RenderSettings(
             cellSize = 2,
             depth = 6,
             ditherMode = mode,

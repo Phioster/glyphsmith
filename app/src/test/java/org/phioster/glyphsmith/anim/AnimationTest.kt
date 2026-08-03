@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 
 class AnimationTest {
 
@@ -67,7 +67,7 @@ class AnimationTest {
 
     @Test
     fun `a disabled animation leaves the parameters alone`() {
-        val base = AsciiParams(depth = 12)
+        val base = RenderSettings(depth = 12)
         val animation = AnimationParams(
             enabled = false,
             tracks = listOf(track(AnimTarget.DEPTH, AnimCurve.SAWTOOTH, 1, 64)),
@@ -77,7 +77,7 @@ class AnimationTest {
 
     @Test
     fun `enabled tracks drive their parameter, including nested effect ones`() {
-        val base = AsciiParams(depth = 12)
+        val base = RenderSettings(depth = 12)
         val animation = AnimationParams(
             enabled = true,
             frames = 24,

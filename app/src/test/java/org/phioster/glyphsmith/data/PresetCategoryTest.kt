@@ -5,7 +5,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.Layer
 import org.junit.Test
 import org.phioster.glyphsmith.core.dither.DitherCategory
@@ -16,7 +16,7 @@ class PresetCategoryTest {
 
     /** A pixel dither with nothing else switched on — the plain case the rules read from. */
     private fun params(mode: DitherMode) =
-        AsciiParams(renderMode = RenderMode.PurePixel, ditherMode = mode)
+        RenderSettings(renderMode = RenderMode.PurePixel, ditherMode = mode)
 
     // --- where a new save lands --------------------------------------------------------
 
@@ -118,7 +118,7 @@ class PresetCategoryTest {
                 "$mode produces characters",
                 PresetStore.CATEGORY_GLYPH,
                 PresetStore.familyOf(
-                    AsciiParams(renderMode = mode, ditherMode = DitherMode.FLOYD_STEINBERG),
+                    RenderSettings(renderMode = mode, ditherMode = DitherMode.FLOYD_STEINBERG),
                 ),
             )
         }
@@ -127,7 +127,7 @@ class PresetCategoryTest {
     @Test
     fun `a stack of layers is filed as layered`() {
         val stacked = params(DitherMode.FLOYD_STEINBERG).copy(
-            layers = listOf(Layer(name = "over", params = AsciiParams(renderMode = RenderMode.PurePixel))),
+            layers = listOf(Layer(name = "over", params = RenderSettings(renderMode = RenderMode.PurePixel))),
         )
 
         assertEquals(PresetStore.CATEGORY_LAYERED, PresetStore.familyOf(stacked))
@@ -156,10 +156,10 @@ class PresetCategoryTest {
      */
     @Test
     fun `the render mode outranks structure and structure outranks the algorithm`() {
-        val everything = AsciiParams(
+        val everything = RenderSettings(
             renderMode = RenderMode.GlyphMatrix,
             ditherMode = DitherMode.BAYER_4,
-            layers = listOf(Layer(name = "over", params = AsciiParams(renderMode = RenderMode.PurePixel))),
+            layers = listOf(Layer(name = "over", params = RenderSettings(renderMode = RenderMode.PurePixel))),
             animation = AnimationParams(enabled = true),
             temporal = TemporalParams(enabled = true),
         )
@@ -193,7 +193,7 @@ class PresetCategoryTest {
     fun `a preset with nothing distinctive falls back to custom`() {
         assertEquals(
             PresetStore.CATEGORY_CUSTOM,
-            PresetStore.familyOf(AsciiParams(renderMode = RenderMode.PurePixel)),
+            PresetStore.familyOf(RenderSettings(renderMode = RenderMode.PurePixel)),
         )
     }
 

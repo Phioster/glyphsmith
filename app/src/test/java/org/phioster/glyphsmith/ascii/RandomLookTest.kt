@@ -21,13 +21,13 @@ class RandomLookTest {
 
     @Test
     fun `a rolled look is a pixel dither`() {
-        assertEquals(RenderMode.PurePixel, RandomLook.roll(AsciiParams(), seeded).renderMode)
+        assertEquals(RenderMode.PurePixel, RandomLook.roll(RenderSettings(), seeded).renderMode)
     }
 
     /** Even from a session that was sitting in Glyph Art: the roll decides, the session does not. */
     @Test
     fun `a roll from a glyph session still rolls a pixel dither`() {
-        val glyph = AsciiParams(renderMode = RenderMode.GlyphMatrix)
+        val glyph = RenderSettings(renderMode = RenderMode.GlyphMatrix)
 
         assertEquals(RenderMode.PurePixel, RandomLook.roll(glyph, seeded).renderMode)
     }
@@ -39,7 +39,7 @@ class RandomLookTest {
      */
     @Test
     fun `rolling again stays in pixel dither`() {
-        var look = AsciiParams()
+        var look = RenderSettings()
 
         repeat(5) { press ->
             look = RandomLook.roll(look, Random(press))
@@ -50,13 +50,13 @@ class RandomLookTest {
 
     @Test
     fun `the rolled mode is the one the mode names as default`() {
-        assertEquals(RenderMode.DEFAULT, RandomLook.roll(AsciiParams(), seeded).renderMode)
+        assertEquals(RenderMode.DEFAULT, RandomLook.roll(RenderSettings(), seeded).renderMode)
     }
 
     /** The door Glyph Art gets reached through, rather than a second copy of the roll. */
     @Test
     fun `a roll asked for a glyph look gets one`() {
-        val rolled = RandomLook.roll(AsciiParams(), seeded, RenderMode.GlyphMatrix)
+        val rolled = RandomLook.roll(RenderSettings(), seeded, RenderMode.GlyphMatrix)
 
         assertEquals(RenderMode.GlyphMatrix, rolled.renderMode)
     }
@@ -67,7 +67,7 @@ class RandomLookTest {
      */
     @Test
     fun `a roll leaves the settings it does not touch alone`() {
-        val tuned = AsciiParams(
+        val tuned = RenderSettings(
             brightness = 0.4f,
             contrast = 1.6f,
             gamma = 0.8f,
@@ -89,7 +89,7 @@ class RandomLookTest {
     /** A hand-arranged ramp and a hand-picked palette are looks in their own right; a roll replaces them. */
     @Test
     fun `a roll clears the overrides it is replacing`() {
-        val overridden = AsciiParams(
+        val overridden = RenderSettings(
             rampOverride = "..::##",
             paletteOverride = listOf(0xFF102030.toInt()),
             paletteLocks = listOf(true),
@@ -104,12 +104,12 @@ class RandomLookTest {
 
     @Test
     fun `the same seed rolls the same look`() {
-        assertEquals(RandomLook.roll(AsciiParams(), Random(7)), RandomLook.roll(AsciiParams(), Random(7)))
+        assertEquals(RandomLook.roll(RenderSettings(), Random(7)), RandomLook.roll(RenderSettings(), Random(7)))
     }
 
     @Test
     fun `different seeds roll different looks`() {
-        assertNotEquals(RandomLook.roll(AsciiParams(), Random(7)), RandomLook.roll(AsciiParams(), Random(8)))
+        assertNotEquals(RandomLook.roll(RenderSettings(), Random(7)), RandomLook.roll(RenderSettings(), Random(8)))
     }
 
     /**
@@ -119,7 +119,7 @@ class RandomLookTest {
     @Test
     fun `a roll stays inside the ranges that produce a readable image`() {
         repeat(200) { seed ->
-            val rolled = RandomLook.roll(AsciiParams(), Random(seed))
+            val rolled = RandomLook.roll(RenderSettings(), Random(seed))
 
             assertTrue("cell size ${rolled.cellSize}", rolled.cellSize in 4..12)
             assertTrue("depth ${rolled.depth}", rolled.depth in 3..23)

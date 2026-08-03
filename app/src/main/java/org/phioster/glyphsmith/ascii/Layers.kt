@@ -21,7 +21,7 @@ enum class LayerBlend(val label: String) {
  * the same idea: a layer holds a complete set of settings of its own, renders separately,
  * and is then transformed and blended over the result so far.
  *
- * [params] is an entire [AsciiParams], which means it has a `layers` list of its own. That
+ * [params] is an entire [RenderSettings], which means it has a `layers` list of its own. That
  * list is **not** recursed into — a layer inside a layer would multiply the render cost
  * without adding anything you could not express by adding another layer at the top level.
  *
@@ -33,7 +33,7 @@ enum class LayerBlend(val label: String) {
 data class Layer(
     val name: String = "layer",
     val enabled: Boolean = true,
-    val params: AsciiParams = AsciiParams(),
+    val params: RenderSettings = RenderSettings(),
     val blend: LayerBlend = LayerBlend.SCREEN,
     /** 0..100. */
     val opacity: Int = 100,
