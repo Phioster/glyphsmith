@@ -18,16 +18,16 @@ class LayersTest {
 
     @Test
     fun `params start with no layers`() {
-        assertTrue(AsciiParams().layers.isEmpty())
+        assertTrue(RenderSettings().layers.isEmpty())
     }
 
     @Test
     fun `a layer survives a round trip`() {
-        val params = AsciiParams(
+        val params = RenderSettings(
             layers = listOf(
                 Layer(
                     name = "coarse",
-                    params = AsciiParams(cellSize = 12, ditherMode = DitherMode.BAYER_4),
+                    params = RenderSettings(cellSize = 12, ditherMode = DitherMode.BAYER_4),
                     blend = LayerBlend.MULTIPLY,
                     opacity = 60,
                     offsetX = -20,
@@ -36,7 +36,7 @@ class LayersTest {
                 ),
             ),
         )
-        val restored = json.decodeFromString<AsciiParams>(json.encodeToString(params))
+        val restored = json.decodeFromString<RenderSettings>(json.encodeToString(params))
 
         assertEquals(1, restored.layers.size)
         val layer = restored.layers.first()
@@ -52,7 +52,7 @@ class LayersTest {
     /** A preset written before layers existed has no such field and must still load. */
     @Test
     fun `params without the field decode to an empty stack`() {
-        val restored = json.decodeFromString<AsciiParams>("""{"charSetId":"ascii-standard-10"}""")
+        val restored = json.decodeFromString<RenderSettings>("""{"charSetId":"ascii-standard-10"}""")
         assertTrue(restored.layers.isEmpty())
     }
 
@@ -63,7 +63,7 @@ class LayersTest {
      */
     @Test
     fun `a captured layer does not carry the stack it belongs to`() {
-        val existing = AsciiParams(layers = listOf(Layer(name = "first")))
+        val existing = RenderSettings(layers = listOf(Layer(name = "first")))
         val captured = Layer(name = "second", params = existing.copy(layers = emptyList()))
 
         assertTrue("the capture kept the stack", captured.params.layers.isEmpty())

@@ -13,7 +13,7 @@ import org.junit.Test
  */
 class RampOverrideTest {
 
-    private val base = AsciiParams(charSetId = "ascii-standard-10", depth = 64)
+    private val base = RenderSettings(charSetId = "ascii-standard-10", depth = 64)
 
     @Test
     fun `an empty override leaves the ramp exactly as it was`() {
@@ -58,7 +58,7 @@ class RampOverrideTest {
     fun `an override survives a round trip through a preset`() {
         val params = base.copy(rampOverride = " .:-=+*#%@")
         val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-        val restored = json.decodeFromString<AsciiParams>(json.encodeToString(params))
+        val restored = json.decodeFromString<RenderSettings>(json.encodeToString(params))
         assertEquals(params.rampOverride, restored.rampOverride)
     }
 
@@ -66,7 +66,7 @@ class RampOverrideTest {
     @Test
     fun `params without the field decode to no override`() {
         val json = Json { ignoreUnknownKeys = true }
-        val restored = json.decodeFromString<AsciiParams>("""{"charSetId":"ascii-standard-10"}""")
+        val restored = json.decodeFromString<RenderSettings>("""{"charSetId":"ascii-standard-10"}""")
         assertTrue(restored.rampOverride.isEmpty())
         assertEquals(CharacterSets.byId("ascii-standard-10").glyphs, restored.baseGlyphs())
     }

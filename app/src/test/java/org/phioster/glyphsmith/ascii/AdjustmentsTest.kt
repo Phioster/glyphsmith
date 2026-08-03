@@ -46,8 +46,8 @@ class AdjustmentsTest {
     fun `desaturation keeps the brightness`() {
         val colour = Adjustments.colorAdjust(200, 60, 30, 0, 100)
         val grey = Adjustments.colorAdjust(200, 60, 30, 0, 0)
-        val before = AsciiEngine.luminance(r(colour), g(colour), b(colour))
-        val after = AsciiEngine.luminance(r(grey), g(grey), b(grey))
+        val before = GlyphEngine.luminance(r(colour), g(colour), b(colour))
+        val after = GlyphEngine.luminance(r(grey), g(grey), b(grey))
         assertEquals(before, after, 0.01f)
     }
 

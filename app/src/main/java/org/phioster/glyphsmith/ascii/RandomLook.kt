@@ -54,10 +54,10 @@ object RandomLook {
      * without a second copy of everything below.
      */
     fun roll(
-        base: AsciiParams,
+        base: RenderSettings,
         random: Random = Random.Default,
         renderMode: RenderMode = RenderMode.DEFAULT,
-    ): AsciiParams {
+    ): RenderSettings {
         val set = CharacterSets.all.random(random)
         val palette = Palettes.all.random(random)
         val dither = DitherMode.entries.random(random)

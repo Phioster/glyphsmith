@@ -8,7 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.EdgeDetect
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
@@ -28,8 +28,8 @@ import org.phioster.glyphsmith.core.dither.Dither
  */
 @Composable
 fun MappingPanel(
-    params: AsciiParams,
-    onChange: (AsciiParams) -> Unit,
+    params: RenderSettings,
+    onChange: (RenderSettings) -> Unit,
     favourites: Set<String>,
     onToggleFavourite: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -98,16 +98,16 @@ fun MappingPanel(
         TerminalSlider(
             label = "denoise",
             value = params.denoise.toFloat(),
-            range = 0f..AsciiParams.NEIGHBOURHOOD_RANGE.last.toFloat(),
-            steps = AsciiParams.NEIGHBOURHOOD_RANGE.count() - 2,
+            range = 0f..RenderSettings.NEIGHBOURHOOD_RANGE.last.toFloat(),
+            steps = RenderSettings.NEIGHBOURHOOD_RANGE.count() - 2,
             valueText = if (params.denoise == 0) "off" else "${params.denoise} cells",
             onValueChange = { onChange(params.copy(denoise = it.toInt())) },
         )
         TerminalSlider(
             label = "blur",
             value = params.preBlur.toFloat(),
-            range = 0f..AsciiParams.NEIGHBOURHOOD_RANGE.last.toFloat(),
-            steps = AsciiParams.NEIGHBOURHOOD_RANGE.count() - 2,
+            range = 0f..RenderSettings.NEIGHBOURHOOD_RANGE.last.toFloat(),
+            steps = RenderSettings.NEIGHBOURHOOD_RANGE.count() - 2,
             valueText = if (params.preBlur == 0) "off" else "${params.preBlur} cells",
             onValueChange = { onChange(params.copy(preBlur = it.toInt())) },
         )
@@ -167,8 +167,8 @@ fun MappingPanel(
             TerminalSlider(
                 label = "pattern scale",
                 value = params.ditherScale.toFloat(),
-                range = AsciiParams.DITHER_SCALE_RANGE.first.toFloat()..
-                    AsciiParams.DITHER_SCALE_RANGE.last.toFloat(),
+                range = RenderSettings.DITHER_SCALE_RANGE.first.toFloat()..
+                    RenderSettings.DITHER_SCALE_RANGE.last.toFloat(),
                 valueText = "${params.ditherScale}%",
                 onValueChange = { onChange(params.copy(ditherScale = it.toInt())) },
             )
@@ -187,8 +187,8 @@ fun MappingPanel(
                 // calling it "period" while it sets a dot size makes the panel feel arbitrary.
                 label = Dither.periodLabel(params.ditherMode),
                 value = params.modScale.toFloat(),
-                range = AsciiParams.MOD_SCALE_RANGE.first.toFloat()..
-                    AsciiParams.MOD_SCALE_RANGE.last.toFloat(),
+                range = RenderSettings.MOD_SCALE_RANGE.first.toFloat()..
+                    RenderSettings.MOD_SCALE_RANGE.last.toFloat(),
                 valueText = "${params.modScale} cells",
                 onValueChange = { onChange(params.copy(modScale = it.toInt())) },
             )
@@ -204,7 +204,7 @@ fun MappingPanel(
             TerminalSlider(
                 label = "angle",
                 value = params.modAngle.toFloat(),
-                range = 0f..AsciiParams.MOD_ANGLE_RANGE.last.toFloat(),
+                range = 0f..RenderSettings.MOD_ANGLE_RANGE.last.toFloat(),
                 valueText = "${params.modAngle}°",
                 onValueChange = { onChange(params.copy(modAngle = it.toInt())) },
             )

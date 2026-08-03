@@ -85,7 +85,7 @@ class PalettesTest {
     @Test
     fun `render palette applies the depth while the editable one keeps every stop`() {
         val stops = listOf(black, 0xFF404040.toInt(), grey, 0xFFC0C0C0.toInt(), white)
-        val params = AsciiParams(paletteOverride = stops, paletteDepth = 2)
+        val params = RenderSettings(paletteOverride = stops, paletteDepth = 2)
 
         assertEquals(5, params.activePalette().colors.size)
         assertEquals(2, params.renderPalette().colors.size)
@@ -154,7 +154,7 @@ class PalettesTest {
 
     @Test
     fun `locks default to unlocked past the end of the list`() {
-        val params = AsciiParams(paletteLocks = listOf(true))
+        val params = RenderSettings(paletteLocks = listOf(true))
         assertTrue(params.isStopLocked(0))
         assertTrue(!params.isStopLocked(1))
         assertTrue(!params.isStopLocked(99))

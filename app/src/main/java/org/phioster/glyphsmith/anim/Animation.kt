@@ -1,7 +1,7 @@
 package org.phioster.glyphsmith.anim
 
 import kotlinx.serialization.Serializable
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -21,7 +21,7 @@ enum class AnimTarget(
     val max: Int,
     val cyclic: Boolean = false,
 ) {
-    DEPTH("Depth", 1, AsciiParams.MAX_DEPTH),
+    DEPTH("Depth", 1, RenderSettings.MAX_DEPTH),
     CHARACTER_OFFSET("Character Offset", 0, 64),
     DITHER_STRENGTH("Dither Strength", 0, 100),
     /** A full sweep of a modulation period, so a sawtooth over 0..100 travels seamlessly. */
@@ -211,7 +211,7 @@ object Animator {
      * animation changes nothing — so the caller sets the clock, which it has to do anyway
      * for a video whose parameter tracks are switched off.
      */
-    fun paramsAt(base: AsciiParams, animation: AnimationParams, frame: Int): AsciiParams {
+    fun paramsAt(base: RenderSettings, animation: AnimationParams, frame: Int): RenderSettings {
         if (!animation.enabled) return base
         var params = base
         animation.tracks.filter { it.enabled }.forEach { track ->
@@ -271,9 +271,9 @@ object Animator {
             .coerceIn(minOf(segment.from, segment.to), maxOf(segment.from, segment.to))
     }
 
-    private fun apply(params: AsciiParams, target: AnimTarget, value: Int): AsciiParams =
+    private fun apply(params: RenderSettings, target: AnimTarget, value: Int): RenderSettings =
         when (target) {
-            AnimTarget.DEPTH -> params.copy(depth = value.coerceIn(1, AsciiParams.MAX_DEPTH))
+            AnimTarget.DEPTH -> params.copy(depth = value.coerceIn(1, RenderSettings.MAX_DEPTH))
             // The offset wraps anyway, so it is never clamped to the ramp length here.
             AnimTarget.CHARACTER_OFFSET -> params.copy(offset = value)
             AnimTarget.DITHER_STRENGTH -> params.copy(ditherStrength = value.coerceIn(0, 100))

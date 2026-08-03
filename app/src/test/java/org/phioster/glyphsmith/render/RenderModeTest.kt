@@ -5,7 +5,7 @@ import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.core.color.ColorDistance
 
 class RenderModeTest {
@@ -19,7 +19,7 @@ class RenderModeTest {
      */
     @Test
     fun `params without a render mode decode to the glyph mode`() {
-        val decoded = json.decodeFromString<AsciiParams>("""{"cellSize":6}""")
+        val decoded = json.decodeFromString<RenderSettings>("""{"cellSize":6}""")
 
         assertEquals(RenderMode.GlyphMatrix, decoded.renderMode)
         assertTrue(decoded.renderMode.isGlyph)
@@ -28,14 +28,14 @@ class RenderModeTest {
 
     @Test
     fun `params without a colour metric decode to oklab`() {
-        val decoded = json.decodeFromString<AsciiParams>("""{"cellSize":6}""")
+        val decoded = json.decodeFromString<RenderSettings>("""{"cellSize":6}""")
         assertEquals(ColorDistance.OKLAB, decoded.colorDistance)
     }
 
     @Test
     fun `the mode survives a round trip`() {
-        val params = AsciiParams(renderMode = RenderMode.PurePixel)
-        val decoded = json.decodeFromString<AsciiParams>(json.encodeToString(params))
+        val params = RenderSettings(renderMode = RenderMode.PurePixel)
+        val decoded = json.decodeFromString<RenderSettings>(json.encodeToString(params))
 
         assertEquals(RenderMode.PurePixel, decoded.renderMode)
         assertTrue("pixel mode is not a glyph mode", !decoded.renderMode.isGlyph)

@@ -4,8 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.AsciiArt
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.GlyphGrid
+import org.phioster.glyphsmith.ascii.RenderSettings
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
@@ -27,14 +27,14 @@ class SvgExporterTest {
         fontSize = 20,
     )
 
-    private fun artOf(vararg rows: String, colors: IntArray? = null): AsciiArt {
+    private fun artOf(vararg rows: String, colors: IntArray? = null): GlyphGrid {
         val cols = rows[0].length
         val glyphs = CharArray(cols * rows.size)
         rows.forEachIndexed { r, line ->
             require(line.length == cols) { "ragged grid" }
             line.forEachIndexed { c, ch -> glyphs[r * cols + c] = ch }
         }
-        return AsciiArt(cols, rows.size, glyphs, colors)
+        return GlyphGrid(cols, rows.size, glyphs, colors)
     }
 
     private fun parse(svg: String) = DocumentBuilderFactory.newInstance()
@@ -43,7 +43,7 @@ class SvgExporterTest {
 
     @Test
     fun `the output is well-formed xml with the right canvas`() {
-        val svg = SvgExporter.buildText(artOf("ab", "cd"), AsciiParams(), geometry)
+        val svg = SvgExporter.buildText(artOf("ab", "cd"), RenderSettings(), geometry)
         val root = parse(svg).documentElement
 
         assertEquals("svg", root.tagName)
@@ -54,7 +54,7 @@ class SvgExporterTest {
 
     @Test
     fun `every non-space glyph reaches the document exactly once`() {
-        val svg = SvgExporter.buildText(artOf("ab c", "d ef"), AsciiParams(), geometry)
+        val svg = SvgExporter.buildText(artOf("ab c", "d ef"), RenderSettings(), geometry)
         val texts = parse(svg).getElementsByTagName("text")
 
         val written = buildString {
@@ -70,7 +70,7 @@ class SvgExporterTest {
      */
     @Test
     fun `each run carries one x coordinate per glyph`() {
-        val svg = SvgExporter.buildText(artOf("abc", "d f"), AsciiParams(), geometry)
+        val svg = SvgExporter.buildText(artOf("abc", "d f"), RenderSettings(), geometry)
         val texts = parse(svg).getElementsByTagName("text")
 
         assertTrue("no text runs emitted", texts.length > 0)
@@ -83,7 +83,7 @@ class SvgExporterTest {
 
     @Test
     fun `spaces are skipped rather than emitted`() {
-        val svg = SvgExporter.buildText(artOf("a b"), AsciiParams(), geometry)
+        val svg = SvgExporter.buildText(artOf("a b"), RenderSettings(), geometry)
         val texts = parse(svg).getElementsByTagName("text")
         // A space splits the row into two runs; it must not become a glyph of its own.
         assertEquals(2, texts.length)
@@ -94,7 +94,7 @@ class SvgExporterTest {
     /** `&`, `<` and `>` all appear in the standard ASCII ramps, so this is not hypothetical. */
     @Test
     fun `xml metacharacters from the ramp are escaped`() {
-        val svg = SvgExporter.buildText(artOf("&<>"), AsciiParams(), geometry)
+        val svg = SvgExporter.buildText(artOf("&<>"), RenderSettings(), geometry)
 
         assertTrue(svg.contains("&amp;"))
         assertTrue(svg.contains("&lt;"))
@@ -105,10 +105,10 @@ class SvgExporterTest {
 
     @Test
     fun `a transparent background emits no backing rect`() {
-        val opaque = SvgExporter.buildText(artOf("ab"), AsciiParams(), geometry)
+        val opaque = SvgExporter.buildText(artOf("ab"), RenderSettings(), geometry)
         val clear = SvgExporter.buildText(
             artOf("ab"),
-            AsciiParams(transparentBackground = true),
+            RenderSettings(transparentBackground = true),
             geometry,
         )
 
@@ -121,7 +121,7 @@ class SvgExporterTest {
         val red = 0xFFFF0000.toInt()
         val blue = 0xFF0000FF.toInt()
         val art = artOf("ab", colors = intArrayOf(red, blue))
-        val texts = parse(SvgExporter.buildText(art, AsciiParams(), geometry))
+        val texts = parse(SvgExporter.buildText(art, RenderSettings(), geometry))
             .getElementsByTagName("text")
 
         assertEquals(2, texts.length)
@@ -133,7 +133,7 @@ class SvgExporterTest {
     fun `cells sharing a colour stay in one run`() {
         val red = 0xFFFF0000.toInt()
         val art = artOf("abc", colors = intArrayOf(red, red, red))
-        val texts = parse(SvgExporter.buildText(art, AsciiParams(), geometry))
+        val texts = parse(SvgExporter.buildText(art, RenderSettings(), geometry))
             .getElementsByTagName("text")
 
         assertEquals(1, texts.length)
@@ -142,7 +142,7 @@ class SvgExporterTest {
 
     @Test
     fun `an all-space grid still produces a valid empty document`() {
-        val svg = SvgExporter.buildText(artOf("   ", "   "), AsciiParams(), geometry)
+        val svg = SvgExporter.buildText(artOf("   ", "   "), RenderSettings(), geometry)
         assertEquals(0, parse(svg).getElementsByTagName("text").length)
         assertFalse(svg.contains("NaN"))
     }

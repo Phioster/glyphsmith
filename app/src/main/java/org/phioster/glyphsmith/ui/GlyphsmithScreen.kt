@@ -41,7 +41,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.anim.QuantizeMethod
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PlaybackQuality
@@ -49,7 +49,7 @@ import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgMode
 import org.phioster.glyphsmith.ui.panels.AnimPanel
-import org.phioster.glyphsmith.ui.panels.AsciiPanel
+import org.phioster.glyphsmith.ui.panels.RenderPanel
 import org.phioster.glyphsmith.ui.panels.ColorPanel
 import org.phioster.glyphsmith.ui.panels.EffectsPanel
 import org.phioster.glyphsmith.ui.panels.LayerPanel
@@ -75,7 +75,7 @@ private enum class Tab(val label: String) {
 @Composable
 fun GlyphsmithScreen(
     state: UiState,
-    onParamsChange: (AsciiParams) -> Unit,
+    onParamsChange: (RenderSettings) -> Unit,
     onPickImage: (android.net.Uri) -> Unit,
     onPickVideo: (android.net.Uri) -> Unit,
     onCapture: (android.net.Uri) -> Unit,
@@ -257,7 +257,7 @@ fun GlyphsmithScreen(
                 .padding(bottom = 16.dp),
         ) {
             when (tab) {
-                Tab.ASCII -> AsciiPanel(
+                Tab.ASCII -> RenderPanel(
                     params = state.params,
                     onChange = onParamsChange,
                     fontLabel = state.fontLabel,
@@ -362,7 +362,7 @@ private fun Header(
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Text(
-                    "ascii forge",
+                    "dither forge",
                     color = Term.InkFaint,
                     maxLines = 1,
                     style = MaterialTheme.typography.labelSmall,
@@ -424,7 +424,7 @@ private fun Preview(state: UiState, modifier: Modifier = Modifier) {
         } else {
             Image(
                 bitmap = preview.asImageBitmap(),
-                contentDescription = "ASCII preview",
+                contentDescription = "render preview",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()

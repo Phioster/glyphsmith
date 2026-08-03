@@ -3,7 +3,7 @@ package org.phioster.glyphsmith.render
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.data.PresetLibrary
 
 /**
@@ -20,18 +20,18 @@ class SessionDefaultTest {
 
     @Test
     fun `a new session starts in pixel dither`() {
-        assertEquals(RenderMode.PurePixel, AsciiParams.newSession().renderMode)
+        assertEquals(RenderMode.PurePixel, RenderSettings.newSession().renderMode)
     }
 
     @Test
     fun `the new session default is the one the mode names`() {
-        assertEquals(RenderMode.DEFAULT, AsciiParams.newSession().renderMode)
+        assertEquals(RenderMode.DEFAULT, RenderSettings.newSession().renderMode)
     }
 
     /** Starting a session must change the mode and nothing else. */
     @Test
     fun `a new session differs from a bare configuration only in the render mode`() {
-        assertEquals(AsciiParams(renderMode = RenderMode.PurePixel), AsciiParams.newSession())
+        assertEquals(RenderSettings(renderMode = RenderMode.PurePixel), RenderSettings.newSession())
     }
 
     /**
@@ -40,7 +40,7 @@ class SessionDefaultTest {
      */
     @Test
     fun `the field default stays glyph art`() {
-        assertEquals(RenderMode.GlyphMatrix, AsciiParams().renderMode)
+        assertEquals(RenderMode.GlyphMatrix, RenderSettings().renderMode)
     }
 
     /**
@@ -60,7 +60,7 @@ class SessionDefaultTest {
     }
 
     /**
-     * What undo and redo restore is a whole [AsciiParams] — the stacks hold nothing else — so
+     * What undo and redo restore is a whole [RenderSettings] — the stacks hold nothing else — so
      * the mode travels with a history step for exactly as long as it stays a field of that
      * object. Hoisting it into the UI state instead would make a mode switch invisible to the
      * history: the two values either side of it would compare equal, no step would be
@@ -71,7 +71,7 @@ class SessionDefaultTest {
      */
     @Test
     fun `a mode switch is a history step of its own`() {
-        val before = AsciiParams.newSession()
+        val before = RenderSettings.newSession()
         val after = before.copy(renderMode = RenderMode.GlyphMatrix)
 
         assertNotEquals(before, after)

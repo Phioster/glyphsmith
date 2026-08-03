@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.CharacterSet
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.FontStyle
@@ -52,9 +52,9 @@ private const val CATEGORY_ALL = "All"
  * the user has to find would hide that relationship instead of showing it.
  */
 @Composable
-fun AsciiPanel(
-    params: AsciiParams,
-    onChange: (AsciiParams) -> Unit,
+fun RenderPanel(
+    params: RenderSettings,
+    onChange: (RenderSettings) -> Unit,
     fontLabel: String,
     missingGlyphs: String,
     rampCoverage: List<Float>,
@@ -77,7 +77,7 @@ fun AsciiPanel(
     val glyphMode = params.renderMode.isGlyph
 
     Column(modifier.fillMaxWidth()) {
-        SectionHeader("glyph / ascii rendering")
+        SectionHeader("render module")
 
         // Three modes rather than the old toggle, because the third is not a middle setting
         // between the other two: it runs both, in order. A boolean cannot say that.
@@ -113,14 +113,14 @@ fun AsciiPanel(
         }
         if (!glyphMode) return@Column
 
-        SectionHeader("ascii settings")
+        SectionHeader("glyph settings")
 
         TerminalSlider(
             label = "depth",
             value = params.depth.toFloat(),
-            range = 1f..AsciiParams.MAX_DEPTH.toFloat(),
-            steps = AsciiParams.MAX_DEPTH - 2,
-            valueText = "${params.depth}/${AsciiParams.MAX_DEPTH}",
+            range = 1f..RenderSettings.MAX_DEPTH.toFloat(),
+            steps = RenderSettings.MAX_DEPTH - 2,
+            valueText = "${params.depth}/${RenderSettings.MAX_DEPTH}",
             onValueChange = { onChange(params.copy(depth = it.toInt())) },
         )
 
@@ -197,9 +197,9 @@ fun AsciiPanel(
         TerminalSlider(
             label = "cell size",
             value = params.cellSize.toFloat(),
-            range = AsciiParams.CELL_SIZE_RANGE.first.toFloat()..AsciiParams.CELL_SIZE_RANGE.last.toFloat(),
-            steps = AsciiParams.CELL_SIZE_RANGE.count() - 2,
-            valueText = "${params.cellSize}/${AsciiParams.CELL_SIZE_RANGE.last}",
+            range = RenderSettings.CELL_SIZE_RANGE.first.toFloat()..RenderSettings.CELL_SIZE_RANGE.last.toFloat(),
+            steps = RenderSettings.CELL_SIZE_RANGE.count() - 2,
+            valueText = "${params.cellSize}/${RenderSettings.CELL_SIZE_RANGE.last}",
             onValueChange = { onChange(params.copy(cellSize = it.toInt())) },
         )
 
@@ -213,7 +213,7 @@ fun AsciiPanel(
             label = "reset to default",
             onClick = {
                 onChange(
-                    AsciiParams(
+                    RenderSettings(
                         // Colour and output settings live in their own panels; resetting the
                         // ASCII section shouldn't silently undo them.
                         colorMode = params.colorMode,
@@ -236,7 +236,7 @@ fun AsciiPanel(
 @Composable
 private fun GlyphPreview(
     set: CharacterSet,
-    params: AsciiParams,
+    params: RenderSettings,
     fontLabel: String,
     missingGlyphs: String,
 ) {
@@ -286,14 +286,14 @@ private fun InjectField(value: String, onChange: (String) -> Unit) {
         Row(Modifier.fillMaxWidth()) {
             Text("INJECT CHARACTERS", color = Term.InkDim, style = MaterialTheme.typography.bodySmall)
             Text(
-                "  ${value.length}/${AsciiParams.MAX_INJECTION}",
+                "  ${value.length}/${RenderSettings.MAX_INJECTION}",
                 color = Term.InkFaint,
                 style = MaterialTheme.typography.bodySmall,
             )
         }
         BasicTextField(
             value = value,
-            onValueChange = { onChange(it.take(AsciiParams.MAX_INJECTION)) },
+            onValueChange = { onChange(it.take(RenderSettings.MAX_INJECTION)) },
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = Term.Ink),
             cursorBrush = SolidColor(Term.Ink),
@@ -320,10 +320,10 @@ private fun InjectField(value: String, onChange: (String) -> Unit) {
  */
 @Composable
 private fun RampEditor(
-    params: AsciiParams,
+    params: RenderSettings,
     coverage: List<Float>,
     onAutoOrder: () -> Unit,
-    onChange: (AsciiParams) -> Unit,
+    onChange: (RenderSettings) -> Unit,
 ) {
     val glyphs = params.baseGlyphs()
     var selected by remember(glyphs) { mutableStateOf(-1) }
@@ -422,14 +422,14 @@ private fun RampEditor(
  * specific to reducing an image to colours, which is a question the glyph mode never asked.
  */
 @Composable
-private fun PixelModeControls(params: AsciiParams, onChange: (AsciiParams) -> Unit) {
+private fun PixelModeControls(params: RenderSettings, onChange: (RenderSettings) -> Unit) {
     SectionHeader("pixel grid")
 
     TerminalSlider(
         label = "block size",
         value = params.cellSize.toFloat(),
-        range = AsciiParams.CELL_SIZE_RANGE.first.toFloat()..AsciiParams.CELL_SIZE_RANGE.last.toFloat(),
-        steps = AsciiParams.CELL_SIZE_RANGE.count() - 2,
+        range = RenderSettings.CELL_SIZE_RANGE.first.toFloat()..RenderSettings.CELL_SIZE_RANGE.last.toFloat(),
+        steps = RenderSettings.CELL_SIZE_RANGE.count() - 2,
         valueText = "${params.cellSize}px",
         onValueChange = { onChange(params.copy(cellSize = it.toInt())) },
     )
@@ -464,8 +464,8 @@ private fun PixelModeControls(params: AsciiParams, onChange: (AsciiParams) -> Un
         TerminalSlider(
             label = "levels",
             value = params.depth.toFloat(),
-            range = 2f..AsciiParams.MAX_DEPTH.toFloat(),
-            steps = AsciiParams.MAX_DEPTH - 3,
+            range = 2f..RenderSettings.MAX_DEPTH.toFloat(),
+            steps = RenderSettings.MAX_DEPTH - 3,
             valueText = "${params.depth}",
             onValueChange = { onChange(params.copy(depth = it.toInt())) },
         )
@@ -508,7 +508,7 @@ private fun PixelModeControls(params: AsciiParams, onChange: (AsciiParams) -> Un
         label = "reset to default",
         onClick = {
             onChange(
-                AsciiParams(
+                RenderSettings(
                     renderMode = params.renderMode,
                     pixelBlock = params.pixelBlock,
                     colorMode = params.colorMode,
@@ -525,6 +525,6 @@ private fun PixelModeControls(params: AsciiParams, onChange: (AsciiParams) -> Un
 /** Display names for the modes. The serialised enum entries are deliberately left alone. */
 private fun labelOf(mode: RenderMode): String = when (mode) {
     RenderMode.PurePixel -> "pixel dither"
-    RenderMode.GlyphMatrix -> "glyph rendering"
+    RenderMode.GlyphMatrix -> "glyph art"
     RenderMode.PixelThenGlyph -> "pixel dither → glyphs"
 }

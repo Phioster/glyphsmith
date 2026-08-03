@@ -8,7 +8,7 @@ import org.phioster.glyphsmith.render.QuantisePass
 /**
  * Reads glyphs off a finished bitmap, rather than off the source image.
  *
- * This is what makes ASCII a *step* instead of a *branch*. [AsciiEngine.convert] starts from the
+ * This is what makes ASCII a *step* instead of a *branch*. [GlyphEngine.convert] starts from the
  * original pixels, so the dither it runs is the only dither in that render — which is why a
  * palette dither and a character grid were mutually exclusive. Handing an already-rendered image
  * to this instead lets the two stack: the palette dither decides the tone, and the glyphs describe
@@ -29,9 +29,9 @@ object GlyphFromBitmap {
      */
     fun convert(
         source: Pixels,
-        params: AsciiParams,
-        cellAspect: Float = AsciiEngine.DEFAULT_CELL_ASPECT,
-    ): AsciiArt {
+        params: RenderSettings,
+        cellAspect: Float = GlyphEngine.DEFAULT_CELL_ASPECT,
+    ): GlyphGrid {
         val ramp = params.effectiveRamp().ifEmpty { " " }
         // Tone adjustments were applied before the first dither. Applying them a second time here
         // would double the contrast and crush what the dither just resolved, so the glyph stage
@@ -56,7 +56,7 @@ object GlyphFromBitmap {
             cellWidth = params.cellSize.coerceAtLeast(1),
             cellHeight = CellSampler.cellHeightFor(params.cellSize, cellAspect),
         )
-        return AsciiEngine.mapToGlyphs(QuantisePass.run(flat, grid, ramp.length), flat, ramp)
+        return GlyphEngine.mapToGlyphs(QuantisePass.run(flat, grid, ramp.length), flat, ramp)
     }
 
     private const val NEUTRAL_TONE = 50

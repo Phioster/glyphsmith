@@ -18,7 +18,7 @@ import kotlin.math.min
  * frame can never be produced by a slightly different code path than the preview that sold
  * it to the user. That now covers both render modes: the branch is here and nowhere else.
  */
-object Pipeline {
+object RenderPipeline {
 
     /** Aspect is measured at a fixed size so the grid is identical at every output scale. */
     private const val REFERENCE_FONT_SIZE = 32
@@ -29,7 +29,7 @@ object Pipeline {
      * status line need the grid size in both modes.
      */
     class Result(
-        val art: AsciiArt?,
+        val art: GlyphGrid?,
         val bitmap: Bitmap,
         val face: FontChoice?,
         val cols: Int,
@@ -43,7 +43,7 @@ object Pipeline {
         pixels: IntArray,
         sourceWidth: Int,
         sourceHeight: Int,
-        params: AsciiParams,
+        params: RenderSettings,
         maxSide: Int,
     ): Bitmap = run(pixels, sourceWidth, sourceHeight, params.copy(layers = emptyList()), maxSide).bitmap
 
@@ -51,7 +51,7 @@ object Pipeline {
         pixels: IntArray,
         sourceWidth: Int,
         sourceHeight: Int,
-        params: AsciiParams,
+        params: RenderSettings,
         maxSide: Int,
         isScrubbing: Boolean = false,
     ): Result {
@@ -89,16 +89,16 @@ object Pipeline {
         pixels: IntArray,
         sourceWidth: Int,
         sourceHeight: Int,
-        params: AsciiParams,
+        params: RenderSettings,
         maxSide: Int,
         ctx: RenderContext,
     ): Result {
         val ramp = params.effectiveRamp().ifEmpty { " " }
-        val face = AsciiRenderer.faceFor(params, ramp)
-        val aspect = AsciiRenderer.metrics(REFERENCE_FONT_SIZE, ramp, face.typeface).aspect
-        val grid = AsciiEngine.convert(pixels, sourceWidth, sourceHeight, params, aspect)
+        val face = GlyphRenderer.faceFor(params, ramp)
+        val aspect = GlyphRenderer.metrics(REFERENCE_FONT_SIZE, ramp, face.typeface).aspect
+        val grid = GlyphEngine.convert(pixels, sourceWidth, sourceHeight, params, aspect)
 
-        val fontSize = AsciiRenderer.fitFontSize(
+        val fontSize = GlyphRenderer.fitFontSize(
             grid.cols, grid.rows, ramp, params.fontSizePx, maxSide, face.typeface,
         )
         // In canvas mode the whole canvas is scaled down instead of the glyphs shrinking,
@@ -110,7 +110,7 @@ object Pipeline {
         }
 
         val bitmap = EffectPipeline.apply(
-            AsciiRenderer.render(grid, params, fontSize, canvasScale),
+            GlyphRenderer.render(grid, params, fontSize, canvasScale),
             params.effects,
             ctx,
         )
@@ -118,10 +118,10 @@ object Pipeline {
         val output = if (params.canvasEnabled) {
             params.canvasWidth to params.canvasHeight
         } else {
-            val cell = AsciiRenderer.metrics(
-                AsciiRenderer.fitFontSize(
+            val cell = GlyphRenderer.metrics(
+                GlyphRenderer.fitFontSize(
                     grid.cols, grid.rows, ramp, params.fontSizePx,
-                    AsciiRenderer.MAX_OUTPUT_SIDE, face.typeface,
+                    GlyphRenderer.MAX_OUTPUT_SIDE, face.typeface,
                 ),
                 ramp,
                 face.typeface,
@@ -137,7 +137,7 @@ object Pipeline {
         pixels: IntArray,
         sourceWidth: Int,
         sourceHeight: Int,
-        params: AsciiParams,
+        params: RenderSettings,
         maxSide: Int,
         ctx: RenderContext,
     ): Result {
@@ -151,7 +151,7 @@ object Pipeline {
         val rendered = PixelDitherRenderer.render(indexed, params, block)
         val bitmap = EffectPipeline.apply(rendered.toBitmap(), params.effects, ctx)
 
-        val exportBlock = (AsciiRenderer.MAX_OUTPUT_SIDE / max(grid.cols, grid.rows))
+        val exportBlock = (GlyphRenderer.MAX_OUTPUT_SIDE / max(grid.cols, grid.rows))
             .coerceIn(1, cell)
         return Result(
             art = null,
@@ -174,7 +174,7 @@ object Pipeline {
      * dither could only ever be a small image. Still clamped to the budget, because a preview that
      * ignored it would stop being a preview.
      */
-    private fun blockFor(params: AsciiParams, cols: Int, rows: Int, maxSide: Int): Int {
+    private fun blockFor(params: RenderSettings, cols: Int, rows: Int, maxSide: Int): Int {
         val fill = (maxSide / max(cols, rows)).coerceAtLeast(1)
         val pinned = params.pixelBlock
         return if (pinned <= 0) fill else pinned.coerceIn(1, fill.coerceAtLeast(1))
@@ -196,7 +196,7 @@ object Pipeline {
         pixels: IntArray,
         sourceWidth: Int,
         sourceHeight: Int,
-        params: AsciiParams,
+        params: RenderSettings,
         maxSide: Int,
         ctx: RenderContext,
     ): Result {
@@ -206,23 +206,23 @@ object Pipeline {
         val dithered = PixelDitherRenderer.render(indexed, params, blockFor(params, grid.cols, grid.rows, maxSide))
 
         val ramp = params.effectiveRamp().ifEmpty { " " }
-        val face = AsciiRenderer.faceFor(params, ramp)
-        val aspect = AsciiRenderer.metrics(REFERENCE_FONT_SIZE, ramp, face.typeface).aspect
+        val face = GlyphRenderer.faceFor(params, ramp)
+        val aspect = GlyphRenderer.metrics(REFERENCE_FONT_SIZE, ramp, face.typeface).aspect
         val art = GlyphFromBitmap.convert(dithered, params, aspect)
 
-        val fontSize = AsciiRenderer.fitFontSize(
+        val fontSize = GlyphRenderer.fitFontSize(
             art.cols, art.rows, ramp, params.fontSizePx, maxSide, face.typeface,
         )
         val bitmap = EffectPipeline.apply(
-            AsciiRenderer.render(art, params, fontSize, 1f),
+            GlyphRenderer.render(art, params, fontSize, 1f),
             params.effects,
             ctx,
         )
 
-        val cellMetrics = AsciiRenderer.metrics(
-            AsciiRenderer.fitFontSize(
+        val cellMetrics = GlyphRenderer.metrics(
+            GlyphRenderer.fitFontSize(
                 art.cols, art.rows, ramp, params.fontSizePx,
-                AsciiRenderer.MAX_OUTPUT_SIDE, face.typeface,
+                GlyphRenderer.MAX_OUTPUT_SIDE, face.typeface,
             ),
             ramp,
             face.typeface,

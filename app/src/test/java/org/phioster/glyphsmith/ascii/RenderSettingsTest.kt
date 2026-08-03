@@ -5,13 +5,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.phioster.glyphsmith.core.color.Palettes
 
-class AsciiParamsTest {
+class RenderSettingsTest {
 
-    private val tenLevel = AsciiParams(charSetId = "ascii-standard-10", depth = 10)
+    private val tenLevel = RenderSettings(charSetId = "ascii-standard-10", depth = 10)
 
     @Test
     fun `depth beyond the set length uses the whole set`() {
-        val ramp = tenLevel.copy(depth = AsciiParams.MAX_DEPTH).effectiveRamp()
+        val ramp = tenLevel.copy(depth = RenderSettings.MAX_DEPTH).effectiveRamp()
         assertEquals(CharacterSets.byId("ascii-standard-10").glyphs, ramp)
     }
 
@@ -35,7 +35,7 @@ class AsciiParamsTest {
     fun `injection is appended and capped`() {
         val ramp = tenLevel.copy(injection = "0123456789ABCDEF").effectiveRamp()
         assertTrue(ramp.endsWith("0123456789"))
-        assertEquals(10 + AsciiParams.MAX_INJECTION, ramp.length)
+        assertEquals(10 + RenderSettings.MAX_INJECTION, ramp.length)
     }
 
     @Test

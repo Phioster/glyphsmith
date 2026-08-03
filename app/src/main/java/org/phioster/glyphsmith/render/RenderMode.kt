@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
  *
  * There are two defaults here and they are deliberately different values.
  *
- * The *field* default on `AsciiParams.renderMode` is [GlyphMatrix] and has to stay that way:
+ * The *field* default on `RenderSettings.renderMode` is [GlyphMatrix] and has to stay that way:
  * this field arrived after presets were already being written to disk, and a preset without it
  * must render exactly as it did before the field existed.
  *
@@ -58,7 +58,7 @@ enum class RenderMode {
         /**
          * The mode new work starts in: new sessions, and any general-purpose roll of a look.
          *
-         * Not the same thing as the default of `AsciiParams.renderMode`, which answers a
+         * Not the same thing as the default of `RenderSettings.renderMode`, which answers a
          * different question — what a preset that names no mode should be read as — and must
          * stay [GlyphMatrix] for as long as presets written before the field exist.
          */

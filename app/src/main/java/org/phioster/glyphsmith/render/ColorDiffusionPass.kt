@@ -1,6 +1,6 @@
 package org.phioster.glyphsmith.render
 
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.core.color.PaletteQuantizer
 import org.phioster.glyphsmith.core.dither.PatternOptions
 import org.phioster.glyphsmith.core.dither.Dither
@@ -28,7 +28,7 @@ import org.phioster.glyphsmith.core.dither.Dither
 object ColorDiffusionPass {
 
     /** One colour per cell, in palette entries. */
-    fun run(params: AsciiParams, grid: IndexGrid, quantizer: PaletteQuantizer): IntArray {
+    fun run(params: RenderSettings, grid: IndexGrid, quantizer: PaletteQuantizer): IntArray {
         val cols = grid.cols
         val rows = grid.rows
         val source = grid.colors ?: return IntArray(cols * rows) { params.inkColor }

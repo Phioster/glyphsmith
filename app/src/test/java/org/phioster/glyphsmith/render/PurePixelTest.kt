@@ -3,7 +3,7 @@ package org.phioster.glyphsmith.render
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.dither.Dither
@@ -29,7 +29,7 @@ class PurePixelTest {
     }
 
     private fun params(mode: DitherMode = DitherMode.NONE, colorMode: ColorMode = ColorMode.PALETTE) =
-        AsciiParams(
+        RenderSettings(
             renderMode = RenderMode.PurePixel,
             cellSize = 1,
             colorMode = colorMode,
@@ -37,7 +37,7 @@ class PurePixelTest {
             ditherMode = mode,
         )
 
-    private fun renderWith(p: AsciiParams, block: Int = 1): Pair<IndexGrid, IntArray> {
+    private fun renderWith(p: RenderSettings, block: Int = 1): Pair<IndexGrid, IntArray> {
         val grid = CellSampler.sample(gradient(), side, side, p, p.cellSize, p.cellSize)
         val indexed = QuantisePass.run(p, grid, PixelDitherRenderer.levelsFor(p))
         return indexed to PixelDitherRenderer.render(indexed, p, block).data

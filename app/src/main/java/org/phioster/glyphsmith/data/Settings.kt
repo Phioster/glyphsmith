@@ -20,7 +20,7 @@ enum class PreviewQuality(val label: String, val maxSide: Int) {
 /**
  * The handful of choices that belong to the app rather than to an image.
  *
- * Kept out of `AsciiParams` on purpose: presets are meant to be shared, and a preset that
+ * Kept out of `RenderSettings` on purpose: presets are meant to be shared, and a preset that
  * quietly repaints someone else's interface — or halves their preview resolution — when
  * they load it would be a surprise nobody asked for.
  */

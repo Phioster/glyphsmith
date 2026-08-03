@@ -1,6 +1,6 @@
 package org.phioster.glyphsmith.render
 
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.core.color.PaletteQuantizer
@@ -35,13 +35,13 @@ object PixelDitherRenderer {
      * How many levels the dither should quantise to. This is the pixel mode's answer to the
      * ramp length — the number the glyph mode passes instead.
      */
-    fun levelsFor(params: AsciiParams): Int = when (params.colorMode) {
+    fun levelsFor(params: RenderSettings): Int = when (params.colorMode) {
         ColorMode.SINGLE -> params.depth.coerceAtLeast(MIN_LEVELS)
         ColorMode.PALETTE, ColorMode.SOURCE ->
             params.renderPalette().colors.size.coerceAtLeast(MIN_LEVELS)
     }
 
-    fun render(grid: IndexGrid, params: AsciiParams, block: Int): Pixels {
+    fun render(grid: IndexGrid, params: RenderSettings, block: Int): Pixels {
         val blockSize = block.coerceAtLeast(1)
         val width = grid.cols * blockSize
         val height = grid.rows * blockSize
@@ -66,7 +66,7 @@ object PixelDitherRenderer {
     }
 
     /** One colour per cell, before it is expanded into blocks. */
-    private fun colorsFor(grid: IndexGrid, params: AsciiParams): IntArray {
+    private fun colorsFor(grid: IndexGrid, params: RenderSettings): IntArray {
         val palette = params.renderPalette().colors
         val out = IntArray(grid.cols * grid.rows)
         val levels = grid.levels

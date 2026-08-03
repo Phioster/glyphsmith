@@ -4,18 +4,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.AsciiArt
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.GlyphGrid
+import org.phioster.glyphsmith.ascii.RenderSettings
 
 class TextExportersTest {
 
-    private fun artOf(vararg rows: String, colors: IntArray? = null): AsciiArt {
+    private fun artOf(vararg rows: String, colors: IntArray? = null): GlyphGrid {
         val cols = rows[0].length
         val glyphs = CharArray(cols * rows.size)
         rows.forEachIndexed { r, line ->
             line.forEachIndexed { c, ch -> glyphs[r * cols + c] = ch }
         }
-        return AsciiArt(cols, rows.size, glyphs, colors)
+        return GlyphGrid(cols, rows.size, glyphs, colors)
     }
 
     private val red = 0xFFFF0000.toInt()
@@ -24,7 +24,7 @@ class TextExportersTest {
 
     @Test
     fun `html keeps every glyph and every line`() {
-        val html = TextExporters.html(artOf("ab", "cd"), AsciiParams())
+        val html = TextExporters.html(artOf("ab", "cd"), RenderSettings())
         val body = html.substringAfter("<pre>").substringBefore("</pre>")
 
         assertEquals(2, body.lines().size)
@@ -35,7 +35,7 @@ class TextExportersTest {
     /** The ramps are full of `&`, `<` and `>`; unescaped they would break the page. */
     @Test
     fun `html escapes the characters that would close a tag`() {
-        val html = TextExporters.html(artOf("&<>"), AsciiParams())
+        val html = TextExporters.html(artOf("&<>"), RenderSettings())
         val body = html.substringAfter("<pre>").substringBefore("</pre>")
 
         assertTrue(body.contains("&amp;"))
@@ -52,25 +52,25 @@ class TextExportersTest {
      */
     @Test
     fun `html merges neighbouring glyphs of the same colour`() {
-        val same = TextExporters.html(artOf("abc", colors = intArrayOf(red, red, red)), AsciiParams())
+        val same = TextExporters.html(artOf("abc", colors = intArrayOf(red, red, red)), RenderSettings())
         assertEquals(1, same.split("<span").size - 1)
 
-        val mixed = TextExporters.html(artOf("abc", colors = intArrayOf(red, blue, red)), AsciiParams())
+        val mixed = TextExporters.html(artOf("abc", colors = intArrayOf(red, blue, red)), RenderSettings())
         assertEquals(3, mixed.split("<span").size - 1)
     }
 
     @Test
     fun `html uses the background colour, or none when transparent`() {
-        val opaque = TextExporters.html(artOf("ab"), AsciiParams(backgroundColor = 0xFF102030.toInt()))
+        val opaque = TextExporters.html(artOf("ab"), RenderSettings(backgroundColor = 0xFF102030.toInt()))
         assertTrue(opaque.contains("background:#102030"))
 
-        val clear = TextExporters.html(artOf("ab"), AsciiParams(transparentBackground = true))
+        val clear = TextExporters.html(artOf("ab"), RenderSettings(transparentBackground = true))
         assertTrue(clear.contains("background:transparent"))
     }
 
     @Test
     fun `ansi writes real escape bytes, not the text of them`() {
-        val ansi = TextExporters.ansi(artOf("ab"), AsciiParams())
+        val ansi = TextExporters.ansi(artOf("ab"), RenderSettings())
         assertTrue("no escape character in the output", ansi.contains(esc))
         assertFalse("the escape was written as literal text", ansi.contains("\\u001B"))
     }
@@ -81,7 +81,7 @@ class TextExportersTest {
      */
     @Test
     fun `every ansi line ends with a reset`() {
-        val ansi = TextExporters.ansi(artOf("ab", "cd"), AsciiParams())
+        val ansi = TextExporters.ansi(artOf("ab", "cd"), RenderSettings())
         ansi.lines().forEach { line ->
             assertTrue("a line does not reset: $line", line.endsWith("$esc[0m"))
         }
@@ -89,8 +89,8 @@ class TextExportersTest {
 
     @Test
     fun `ansi repeats a colour code only when the colour changes`() {
-        val flat = TextExporters.ansi(artOf("abc", colors = intArrayOf(red, red, red)), AsciiParams())
-        val mixed = TextExporters.ansi(artOf("abc", colors = intArrayOf(red, blue, red)), AsciiParams())
+        val flat = TextExporters.ansi(artOf("abc", colors = intArrayOf(red, red, red)), RenderSettings())
+        val mixed = TextExporters.ansi(artOf("abc", colors = intArrayOf(red, blue, red)), RenderSettings())
 
         assertEquals(1, flat.split("$esc[38;2;").size - 1)
         assertEquals(3, mixed.split("$esc[38;2;").size - 1)
@@ -98,7 +98,7 @@ class TextExportersTest {
 
     @Test
     fun `ansi carries the glyphs through unchanged`() {
-        val ansi = TextExporters.ansi(artOf("a&<b"), AsciiParams())
+        val ansi = TextExporters.ansi(artOf("a&<b"), RenderSettings())
         // Nothing is escaped here — a terminal wants the characters themselves.
         assertTrue(ansi.contains("a&<b"))
     }
@@ -106,7 +106,7 @@ class TextExportersTest {
     @Test
     fun `both formats survive an all-space grid`() {
         val blank = artOf("   ", "   ")
-        assertTrue(TextExporters.html(blank, AsciiParams()).contains("</pre>"))
-        assertEquals(2, TextExporters.ansi(blank, AsciiParams()).lines().size)
+        assertTrue(TextExporters.html(blank, RenderSettings()).contains("</pre>"))
+        assertEquals(2, TextExporters.ansi(blank, RenderSettings()).lines().size)
     }
 }

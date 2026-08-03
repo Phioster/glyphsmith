@@ -2,7 +2,7 @@ package org.phioster.glyphsmith.data
 
 import android.content.Context
 import kotlinx.serialization.Serializable
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import java.io.File
 import org.phioster.glyphsmith.core.dither.DitherCategory
 import org.phioster.glyphsmith.core.dither.DitherMode
@@ -10,7 +10,7 @@ import org.phioster.glyphsmith.core.dither.DitherMode
 @Serializable
 data class Preset(
     val name: String,
-    val params: AsciiParams,
+    val params: RenderSettings,
     /** Grouping in the picker. Defaulted so presets saved before this still load. */
     val category: String = PresetStore.CATEGORY_CUSTOM,
     val favourite: Boolean = false,
@@ -56,7 +56,7 @@ class PresetStore(context: Context) {
         return merged
     }
 
-    fun upsert(name: String, params: AsciiParams, description: String = ""): List<Preset> {
+    fun upsert(name: String, params: RenderSettings, description: String = ""): List<Preset> {
         val trimmed = name.trim().ifEmpty { "untitled" }
         val existing = load().firstOrNull { it.name.equals(trimmed, ignoreCase = true) }
         val updated = load().filterNot { it.name.equals(trimmed, ignoreCase = true) } +
@@ -207,7 +207,7 @@ class PresetStore(context: Context) {
          * family behind it, and COLOR would swallow nearly everything, since most presets name
          * a palette. Those shelves are curated by hand; nothing is filed onto them by guess.
          */
-        fun familyOf(params: AsciiParams): String = when {
+        fun familyOf(params: RenderSettings): String = when {
             // Whatever produced the levels, a render that ends in characters is glyph art, and
             // that is the shelf someone will look on for it.
             params.renderMode.isGlyph -> CATEGORY_GLYPH

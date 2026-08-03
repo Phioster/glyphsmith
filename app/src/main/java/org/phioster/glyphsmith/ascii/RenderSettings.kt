@@ -17,15 +17,21 @@ enum class ColorMode { SINGLE, SOURCE, PALETTE }
 enum class FontStyle { REGULAR, BOLD, ITALIC, BOLD_ITALIC }
 
 /**
- * Every knob that turns a bitmap into a character grid. Serializable because a preset is
- * literally this object written to disk.
+ * Every knob that turns a bitmap into a render. Serializable because a preset is literally
+ * this object written to disk.
  *
- * The control set mirrors the reference app's ASCII settings panel: depth, character
- * category and set, injected characters, character offset, font style, palette /
- * transparent background / background colour.
+ * Named for what it is rather than for one of the two things it drives. Most of what is here
+ * — sampling, adjustments, dither, palette, effects, layers, animation, output — belongs to
+ * both render modules; the glyph half is the ramp, the character set, the font and the edge
+ * mapping, and [RenderMode] decides whether those are read at all. It was called AsciiParams
+ * back when there was only one module and the distinction did not exist.
+ *
+ * The glyph control set mirrors the reference app's settings panel: depth, character category
+ * and set, injected characters, character offset, font style, palette / transparent
+ * background / background colour.
  */
 @Serializable
-data class AsciiParams(
+data class RenderSettings(
     /**
      * Whether levels become characters or colours.
      *
@@ -170,7 +176,7 @@ data class AsciiParams(
      * Extra renderings stacked over this one. Empty by default, so nothing changes for
      * anything that has never touched them.
      *
-     * A layer carries a whole [AsciiParams] and therefore a `layers` list of its own; that
+     * A layer carries a whole [RenderSettings] and therefore a `layers` list of its own; that
      * one is deliberately not recursed into. See [Layer].
      */
     val layers: List<Layer> = emptyList(),
@@ -250,7 +256,7 @@ data class AsciiParams(
          * other default — what a session with nothing loaded starts in — and that is Pixel
          * Dither, the general-purpose mode.
          */
-        fun newSession(): AsciiParams = AsciiParams(renderMode = RenderMode.DEFAULT)
+        fun newSession(): RenderSettings = RenderSettings(renderMode = RenderMode.DEFAULT)
 
         const val MAX_INJECTION = 10
         const val MAX_DEPTH = 64

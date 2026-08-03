@@ -1,6 +1,6 @@
 package org.phioster.glyphsmith.render
 
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.ColorMode
 import kotlin.math.ceil
 import kotlin.math.max
@@ -47,7 +47,7 @@ object CellSampler {
         pixels: IntArray,
         width: Int,
         height: Int,
-        params: AsciiParams,
+        params: RenderSettings,
         cellWidth: Int,
         cellHeight: Int,
     ): CellGrid {
@@ -85,7 +85,7 @@ object CellSampler {
         cellH: Int,
         cols: Int,
         rows: Int,
-        params: AsciiParams,
+        params: RenderSettings,
         lumaGrid: FloatArray,
         colorGrid: IntArray?,
     ) {
@@ -145,7 +145,7 @@ object CellSampler {
      * width of the kernel.
      */
     private fun neighbourhoodPass(
-        params: AsciiParams,
+        params: RenderSettings,
         cols: Int,
         rows: Int,
         lumaGrid: FloatArray,
@@ -172,7 +172,7 @@ object CellSampler {
         (0.2126f * r + 0.7152f * g + 0.0722f * b) / 255f
 
     /** Gamma, then contrast around mid grey, then brightness, then midtones and highlights. */
-    fun toneCurve(value: Float, params: AsciiParams): Float {
+    fun toneCurve(value: Float, params: RenderSettings): Float {
         val gamma = params.gamma.coerceAtLeast(0.05f)
         val gammaed = value.coerceIn(0f, 1f).pow(1f / gamma)
         val contrasted = (gammaed - 0.5f) * params.contrast + 0.5f

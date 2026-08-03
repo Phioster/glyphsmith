@@ -16,20 +16,20 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.phioster.glyphsmith.ascii.AsciiArt
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.GlyphGrid
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.Animator
 import org.phioster.glyphsmith.anim.ColorQuantizer
 import org.phioster.glyphsmith.anim.QuantizeMethod
 import org.phioster.glyphsmith.anim.GifEncoder
 import org.phioster.glyphsmith.anim.Mp4Encoder
-import org.phioster.glyphsmith.ascii.AsciiRenderer
+import org.phioster.glyphsmith.ascii.GlyphRenderer
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.RandomLook
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.Pipeline
+import org.phioster.glyphsmith.ascii.RenderPipeline
 import org.phioster.glyphsmith.ascii.GlyphCoverage
 import org.phioster.glyphsmith.data.CameraCapture
 import org.phioster.glyphsmith.data.ImageLoader
@@ -56,10 +56,10 @@ import org.phioster.glyphsmith.core.color.Palettes
 data class UiState(
     /**
      * A session with nothing loaded starts in Pixel Dither, not in the field default — see
-     * [AsciiParams.newSession]. Loading a preset replaces this wholesale, so the mode a saved
+     * [RenderSettings.newSession]. Loading a preset replaces this wholesale, so the mode a saved
      * look carries still wins.
      */
-    val params: AsciiParams = AsciiParams.newSession(),
+    val params: RenderSettings = RenderSettings.newSession(),
     val preview: Bitmap? = null,
     val hasImage: Boolean = false,
     /** The source is a video, so the preview can be scrubbed and playback has real frames. */
@@ -120,20 +120,20 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val paramsFlow = MutableStateFlow(AsciiParams.newSession())
+    private val paramsFlow = MutableStateFlow(RenderSettings.newSession())
 
     // History is captured at the debounce point rather than in updateParams(): one slider
     // drag emits dozens of values but only ever settles once, so this turns a drag into a
     // single undo step without any gesture tracking.
-    private val undoStack = ArrayDeque<AsciiParams>()
-    private val redoStack = ArrayDeque<AsciiParams>()
+    private val undoStack = ArrayDeque<RenderSettings>()
+    private val redoStack = ArrayDeque<RenderSettings>()
     // Seeded with the same value the session opens on, or the first edit would record an undo
     // step back to a mode the user never saw.
-    private var lastCommitted = AsciiParams.newSession()
+    private var lastCommitted = RenderSettings.newSession()
     private var suppressHistory = false
 
     private var source: Source? = null
-    private var art: AsciiArt? = null
+    private var art: GlyphGrid? = null
 
     /**
      * True between a slider being grabbed and released.
@@ -222,7 +222,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(looped = looped)
     }
 
-    fun updateParams(params: AsciiParams) {
+    fun updateParams(params: RenderSettings) {
         _state.value = _state.value.copy(params = params)
         paramsFlow.value = params
     }
@@ -262,7 +262,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun autoOrderRamp() = runExport("ramp") {
         val params = _state.value.params
-        val face = AsciiRenderer.faceFor(params, params.effectiveRamp().ifEmpty { " " })
+        val face = GlyphRenderer.faceFor(params, params.effectiveRamp().ifEmpty { " " })
         val sorted = withContext(Dispatchers.Default) {
             GlyphCoverage.sort(params.baseGlyphs() + params.injection, face.typeface)
         }
@@ -320,7 +320,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         restore(next)
     }
 
-    private fun restore(params: AsciiParams) {
+    private fun restore(params: RenderSettings) {
         suppressHistory = true
         lastCommitted = params
         _state.value = _state.value.copy(params = params)
@@ -456,14 +456,14 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         super.onCleared()
     }
 
-    private suspend fun rebuild(params: AsciiParams) {
+    private suspend fun rebuild(params: RenderSettings) {
         val current = source ?: return
         val pixels = current.pixelsAt(_state.value.previewPosition)
         _state.value = _state.value.copy(working = true)
         val scrub = scrubbing
         val budget = if (scrub) SCRUB_MAX_SIDE else _state.value.previewQuality.maxSide
         val result = withContext(Dispatchers.Default) {
-            Pipeline.run(pixels, current.width, current.height, params, budget, isScrubbing = scrub)
+            RenderPipeline.run(pixels, current.width, current.height, params, budget, isScrubbing = scrub)
         }
         art = result.art
         // Measured once per rebuild and cached inside GlyphCoverage, so a slider drag pays
@@ -498,7 +498,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val pixels = current.pixelsAt(_state.value.previewPosition)
         val params = _state.value.params
         return withContext(Dispatchers.Default) {
-            Pipeline.run(pixels, current.width, current.height, params, AsciiRenderer.MAX_OUTPUT_SIDE).bitmap
+            RenderPipeline.run(pixels, current.width, current.height, params, GlyphRenderer.MAX_OUTPUT_SIDE).bitmap
         }
     }
 
@@ -521,7 +521,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * The grid as vectors. [AsciiRenderer.layout] always measures against the full output
+     * The grid as vectors. [GlyphRenderer.layout] always measures against the full output
      * size, so this is the export resolution even though `art` came from the preview pass —
      * the grid itself doesn't change with preview scale, only the glyph size does.
      */
@@ -590,7 +590,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                     loaded.recycle()
 
                     val bitmap = withContext(Dispatchers.Default) {
-                        Pipeline.run(pixels, width, height, params, AsciiRenderer.MAX_OUTPUT_SIDE).bitmap
+                        RenderPipeline.run(pixels, width, height, params, GlyphRenderer.MAX_OUTPUT_SIDE).bitmap
                     }
                     val format = _state.value.exportFormat
                     val name = Exporter.timestampedName(format.extension)
@@ -726,7 +726,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      */
     private fun renderFrames(
         source: Source,
-        base: AsciiParams,
+        base: RenderSettings,
         animation: AnimationParams,
         maxSide: Int,
         step: Int = 1,
@@ -745,7 +745,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 .let { it.copy(temporal = it.temporal.copy(time = position)) }
             // A still hands back the same buffer every time; a video decodes this position.
             val pixels = source.pixelsAt(position)
-            val rendered = Pipeline.run(pixels, source.width, source.height, frameParams, budgetSide).bitmap
+            val rendered = RenderPipeline.run(pixels, source.width, source.height, frameParams, budgetSide).bitmap
             if (frame == 0) {
                 width = rendered.width
                 height = rendered.height
@@ -877,7 +877,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         camera.start(owner, _state.value.frontCamera) { frame ->
             lastLive = frame
             val result = runCatching {
-                Pipeline.run(frame.pixels, frame.width, frame.height, _state.value.params, LiveCamera.MAX_SIDE)
+                RenderPipeline.run(frame.pixels, frame.width, frame.height, _state.value.params, LiveCamera.MAX_SIDE)
             }.getOrNull() ?: return@start
             art = result.art
             _state.value = _state.value.copy(
@@ -954,7 +954,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             val pixels = current.pixelsAt(_state.value.previewPosition)
             val thumbs = withContext(Dispatchers.Default) {
                 presets.associate { preset ->
-                    preset.name to Pipeline.run(
+                    preset.name to RenderPipeline.run(
                         pixels,
                         current.width,
                         current.height,

@@ -19,7 +19,7 @@ import android.graphics.Typeface
  *
  * Not unit-tested: it needs a real Typeface and a real Canvas, neither of which a JVM test
  * has. The pure part — what the app does with the resulting order — is tested through
- * [AsciiParams.effectiveRamp].
+ * [RenderSettings.effectiveRamp].
  */
 object GlyphCoverage {
 

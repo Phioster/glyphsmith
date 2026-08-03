@@ -8,7 +8,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.phioster.glyphsmith.anim.AnimTarget
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.CharacterSets
 import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.core.dither.DitherCategory
@@ -572,7 +572,7 @@ class PresetLibraryTest {
         (0xFF shl 24) or (r shl 16) or (g shl 8) or b
     }
 
-    private fun render(params: AsciiParams): Pixels {
+    private fun render(params: RenderSettings): Pixels {
         val cell = params.cellSize.coerceAtLeast(1)
         val grid = CellSampler.sample(source, side, side, params, cell, cell)
         val indexed = QuantisePass.run(params, grid, PixelDitherRenderer.levelsFor(params))

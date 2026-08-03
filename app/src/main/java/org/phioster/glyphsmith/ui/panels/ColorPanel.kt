@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.anim.QuantizeMethod
-import org.phioster.glyphsmith.ascii.AsciiParams
+import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.ui.HexColorField
 import org.phioster.glyphsmith.ui.SectionHeader
@@ -50,8 +50,8 @@ private val EXTRACT_COUNTS = listOf(5, 8, 16)
  */
 @Composable
 fun ColorPanel(
-    params: AsciiParams,
-    onChange: (AsciiParams) -> Unit,
+    params: RenderSettings,
+    onChange: (RenderSettings) -> Unit,
     onExtractPalette: (Int, QuantizeMethod) -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
@@ -142,8 +142,8 @@ fun ColorPanel(
 
 @Composable
 private fun PaletteSection(
-    params: AsciiParams,
-    onChange: (AsciiParams) -> Unit,
+    params: RenderSettings,
+    onChange: (RenderSettings) -> Unit,
     onExtractPalette: (Int, QuantizeMethod) -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
@@ -242,7 +242,7 @@ private fun PaletteSection(
         TerminalSlider(
             label = "palette depth",
             value = params.paletteDepth.toFloat(),
-            range = 0f..AsciiParams.PALETTE_DEPTH_RANGE.last.toFloat(),
+            range = 0f..RenderSettings.PALETTE_DEPTH_RANGE.last.toFloat(),
             valueText = if (params.paletteDepth == 0) {
                 "all (${stops.size})"
             } else {
@@ -252,7 +252,7 @@ private fun PaletteSection(
                 val depth = value.toInt()
                 onChange(
                     params.copy(
-                        paletteDepth = if (depth in 1 until AsciiParams.PALETTE_DEPTH_RANGE.first) {
+                        paletteDepth = if (depth in 1 until RenderSettings.PALETTE_DEPTH_RANGE.first) {
                             0
                         } else {
                             depth

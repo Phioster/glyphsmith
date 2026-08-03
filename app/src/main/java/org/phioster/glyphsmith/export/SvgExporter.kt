@@ -2,9 +2,9 @@ package org.phioster.glyphsmith.export
 
 import android.graphics.Path
 import android.graphics.PathMeasure
-import org.phioster.glyphsmith.ascii.AsciiArt
-import org.phioster.glyphsmith.ascii.AsciiParams
-import org.phioster.glyphsmith.ascii.AsciiRenderer
+import org.phioster.glyphsmith.ascii.GlyphGrid
+import org.phioster.glyphsmith.ascii.RenderSettings
+import org.phioster.glyphsmith.ascii.GlyphRenderer
 import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.max
@@ -36,7 +36,7 @@ object SvgExporter {
     /**
      * Where the glyphs sit, without saying what draws them.
      *
-     * Separating this from [AsciiRenderer.GridLayout] is what lets the text mode — and its
+     * Separating this from [GlyphRenderer.GridLayout] is what lets the text mode — and its
      * tests — run without a Typeface. Only the outline mode genuinely needs the font.
      */
     data class Geometry(
@@ -50,7 +50,7 @@ object SvgExporter {
         val fontSize: Int,
     )
 
-    fun geometryOf(layout: AsciiRenderer.GridLayout) = Geometry(
+    fun geometryOf(layout: GlyphRenderer.GridLayout) = Geometry(
         width = layout.width,
         height = layout.height,
         originX = layout.originX,
@@ -61,8 +61,8 @@ object SvgExporter {
         fontSize = layout.fontSize,
     )
 
-    fun build(art: AsciiArt, params: AsciiParams, fontSizePx: Int, mode: SvgMode): String {
-        val layout = AsciiRenderer.layout(art, params, fontSizePx)
+    fun build(art: GlyphGrid, params: RenderSettings, fontSizePx: Int, mode: SvgMode): String {
+        val layout = GlyphRenderer.layout(art, params, fontSizePx)
         val geometry = geometryOf(layout)
         return when (mode) {
             SvgMode.TEXT -> buildText(art, params, geometry)
@@ -70,7 +70,7 @@ object SvgExporter {
         }
     }
 
-    fun buildText(art: AsciiArt, params: AsciiParams, geometry: Geometry): String {
+    fun buildText(art: GlyphGrid, params: RenderSettings, geometry: Geometry): String {
         val out = StringBuilder(art.cols * art.rows * 6)
         openDocument(out, params, geometry)
         appendText(out, art, params, geometry)
@@ -79,9 +79,9 @@ object SvgExporter {
     }
 
     private fun buildOutlines(
-        art: AsciiArt,
-        params: AsciiParams,
-        layout: AsciiRenderer.GridLayout,
+        art: GlyphGrid,
+        params: RenderSettings,
+        layout: GlyphRenderer.GridLayout,
         geometry: Geometry,
     ): String {
         val out = StringBuilder(art.cols * art.rows * 24)
@@ -91,7 +91,7 @@ object SvgExporter {
         return out.toString()
     }
 
-    private fun openDocument(out: StringBuilder, params: AsciiParams, geometry: Geometry) {
+    private fun openDocument(out: StringBuilder, params: RenderSettings, geometry: Geometry) {
         out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         out.append("<svg xmlns=\"http://www.w3.org/2000/svg\" ")
         out.append("xmlns:xlink=\"http://www.w3.org/1999/xlink\" ")
@@ -110,8 +110,8 @@ object SvgExporter {
      */
     private fun appendText(
         out: StringBuilder,
-        art: AsciiArt,
-        params: AsciiParams,
+        art: GlyphGrid,
+        params: RenderSettings,
         geometry: Geometry,
     ) {
         out.append("<g font-family=\"DejaVu Sans Mono, monospace\" ")
@@ -157,12 +157,12 @@ object SvgExporter {
      */
     private fun appendOutlines(
         out: StringBuilder,
-        art: AsciiArt,
-        params: AsciiParams,
-        layout: AsciiRenderer.GridLayout,
+        art: GlyphGrid,
+        params: RenderSettings,
+        layout: GlyphRenderer.GridLayout,
         geometry: Geometry,
     ) {
-        val paint = AsciiRenderer.paintFor(layout)
+        val paint = GlyphRenderer.paintFor(layout)
         val widths = FloatArray(1)
         val single = CharArray(1)
 

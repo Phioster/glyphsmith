@@ -32,7 +32,7 @@ interface ImageProcessorNode {
 /**
  * What every node is allowed to know about the render it is part of.
  *
- * Deliberately free of [org.phioster.glyphsmith.ascii.AsciiParams]: the settings object lives
+ * Deliberately free of [org.phioster.glyphsmith.ascii.RenderSettings]: the settings object lives
  * in the glyph package, and a core abstraction that reached into it would invert the
  * dependency this refactor is trying to establish. Nodes carry their own settings; the context
  * carries only what is true of the whole pass.

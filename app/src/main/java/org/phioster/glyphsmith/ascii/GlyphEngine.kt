@@ -9,7 +9,7 @@ import org.phioster.glyphsmith.core.color.Palettes
  * A finished character grid. [colors] is null when the art is monochrome — the renderer
  * then paints every glyph in the ink colour.
  */
-class AsciiArt(
+class GlyphGrid(
     val cols: Int,
     val rows: Int,
     val glyphs: CharArray,
@@ -40,7 +40,7 @@ class AsciiArt(
  *
  * Deliberately free of Android types, so the whole mapping is unit-testable on the JVM.
  */
-object AsciiEngine {
+object GlyphEngine {
 
     /**
      * Monospace glyph cells are taller than they are wide; sampling with the same aspect is
@@ -52,9 +52,9 @@ object AsciiEngine {
         pixels: IntArray,
         width: Int,
         height: Int,
-        params: AsciiParams,
+        params: RenderSettings,
         cellAspect: Float = DEFAULT_CELL_ASPECT,
-    ): AsciiArt {
+    ): GlyphGrid {
         val ramp = params.effectiveRamp().ifEmpty { " " }
         val grid = CellSampler.sample(
             pixels = pixels,
@@ -72,7 +72,7 @@ object AsciiEngine {
     /**
      * A quantised grid read as characters: index into the ramp, then let an edge override it.
      */
-    fun mapToGlyphs(grid: IndexGrid, params: AsciiParams, ramp: String): AsciiArt {
+    fun mapToGlyphs(grid: IndexGrid, params: RenderSettings, ramp: String): GlyphGrid {
         val levels = grid.levels
         val cols = grid.cols
         val rows = grid.rows
@@ -109,14 +109,14 @@ object AsciiEngine {
                 }
             }
         }
-        return AsciiArt(cols, rows, glyphs, colors)
+        return GlyphGrid(cols, rows, glyphs, colors)
     }
 
     /** Rec. 709 luminance, normalised to 0..1. */
     fun luminance(r: Int, g: Int, b: Int): Float = CellSampler.luminance(r, g, b)
 
     /** Gamma, then contrast around mid grey, then brightness, then midtones and highlights. */
-    fun toneCurve(value: Float, params: AsciiParams): Float = CellSampler.toneCurve(value, params)
+    fun toneCurve(value: Float, params: RenderSettings): Float = CellSampler.toneCurve(value, params)
 
     /**
      * Luminance to a ramp index, *before* any offset. Dithering needs this separately: the
