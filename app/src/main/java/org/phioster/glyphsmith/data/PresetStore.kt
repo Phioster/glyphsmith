@@ -2,8 +2,6 @@ package org.phioster.glyphsmith.data
 
 import android.content.Context
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.anim.AnimCurve
 import org.phioster.glyphsmith.anim.AnimTarget
@@ -36,8 +34,6 @@ import org.phioster.glyphsmith.effects.ColorDepthParams
 import org.phioster.glyphsmith.effects.SpotColorPrintParams
 import org.phioster.glyphsmith.effects.ModulationColorMode
 import org.phioster.glyphsmith.effects.ModulationLinesParams
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.decodeFromJsonElement
 import org.phioster.glyphsmith.effects.InterlaceParams
 import org.phioster.glyphsmith.effects.BlueNoiseDitherParams
 import org.phioster.glyphsmith.effects.TintMode
@@ -56,46 +52,27 @@ data class Preset(
 
 /**
  * Presets as one JSON file in app-private storage. Small enough that read-modify-write on
- * every change is cheaper than any incremental scheme, and it survives a schema change
- * because unknown keys are ignored and missing ones fall back to the defaults.
+ * every change is cheaper than any incremental scheme.
+ *
+ * The format itself — its version, what older versions looked like, and how they are carried
+ * forward — is [PresetSchema]. This holds the file and the operations on the library; it does
+ * not know how a preset is spelled.
  */
 class PresetStore(context: Context) {
 
     private val file = File(context.filesDir, "presets.json")
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-        prettyPrint = true
-    }
 
     fun load(): List<Preset> {
         if (!file.exists()) return builtIns
         val text = runCatching { file.readText() }.getOrNull() ?: return builtIns
-        return decodeEach(text).ifEmpty { builtIns }
-    }
-
-    /**
-     * Decodes the array one entry at a time, dropping whatever will not read.
-     *
-     * Not `decodeFromString<List<Preset>>`, which is what this used to be: the effect order
-     * serialises as effect *names*, and an unknown name throws no matter what `ignoreUnknownKeys`
-     * says. Decoding the array as one value therefore means a single preset written by a newer
-     * build — one that has an effect this one does not — silently discards the entire library.
-     * Per entry, that costs exactly the preset that cannot be read.
-     */
-    private fun decodeEach(text: String): List<Preset> {
-        val elements = runCatching { json.parseToJsonElement(text).jsonArray }.getOrNull()
-            ?: return emptyList()
-        return elements.mapNotNull { element ->
-            runCatching { json.decodeFromJsonElement<Preset>(element) }.getOrNull()
-        }
+        return PresetSchema.decode(text).ifEmpty { builtIns }
     }
 
     fun save(presets: List<Preset>) {
-        runCatching { file.writeText(json.encodeToString(presets)) }
+        runCatching { file.writeText(PresetSchema.encode(presets)) }
     }
 
-    fun exportJson(): String = json.encodeToString(load())
+    fun exportJson(): String = PresetSchema.encode(load())
 
     /**
      * Merges an exported file into the stored presets, matched by name — importing an
@@ -103,9 +80,7 @@ class PresetStore(context: Context) {
      * when the text isn't a preset export at all.
      */
     fun importJson(text: String): List<Preset>? {
-        // Per entry for the same reason [load] is: an export from a build with an effect this one
-        // lacks should cost that preset, not the whole import.
-        val imported = decodeEach(text).ifEmpty { return null }
+        val imported = PresetSchema.decode(text).ifEmpty { return null }
         val names = imported.map { it.name.lowercase() }.toSet()
         val merged = load().filterNot { it.name.lowercase() in names } + imported
         save(merged)
