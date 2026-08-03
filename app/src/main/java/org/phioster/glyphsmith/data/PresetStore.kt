@@ -2,7 +2,7 @@ package org.phioster.glyphsmith.data
 
 import android.content.Context
 import kotlinx.serialization.Serializable
-import org.phioster.glyphsmith.ascii.RenderSettings
+import org.phioster.glyphsmith.render.RenderSettings
 import java.io.File
 import org.phioster.glyphsmith.core.dither.DitherCategory
 import org.phioster.glyphsmith.core.dither.DitherMode

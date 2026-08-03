@@ -1,6 +1,5 @@
 package org.phioster.glyphsmith.render
 
-import org.phioster.glyphsmith.ascii.RenderSettings
 import org.phioster.glyphsmith.core.color.PaletteQuantizer
 import org.phioster.glyphsmith.core.dither.PatternOptions
 import org.phioster.glyphsmith.core.dither.Dither

@@ -23,7 +23,7 @@ import org.phioster.glyphsmith.anim.AnimTrack
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
 import org.phioster.glyphsmith.anim.TemporalPattern
-import org.phioster.glyphsmith.ascii.RenderSettings
+import org.phioster.glyphsmith.render.RenderSettings
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton

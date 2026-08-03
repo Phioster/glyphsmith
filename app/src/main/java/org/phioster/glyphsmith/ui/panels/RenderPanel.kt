@@ -24,12 +24,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import org.phioster.glyphsmith.ascii.RenderSettings
-import org.phioster.glyphsmith.ascii.CharacterSet
-import org.phioster.glyphsmith.ascii.CharacterSets
-import org.phioster.glyphsmith.ascii.FontStyle
-import org.phioster.glyphsmith.ascii.ColorMode
-import org.phioster.glyphsmith.ascii.GlyphFont
+import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.glyph.CharacterSet
+import org.phioster.glyphsmith.glyph.CharacterSets
+import org.phioster.glyphsmith.render.FontStyle
+import org.phioster.glyphsmith.render.ColorMode
+import org.phioster.glyphsmith.glyph.GlyphFont
 import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.ui.SectionHeader
@@ -38,6 +38,9 @@ import org.phioster.glyphsmith.ui.TerminalButton
 import org.phioster.glyphsmith.ui.TerminalSlider
 import org.phioster.glyphsmith.ui.TerminalToggle
 import org.phioster.glyphsmith.ui.theme.Term
+import org.phioster.glyphsmith.glyph.baseGlyphs
+import org.phioster.glyphsmith.glyph.effectiveRamp
+import org.phioster.glyphsmith.glyph.offsetMax
 
 private const val CATEGORY_ALL = "All"
 

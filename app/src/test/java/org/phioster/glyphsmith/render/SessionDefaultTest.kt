@@ -3,7 +3,7 @@ package org.phioster.glyphsmith.render
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.RenderSettings
+import org.phioster.glyphsmith.render.RenderSettings
 import org.phioster.glyphsmith.data.PresetLibrary
 
 /**

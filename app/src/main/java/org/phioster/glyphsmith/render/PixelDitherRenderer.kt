@@ -1,7 +1,5 @@
 package org.phioster.glyphsmith.render
 
-import org.phioster.glyphsmith.ascii.RenderSettings
-import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.core.color.PaletteQuantizer
 import org.phioster.glyphsmith.core.image.Pixels

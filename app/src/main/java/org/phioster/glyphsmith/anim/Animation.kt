@@ -1,7 +1,7 @@
 package org.phioster.glyphsmith.anim
 
 import kotlinx.serialization.Serializable
-import org.phioster.glyphsmith.ascii.RenderSettings
+import org.phioster.glyphsmith.render.RenderSettings
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos

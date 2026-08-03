@@ -1,7 +1,5 @@
 package org.phioster.glyphsmith.render
 
-import org.phioster.glyphsmith.ascii.RenderSettings
-import org.phioster.glyphsmith.ascii.ColorMode
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min

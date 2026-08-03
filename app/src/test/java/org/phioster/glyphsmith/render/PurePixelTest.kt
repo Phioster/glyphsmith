@@ -3,8 +3,8 @@ package org.phioster.glyphsmith.render
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.ascii.RenderSettings
-import org.phioster.glyphsmith.ascii.ColorMode
+import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.render.ColorMode
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.dither.Dither
 

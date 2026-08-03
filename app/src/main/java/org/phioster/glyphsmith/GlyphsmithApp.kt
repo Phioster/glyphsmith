@@ -1,7 +1,7 @@
 package org.phioster.glyphsmith
 
 import android.app.Application
-import org.phioster.glyphsmith.ascii.Fonts
+import org.phioster.glyphsmith.glyph.Fonts
 
 /**
  * Loads the bundled faces once at start-up. Doing it here rather than lazily keeps

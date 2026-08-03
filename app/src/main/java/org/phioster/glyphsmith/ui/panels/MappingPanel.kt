@@ -8,8 +8,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import org.phioster.glyphsmith.ascii.RenderSettings
-import org.phioster.glyphsmith.ascii.EdgeDetect
+import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.render.EdgeDetect
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.StylePicker

@@ -1,9 +1,6 @@
 package org.phioster.glyphsmith.render
 
 import org.phioster.glyphsmith.anim.Temporal
-import org.phioster.glyphsmith.ascii.RenderSettings
-import org.phioster.glyphsmith.ascii.EdgeDetect
-import org.phioster.glyphsmith.ascii.EdgeField
 import kotlin.math.max
 import org.phioster.glyphsmith.core.dither.Riemersma
 import org.phioster.glyphsmith.core.dither.Regions

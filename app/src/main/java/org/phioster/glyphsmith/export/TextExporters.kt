@@ -1,7 +1,7 @@
 package org.phioster.glyphsmith.export
 
-import org.phioster.glyphsmith.ascii.GlyphGrid
-import org.phioster.glyphsmith.ascii.RenderSettings
+import org.phioster.glyphsmith.glyph.GlyphGrid
+import org.phioster.glyphsmith.render.RenderSettings
 import java.util.Locale
 
 /**

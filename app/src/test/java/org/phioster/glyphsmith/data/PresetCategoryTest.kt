@@ -5,8 +5,8 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
-import org.phioster.glyphsmith.ascii.RenderSettings
-import org.phioster.glyphsmith.ascii.Layer
+import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.render.Layer
 import org.junit.Test
 import org.phioster.glyphsmith.core.dither.DitherCategory
 import org.phioster.glyphsmith.core.dither.DitherMode
