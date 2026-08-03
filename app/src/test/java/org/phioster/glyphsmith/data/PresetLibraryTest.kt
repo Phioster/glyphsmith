@@ -20,10 +20,11 @@ import org.phioster.glyphsmith.render.CellSampler
 import org.phioster.glyphsmith.render.PixelDitherRenderer
 import org.phioster.glyphsmith.render.QuantisePass
 import org.phioster.glyphsmith.render.RenderMode
+import java.security.MessageDigest
 
 class PresetLibraryTest {
 
-    private val presets = PresetStore.builtIns
+    private val presets = PresetLibrary.builtIns
 
     /** The bench, which is not part of the curated library and is not counted with it. */
     private val lab = presets.filter { it.category == PresetStore.CATEGORY_LAB }
@@ -32,6 +33,166 @@ class PresetLibraryTest {
     private val curated = presets - lab.toSet()
 
     private val glyphArt = curated.filter { it.category == PresetStore.CATEGORY_GLYPH }
+
+    // --- the library, exactly as it ships -----------------------------------------------
+
+    /**
+     * Every built-in, in order, as name, shelf, render module and algorithm.
+     *
+     * The library moved out of [PresetStore] and into [PresetLibrary] as a straight lift, and
+     * "straight" is a claim that needs checking rather than asserting: a list this long is
+     * exactly the kind of thing a move can quietly reorder or drop one entry from. This is the
+     * table of contents, written down, so that any change to what ships — an addition, a
+     * removal, a rename, a different shelf, a different algorithm, a different order — arrives
+     * as a diff somebody chose to make instead of as a surprise.
+     *
+     * Editing the library means editing this. That is the point of it.
+     */
+    private val fingerprint = """
+        one bit|CLASSIC|PurePixel|FLOYD_STEINBERG
+        soft grain|CLASSIC|PurePixel|ATKINSON
+        hard threshold|CLASSIC|PurePixel|NONE
+        chalk on slate|CLASSIC|PurePixel|SMOOTH_DIFFUSE
+        blocks|CLASSIC|PurePixel|NONE
+        orb diffuse|DIFFUSION|PurePixel|DIFFUSE_Y
+        line diffuse|DIFFUSION|PurePixel|DIFFUSE_X
+        cracked|DIFFUSION|PurePixel|CRACKED_DIFFUSE
+        edge keeper|DIFFUSION|PurePixel|CONTRAST_AWARE_Y
+        riemersma walk|DIFFUSION|PurePixel|RIEMERSMA
+        spiral grain|DIFFUSION|PurePixel|VORTEX_DIFFUSION
+        bayer eight|ORDERED|PurePixel|BAYER_8
+        bayer two|ORDERED|PurePixel|BAYER_2
+        blue noise|ORDERED|PurePixel|BLUE_NOISE_32
+        clustered dot|ORDERED|PurePixel|CLUSTER_8
+        broken bayer|ORDERED|PurePixel|BAYER_8
+        waveform|PATTERN|PurePixel|MOD_WAVE
+        ripple|PATTERN|PurePixel|MOD_RINGS
+        honeycomb|PATTERN|PurePixel|BEEHIVE
+        orbital|PATTERN|PurePixel|MOD_ORB
+        scanlines|PATTERN|PurePixel|MOD_LINES
+        pen and ink|PATTERN|PurePixel|CROSSHATCH
+        stipple study|PATTERN|PurePixel|STIPPLING
+        copperplate|PATTERN|PurePixel|DOTTED_LINES
+        survey map|PATTERN|PurePixel|TOPOGRAPHY
+        hot iron|PATTERN|PurePixel|MOD_ORB
+        modulation cyberpunk|PATTERN|PurePixel|NONE
+        newsprint|PRINT|PurePixel|NONE
+        duplicator print|PRINT|PurePixel|NONE
+        process rosette|PRINT|PurePixel|PRINT_PATTERN
+        press halftone|PRINT|PurePixel|BLOCK_TONE
+        low bit halftone|PRINT|PurePixel|BIT_TONE
+        spot colour print|PRINT|PurePixel|NONE
+        riso two colour|PRINT|PurePixel|CLUSTER_4
+        low poly|GEOMETRY|PurePixel|LOW_POLY
+        hex tiles|GEOMETRY|PurePixel|HEXA_POLY
+        camouflage|GEOMETRY|PurePixel|CAMO
+        tile floor|GEOMETRY|PurePixel|SQUARE_MOSAIC
+        dot grid|GEOMETRY|PurePixel|CIRCLE_GRID
+        gameboy|COLOR|PurePixel|NONE
+        c64 lores|COLOR|PurePixel|BAYER_4
+        vapour wash|COLOR|PurePixel|FLOYD_STEINBERG
+        oklab crush|COLOR|PurePixel|NONE
+        duotone grain|COLOR|PurePixel|NONE
+        glitch|GLITCH|PurePixel|ARTIFACT_GLITCH
+        databend|GLITCH|PurePixel|NONE
+        crt|GLITCH|PurePixel|NONE
+        crt arcade monitor|GLITCH|PurePixel|BAYER_4
+        tape damage|GLITCH|PurePixel|ATKINSON_VHS
+        vhs dub|GLITCH|PurePixel|NONE
+        meltdown|GLITCH|PurePixel|NONE
+        shredder|GLITCH|PurePixel|NONE
+        drifting wave|MOTION|PurePixel|MOD_WAVE
+        bad signal|MOTION|PurePixel|NONE
+        static storm|MOTION|PurePixel|NONE
+        rolling glow|MOTION|PurePixel|NONE
+        modulation lines|MOTION|PurePixel|MOD_LINES
+        waveform glitch|MOTION|PurePixel|MOD_WAVE
+        cyberpunk|MOTION|PurePixel|NONE
+        gemstone|MOTION|PurePixel|MOD_ORB
+        matrix particles|MOTION|PurePixel|NONE
+        winding vortex|MOTION|PurePixel|VORTEX
+        breathing contours|MOTION|PurePixel|TOPOGRAPHY
+        ripple peaks|MOTION|PurePixel|RADIAL_PEAKS
+        moire drift|MOTION|PurePixel|SINE_DISTORT
+        waveform scan|MOTION|PurePixel|WAVEFORM
+        spinning burst|MOTION|PurePixel|RADIAL_BURST
+        tearing signal|MOTION|PurePixel|GLITCH
+        crawling hatch|MOTION|PurePixel|CROSSHATCH
+        pulsing stipple|MOTION|PurePixel|STIPPLING
+        rolling gridlock|MOTION|PurePixel|GRIDLOCK
+        shifting facets|MOTION|PurePixel|LOW_POLY
+        two pass screen|LAYERED|PurePixel|CLUSTER_8
+        offset plates|LAYERED|PurePixel|FLOYD_STEINBERG
+        terminal|GLYPH|GlyphMatrix|NONE
+        phosphor|GLYPH|GlyphMatrix|NONE
+        braille|GLYPH|GlyphMatrix|NONE
+        matrix|GLYPH|GlyphMatrix|NONE
+        monogram|GLYPH|GlyphMatrix|NONE
+        ascii poster|GLYPH|GlyphMatrix|NONE
+        blueprint|GLYPH|GlyphMatrix|NONE
+        engraving|GLYPH|GlyphMatrix|NONE
+        breathing|GLYPH|GlyphMatrix|NONE
+        floyd-steinberg|LAB|PurePixel|FLOYD_STEINBERG
+        atkinson|LAB|PurePixel|ATKINSON
+        ostromoukhov|LAB|PurePixel|OSTROMOUKHOV
+        shiau-fan|LAB|PurePixel|SHIAU_FAN
+        dot diffusion|LAB|PurePixel|DOT_DIFFUSION
+        fractal walk|LAB|PurePixel|FRACTAL_DIFFUSE
+    """.trimIndent().trim()
+
+    /**
+     * And the rest of it: every effect, every parameter, the animation, the layers, the
+     * palettes — the whole library as it is actually written to disk, reduced to one hash.
+     *
+     * The fingerprint above covers what a person reads in the picker. This covers what the
+     * renderer reads, which no readable list could hold. Together they are the statement that
+     * the extraction changed nothing at all.
+     *
+     * Taken over [PresetSchema.encode] rather than over the objects, because that is the form
+     * that has to stay stable: it is what a user's file is compared against and what an export
+     * hands to somebody else.
+     */
+    private val digest = "8259cd88f3ce2f29515306774fb6386e473ae870e4fa459f2a8ab59bddb88f81"
+
+    @Test
+    fun `the shipped library is exactly the library that shipped`() {
+        assertEquals(
+            fingerprint,
+            presets.joinToString("\n") {
+                "${it.name}|${it.category}|${it.params.renderMode.name}|${it.params.ditherMode.name}"
+            },
+        )
+    }
+
+    @Test
+    fun `the library ships the same settings it shipped`() {
+        val hashed = MessageDigest.getInstance("SHA-256")
+            .digest(PresetSchema.encode(presets).toByteArray())
+            .joinToString("") { "%02x".format(it) }
+
+        assertEquals("the encoded library is not what it was", digest, hashed)
+    }
+
+    /** Counted separately from the fingerprint so a miscount says so in one number. */
+    @Test
+    fun `the library is the size it was`() {
+        assertEquals("built-in presets", 89, presets.size)
+        assertEquals("curated presets", 83, curated.size)
+        assertEquals("bench presets", 6, lab.size)
+    }
+
+    /**
+     * The store hands back the shipped library and nothing else of its own.
+     *
+     * `reset()` and an empty `load()` both return [PresetLibrary.builtIns] directly, so what a
+     * reset restores is this list — which the two tests above pin entry by entry and parameter
+     * by parameter. The store needs a `Context` and cannot be built in a JVM test; what is
+     * checkable here is that there is exactly one definition of "fresh" and it is this one.
+     */
+    @Test
+    fun `nothing but the library defines what a reset restores`() {
+        assertEquals(PresetLibrary.builtIns, presets)
+    }
 
     @Test
     fun `no two presets share a name`() {
@@ -255,7 +416,7 @@ class PresetLibraryTest {
     /**
      * What a reset restores.
      *
-     * `reset()` deletes the stored file and hands back [PresetStore.builtIns], so the library
+     * `reset()` deletes the stored file and hands back [PresetLibrary.builtIns], so the library
      * it produces is exactly this list — the store itself needs a `Context` and cannot be
      * built in a JVM test. What is checkable here is that the list a reset hands back is the
      * whole shipped library: both halves of it, and every shelf, which the tests above pin
@@ -489,7 +650,7 @@ class PresetLibraryTest {
      */
     @Test
     fun `every effect is used by at least one shipped preset`() {
-        val used = PresetStore.builtIns
+        val used = PresetLibrary.builtIns
             .flatMap { preset -> EffectId.entries.filter { preset.params.effects.enabledOf(it) } }
             .toSet()
 

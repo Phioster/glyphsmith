@@ -543,7 +543,8 @@ private fun PresetBar(
         ) {
             available.forEach { entry ->
                 TerminalChip(
-                    label = entry.lowercase(),
+                    // The chip carries the category's name, not the string it is stored as.
+                    label = PresetStore.label(entry).lowercase(),
                     selected = entry == category,
                     onClick = { category = entry },
                 )

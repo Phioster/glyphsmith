@@ -100,7 +100,9 @@ fun PresetPanel(
         ordered.forEach { preset ->
             val header = if (preset.favourite) "FAVOURITES" else preset.category
             if (header != lastHeader) {
-                SectionHeader(header.lowercase())
+                // Grouped by the stored category, headed by what that category is *called* —
+                // the token is an identifier in a file, not a word to put in front of anyone.
+                SectionHeader(if (preset.favourite) "Favourites" else PresetStore.label(header))
                 lastHeader = header
             }
 

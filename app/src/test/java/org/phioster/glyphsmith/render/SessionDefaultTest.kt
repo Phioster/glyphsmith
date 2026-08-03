@@ -4,7 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import org.phioster.glyphsmith.ascii.AsciiParams
-import org.phioster.glyphsmith.data.PresetStore
+import org.phioster.glyphsmith.data.PresetLibrary
 
 /**
  * The two defaults, which are deliberately not the same one.
@@ -54,7 +54,7 @@ class SessionDefaultTest {
      */
     @Test
     fun `the shipped library names its modes rather than inheriting one`() {
-        val modes = PresetStore.builtIns.map { it.params.renderMode }.toSet()
+        val modes = PresetLibrary.builtIns.map { it.params.renderMode }.toSet()
 
         assertEquals(setOf(RenderMode.PurePixel, RenderMode.GlyphMatrix), modes)
     }
