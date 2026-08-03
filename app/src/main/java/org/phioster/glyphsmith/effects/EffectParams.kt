@@ -157,7 +157,12 @@ data class BlurSharpenParams(
     val radius: Int = 2,
 )
 
-/** One slot in the effect chain. The enum order is the default order of the chain. */
+/**
+ * One slot in the effect chain. The enum order is the default order of the chain.
+ *
+ * On disk a slot is a stable id — see [EffectIds] — never the constant's own name.
+ */
+@Serializable(with = EffectIds::class)
 enum class EffectId(val label: String) {
     POST("post"),
     BLUR("blur / sharpen"),
