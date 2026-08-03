@@ -77,11 +77,10 @@ fun AsciiPanel(
     val glyphMode = params.renderMode.isGlyph
 
     Column(modifier.fillMaxWidth()) {
-        SectionHeader("render mode")
+        SectionHeader("glyph / ascii rendering")
 
-        // Three modes rather than a toggle, because the third one is not a middle setting between
-        // the other two: it runs both, in order. Pixel Dither is the general-purpose mode; Glyph
-        // Art is one render module, chosen deliberately.
+        // Three modes rather than the old toggle, because the third is not a middle setting
+        // between the other two: it runs both, in order. A boolean cannot say that.
         StepperDropdown(
             label = "mode",
             items = RenderMode.entries.toList(),
@@ -114,7 +113,7 @@ fun AsciiPanel(
         }
         if (!glyphMode) return@Column
 
-        SectionHeader("glyph art")
+        SectionHeader("ascii settings")
 
         TerminalSlider(
             label = "depth",
@@ -523,9 +522,9 @@ private fun PixelModeControls(params: AsciiParams, onChange: (AsciiParams) -> Un
     )
 }
 
-/** Product-level names for the modes. The serialised enum entries are deliberately left alone. */
+/** Display names for the modes. The serialised enum entries are deliberately left alone. */
 private fun labelOf(mode: RenderMode): String = when (mode) {
     RenderMode.PurePixel -> "pixel dither"
-    RenderMode.GlyphMatrix -> "glyph art"
-    RenderMode.PixelThenGlyph -> "pixel dither → glyph art"
+    RenderMode.GlyphMatrix -> "glyph rendering"
+    RenderMode.PixelThenGlyph -> "pixel dither → glyphs"
 }
