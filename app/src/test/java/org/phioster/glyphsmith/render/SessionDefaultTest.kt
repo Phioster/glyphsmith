@@ -44,15 +44,19 @@ class SessionDefaultTest {
     }
 
     /**
-     * The shipped presets name no render mode, so they ride the field default. If that ever
-     * became Pixel Dither, all of them would change appearance without a line of them being
-     * edited — which is the failure this pins.
+     * The shipped library says what it wants for itself.
+     *
+     * This test used to read the other way round: every built-in was glyph art, because every
+     * built-in named no mode at all and rode the field default. That made the default do two
+     * jobs, and the pixel-first library separated them — each preset now names its own mode,
+     * so the field default protects exactly one thing, which is files written before the
+     * field existed. `PresetLibraryTest` holds the stronger form of this by reading the bytes.
      */
     @Test
-    fun `every built-in preset still renders as glyph art`() {
+    fun `the shipped library names its modes rather than inheriting one`() {
         val modes = PresetStore.builtIns.map { it.params.renderMode }.toSet()
 
-        assertEquals(setOf(RenderMode.GlyphMatrix), modes)
+        assertEquals(setOf(RenderMode.PurePixel, RenderMode.GlyphMatrix), modes)
     }
 
     /**

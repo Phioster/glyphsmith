@@ -10,6 +10,9 @@ import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
 import org.phioster.glyphsmith.anim.TemporalPattern
 import org.phioster.glyphsmith.ascii.ColorMode
+import org.phioster.glyphsmith.ascii.Layer
+import org.phioster.glyphsmith.ascii.LayerBlend
+import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
 import org.phioster.glyphsmith.effects.ChromaticParams
@@ -145,27 +148,76 @@ class PresetStore(context: Context) {
     }
 
     companion object {
+        /**
+         * The shelves of the curated library, named after what the algorithm *is* rather than
+         * after how loud it looks — a picker sorted by mechanism is one you can predict.
+         */
         const val CATEGORY_CLASSIC = "CLASSIC"
-        const val CATEGORY_DITHER = "DITHER"
+        const val CATEGORY_DIFFUSION = "DIFFUSION"
+        const val CATEGORY_ORDERED = "ORDERED"
+        const val CATEGORY_PATTERN = "PATTERN"
         const val CATEGORY_PRINT = "PRINT"
+        const val CATEGORY_GEOMETRY = "GEOMETRY"
+        const val CATEGORY_COLOR = "COLOR"
+        const val CATEGORY_GLITCH = "GLITCH"
         const val CATEGORY_MOTION = "MOTION"
+        const val CATEGORY_LAYERED = "LAYERED"
+        const val CATEGORY_GLYPH = "GLYPH"
+
+        /** The bench, kept off the curated shelves — see [laboratory]. */
+        const val CATEGORY_LAB = "LAB"
+
+        const val CATEGORY_CUSTOM = "CUSTOM"
+
+        /**
+         * Shelves nothing ships in any more.
+         *
+         * They stay declared, and stay in [categories], because a category is a stored string:
+         * presets people saved before this round carry these words, and a category the picker
+         * does not know sorts to the bottom under a heading of its own. Keeping them listed
+         * keeps those presets where their owner filed them. [familyOf] still files new saves
+         * into DITHER, so that one is not merely historical.
+         */
+        const val CATEGORY_DITHER = "DITHER"
         const val CATEGORY_HEAVY = "HEAVY"
         const val CATEGORY_SIGNATURE = "SIGNATURE"
         const val CATEGORY_INK = "INK"
-        const val CATEGORY_GEOMETRY = "GEOMETRY"
-        const val CATEGORY_CUSTOM = "CUSTOM"
 
         /** Picker order. Anything the user saves lands in CUSTOM, which sits last. */
         val categories = listOf(
             CATEGORY_CLASSIC,
-            CATEGORY_DITHER,
+            CATEGORY_DIFFUSION,
+            CATEGORY_ORDERED,
+            CATEGORY_PATTERN,
             CATEGORY_PRINT,
-            CATEGORY_INK,
             CATEGORY_GEOMETRY,
-            CATEGORY_SIGNATURE,
+            CATEGORY_COLOR,
+            CATEGORY_GLITCH,
             CATEGORY_MOTION,
+            CATEGORY_LAYERED,
+            CATEGORY_GLYPH,
+            CATEGORY_LAB,
+            CATEGORY_DITHER,
+            CATEGORY_INK,
+            CATEGORY_SIGNATURE,
             CATEGORY_HEAVY,
             CATEGORY_CUSTOM,
+        )
+
+        /** The shelves the curated library actually ships on — [categories] minus the bench,
+         * the historical ones and the drawer the user's own saves land in. */
+        val curatedCategories = listOf(
+            CATEGORY_CLASSIC,
+            CATEGORY_DIFFUSION,
+            CATEGORY_ORDERED,
+            CATEGORY_PATTERN,
+            CATEGORY_PRINT,
+            CATEGORY_GEOMETRY,
+            CATEGORY_COLOR,
+            CATEGORY_GLITCH,
+            CATEGORY_MOTION,
+            CATEGORY_LAYERED,
+            CATEGORY_GLYPH,
         )
 
         /**
@@ -193,9 +245,21 @@ class PresetStore(context: Context) {
             DitherCategory.GLITCH,
             -> CATEGORY_CUSTOM
         }
+        /**
+         * A general-purpose preset: a pixel dither.
+         *
+         * The mode is written here rather than left to the constructor, and that is the whole
+         * point of this helper. The field default is [RenderMode.GlyphMatrix] and has to stay
+         * that way — it is what a preset written before the field existed is read as — so a
+         * shipped preset that said nothing would ship as glyph art by accident. Every entry
+         * below goes through one of these two functions, so no built-in inherits a mode.
+         */
+        private fun pixel(name: String, category: String, params: AsciiParams) =
+            Preset(name, params.copy(renderMode = RenderMode.PurePixel), category)
 
-        private fun preset(name: String, category: String, params: AsciiParams) =
-            Preset(name, params, category)
+        /** A Glyph Art preset: the render module, chosen deliberately. */
+        private fun glyph(name: String, category: String, params: AsciiParams) =
+            Preset(name, params.copy(renderMode = RenderMode.GlyphMatrix), category)
 
         /** A track that sweeps one parameter across a whole loop and closes seamlessly. */
         private fun sweep(
@@ -219,332 +283,98 @@ class PresetStore(context: Context) {
             )
 
         /**
-         * Shipped starting points.
+         * The curated library.
          *
-         * The CLASSIC nine are the originals, unchanged. Everything after them exists
-         * because the features added since — modulation, temporal noise, subtexture, CMYK,
-         * edges, the reorderable chain — had no starting point at all, so a look had to be
-         * built from scratch every time. The MOTION set in particular is the point: they
-         * arrive with animation already switched on and tracks already aimed, so applying
-         * one and pressing play is the whole interaction.
+         * Pixel dithering is what this application is, and the shelves are ordered the way the
+         * work is: the canonical dithers first, then the two families that produce them —
+         * error diffusion and ordered matrices — then patterns, print, geometry, colour,
+         * damage, motion and layers. Glyph Art is one shelf near the end rather than the
+         * premise of the list.
+         *
+         * Every entry names its render mode through [pixel] or [glyph]. Nothing here relies on
+         * the constructor default, because that default answers a different question — what an
+         * old file with no mode in it should be read as.
+         *
+         * Algorithm-comparison presets are not in here. They are [lab], and they are counted
+         * separately, because a library that opens on eight versions of the same picture
+         * describes a test bench rather than a product.
          */
         private val curated: List<Preset> = listOf(
-            // --- classic ------------------------------------------------------------
-            preset(
-                "terminal", CATEGORY_CLASSIC,
-                AsciiParams(charSetId = "ascii-standard-10", cellSize = 6, contrast = 1.2f),
-            ),
-            preset(
-                "phosphor", CATEGORY_CLASSIC,
+            // --- classic dither ------------------------------------------------------
+            // The canonical monochrome looks, each one a different answer to the same
+            // question: two levels, and what to do with the error.
+            pixel(
+                "one bit",
+                CATEGORY_CLASSIC,
+                // Floyd-Steinberg at two levels and one cell per two source pixels: the
+                // default meaning of "dithered" for forty years.
                 AsciiParams(
-                    charSetId = "ascii-standard-70",
-                    cellSize = 5,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "phosphor",
-                    contrast = 1.3f,
+                    cellSize = 2,
+                    depth = 2,
+                    contrast = 1.15f,
+                    ditherMode = DitherMode.FLOYD_STEINBERG,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFFFFFFFF.toInt(),
+                    backgroundColor = 0xFF000000.toInt(),
                 ),
             ),
-            preset(
-                "blocks", CATEGORY_CLASSIC,
-                AsciiParams(charSetId = "block-shade", cellSize = 6, colorMode = ColorMode.SOURCE),
-            ),
-            preset(
-                "braille", CATEGORY_CLASSIC,
-                AsciiParams(charSetId = "braille-ramp", cellSize = 4, contrast = 1.4f, gamma = 1.2f),
-            ),
-            preset(
-                "matrix", CATEGORY_CLASSIC,
+            pixel(
+                "soft grain",
+                CATEGORY_CLASSIC,
+                // Atkinson throws away a quarter of the error, which is why it keeps highlights
+                // open and reads lighter than Floyd-Steinberg on the same picture.
                 AsciiParams(
-                    charSetId = "lang-katakana",
-                    cellSize = 8,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "phosphor",
-                    contrast = 1.5f,
-                ),
-            ),
-            preset(
-                "gameboy", CATEGORY_CLASSIC,
-                AsciiParams(
-                    charSetId = "geo-squares",
-                    cellSize = 7,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "gameboy",
-                    backgroundColor = 0xFF0F380F.toInt(),
-                ),
-            ),
-            preset(
-                "glitch", CATEGORY_CLASSIC,
-                AsciiParams(charSetId = "block-quadrant", cellSize = 5, offset = 4, contrast = 1.6f),
-            ),
-            preset(
-                "databend", CATEGORY_CLASSIC,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 5,
-                    colorMode = ColorMode.SOURCE,
-                    effects = EffectStack(
-                        chromatic = ChromaticParams(
-                            enabled = true,
-                            maxDisplace = 9,
-                            waveAmplitude = 14,
-                            waveFrequency = 20,
-                            waveNoise = 35,
-                        ),
-                        jpegGlitch = JpegGlitchParams(enabled = true, quality = 18, corruption = 90),
-                    ),
-                ),
-            ),
-            preset(
-                "crt", CATEGORY_CLASSIC,
-                AsciiParams(
-                    charSetId = "ascii-standard-70",
-                    cellSize = 5,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "phosphor",
-                    contrast = 1.25f,
-                    effects = EffectStack(
-                        postProcessing = PostProcessingParams(
-                            enabled = true,
-                            scanlines = 45,
-                            scanlineSpacing = 3,
-                            vignette = 35,
-                            grain = 8,
-                        ),
-                        glow = GlowParams(enabled = true, intensity = 420, radius = 90),
-                    ),
-                ),
-            ),
-
-            // --- dither -------------------------------------------------------------
-            preset(
-                "waveform", CATEGORY_DITHER,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 5,
-                    depth = 6,
-                    ditherMode = DitherMode.MOD_WAVE,
-                    modScale = 10,
-                    modAngle = 25,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "ice",
-                ),
-            ),
-            preset(
-                "ripple", CATEGORY_DITHER,
-                AsciiParams(
-                    charSetId = "geo-circles",
-                    cellSize = 6,
-                    depth = 5,
-                    ditherMode = DitherMode.MOD_RINGS,
-                    modScale = 7,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "amber",
-                ),
-            ),
-            preset(
-                "honeycomb", CATEGORY_DITHER,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 4,
-                    depth = 4,
-                    ditherMode = DitherMode.BEEHIVE,
-                    modScale = 6,
-                    contrast = 1.3f,
-                ),
-            ),
-            preset(
-                "orbital", CATEGORY_DITHER,
-                AsciiParams(
-                    charSetId = "geo-circles",
-                    cellSize = 5,
-                    depth = 4,
-                    ditherMode = DitherMode.MOD_ORB,
-                    modScale = 5,
-                    colorMode = ColorMode.SOURCE,
-                ),
-            ),
-            preset(
-                "broken bayer", CATEGORY_DITHER,
-                // The pattern scale is pulled far past the cell size on purpose: this is the
-                // documented way to drive an ordered dither until it visibly falls apart.
-                AsciiParams(
-                    charSetId = "ascii-standard-10",
-                    cellSize = 4,
+                    cellSize = 2,
                     depth = 3,
-                    ditherMode = DitherMode.BAYER_8,
-                    ditherScale = 340,
-                    contrast = 1.4f,
+                    ditherMode = DitherMode.ATKINSON,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFFF3EDE2.toInt(),
+                    backgroundColor = 0xFF12100E.toInt(),
                 ),
             ),
-            preset(
-                "scanlines", CATEGORY_DITHER,
+            pixel(
+                "hard threshold",
+                CATEGORY_CLASSIC,
+                // No dither at all — the control case. Worth shipping because it is the thing
+                // every other preset in this category is an improvement on.
                 AsciiParams(
-                    charSetId = "block-horizontal",
-                    cellSize = 5,
+                    cellSize = 3,
+                    depth = 2,
+                    contrast = 1.35f,
+                    ditherMode = DitherMode.NONE,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFFFFFFFF.toInt(),
+                    backgroundColor = 0xFF000000.toInt(),
+                ),
+            ),
+            pixel(
+                "chalk on slate",
+                CATEGORY_CLASSIC,
+                AsciiParams(
+                    cellSize = 3,
                     depth = 4,
-                    ditherMode = DitherMode.MOD_LINES,
-                    modScale = 4,
-                    modAngle = 90,
+                    brightness = 0.05f,
+                    ditherMode = DitherMode.SMOOTH_DIFFUSE,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFFE8E4D8.toInt(),
+                    backgroundColor = 0xFF23282B.toInt(),
                 ),
+            ),
+            pixel(
+                "blocks",
+                CATEGORY_CLASSIC,
+                // The coarse reduction with no algorithm in the way: each cell keeps its own
+                // averaged colour. In pixel mode the cell size *is* the block size.
+                AsciiParams(cellSize = 6, colorMode = ColorMode.SOURCE),
             ),
 
-            // --- print --------------------------------------------------------------
-            preset(
-                "newsprint", CATEGORY_PRINT,
+            // --- error diffusion -----------------------------------------------------
+            pixel(
+                "orb diffuse",
+                CATEGORY_DIFFUSION,
+                // Error pushed almost entirely downward travels in a line, which is what turns
+                // grain into wavering vertical columns.
                 AsciiParams(
-                    charSetId = "ascii-standard-10",
-                    cellSize = 4,
-                    colorMode = ColorMode.SOURCE,
-                    backgroundColor = 0xFFF2EDE0.toInt(),
-                    effects = EffectStack(
-                        cmyk = CmykHalftoneParams(enabled = true, frequency = 5, blackInk = 90),
-                        subtexture = SubtextureParams(
-                            enabled = true,
-                            kind = TextureKind.PAPER_GRAIN,
-                            blend = BlendMode.MULTIPLY,
-                            intensity = 22,
-                            scale = 2,
-                        ),
-                    ),
-                ),
-            ),
-            preset(
-                // Named for the process, not the machine: a coarse halftone screen on warm
-                // uncoated stock. The newer "spot colour print" is the same family done with real
-                // plate misregistration rather than with a screen.
-                "duplicator print", CATEGORY_PRINT,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 5,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "sunset",
-                    backgroundColor = 0xFFF6F1E4.toInt(),
-                    effects = EffectStack(
-                        cmyk = CmykHalftoneParams(enabled = true, frequency = 9, blackInk = 40, angle = 20),
-                        subtexture = SubtextureParams(
-                            enabled = true,
-                            kind = TextureKind.PAPER_FIBRE,
-                            blend = BlendMode.MULTIPLY,
-                            intensity = 30,
-                        ),
-                    ),
-                ),
-            ),
-            preset(
-                "blueprint", CATEGORY_PRINT,
-                AsciiParams(
-                    charSetId = "line-box",
-                    cellSize = 6,
-                    edgeEnabled = true,
-                    edgeOnly = true,
-                    edgeThreshold = 18,
-                    edgeSetId = "box",
-                    inkColor = 0xFFCFE4FF.toInt(),
-                    backgroundColor = 0xFF0E2A4A.toInt(),
-                ),
-            ),
-            preset(
-                "engraving", CATEGORY_PRINT,
-                AsciiParams(
-                    charSetId = "ascii-standard-70",
-                    cellSize = 4,
-                    edgeEnabled = true,
-                    edgeThreshold = 30,
-                    edgeSetId = "ascii",
-                    contrast = 1.5f,
-                    inkColor = 0xFF1A1410.toInt(),
-                    backgroundColor = 0xFFEFE3C8.toInt(),
-                ),
-            ),
-
-            // --- motion -------------------------------------------------------------
-            preset(
-                "drifting wave", CATEGORY_MOTION,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 5,
-                    depth = 5,
-                    ditherMode = DitherMode.MOD_WAVE,
-                    modScale = 9,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "ice",
-                    // A sawtooth over a whole period is what makes the pattern travel rather
-                    // than rock back and forth.
-                    animation = animation(sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH)),
-                ),
-            ),
-            preset(
-                "bad signal", CATEGORY_MOTION,
-                AsciiParams(
-                    charSetId = "block-quadrant",
-                    cellSize = 5,
-                    colorMode = ColorMode.SOURCE,
-                    temporal = TemporalParams(
-                        enabled = true,
-                        pattern = TemporalPattern.SCANLINE_ROLL,
-                        scale = 6,
-                        amount = 55,
-                    ),
-                    effects = EffectStack(
-                        sliceShift = SliceShiftParams(enabled = true, slices = 18, maxOffset = 8, density = 35),
-                    ),
-                    animation = animation(sweep(AnimTarget.GLITCH_SEED, 1, 9999, AnimCurve.RANDOM)),
-                ),
-            ),
-            preset(
-                "breathing", CATEGORY_MOTION,
-                AsciiParams(
-                    charSetId = "ascii-standard-70",
-                    cellSize = 5,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "phosphor",
-                    animation = animation(sweep(AnimTarget.DEPTH, 3, 40)),
-                ),
-            ),
-            preset(
-                "static storm", CATEGORY_MOTION,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 4,
-                    depth = 4,
-                    temporal = TemporalParams(
-                        enabled = true,
-                        pattern = TemporalPattern.PLASMA,
-                        scale = 10,
-                        speed = 2,
-                        amount = 70,
-                    ),
-                    animation = animation(sweep(AnimTarget.DITHER_STRENGTH, 30, 100)),
-                ),
-            ),
-            preset(
-                "rolling glow", CATEGORY_MOTION,
-                AsciiParams(
-                    charSetId = "geo-circles",
-                    cellSize = 6,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "ember",
-                    effects = EffectStack(
-                        glow = GlowParams(enabled = true, intensity = 520, radius = 120, aspectRatio = 240),
-                    ),
-                    animation = animation(sweep(AnimTarget.GLOW_DIRECTION, 0, 359, AnimCurve.SAWTOOTH)),
-                ),
-            ),
-
-            // --- signature ----------------------------------------------------------
-            // Modelled on the looks the vendor shows in their public preview clips, not on
-            // their presets — those are not published, and neither is the maths behind the
-            // styles. Each of these is this app's own approximation of a look, built from
-            // controls that already existed, and each one animates so that applying it and
-            // pressing play is the whole interaction.
-            preset(
-                "orb diffuse", CATEGORY_SIGNATURE,
-                // Their "Orb Diffuse Y": a figure resolved into wavering vertical columns of
-                // dots with bright blooming points scattered through it. The vertical run is
-                // DIFFUSE_Y — error pushed almost entirely downward travels in a line, which
-                // is what turns grain into streaks.
-                AsciiParams(
-                    charSetId = "geo-circles",
                     cellSize = 4,
                     depth = 5,
                     contrast = 1.55f,
@@ -574,10 +404,10 @@ class PresetStore(context: Context) {
                     animation = animation(sweep(AnimTarget.DITHER_STRENGTH, 70, 100), frames = 36),
                 ),
             ),
-            preset(
-                "line diffuse", CATEGORY_SIGNATURE,
+            pixel(
+                "line diffuse",
+                CATEGORY_DIFFUSION,
                 AsciiParams(
-                    charSetId = "misc-dots",
                     cellSize = 4,
                     depth = 4,
                     contrast = 1.45f,
@@ -592,166 +422,260 @@ class PresetStore(context: Context) {
                     animation = animation(sweep(AnimTarget.DEPTH, 3, 9), frames = 30),
                 ),
             ),
-            preset(
-                "modulation lines", CATEGORY_SIGNATURE,
+            pixel(
+                "cracked",
+                CATEGORY_DIFFUSION,
                 AsciiParams(
-                    charSetId = "block-horizontal",
-                    cellSize = 5,
-                    depth = 5,
-                    ditherMode = DitherMode.MOD_LINES,
-                    modScale = 6,
-                    modAngle = 90,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "phosphor",
-                    animation = animation(
-                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
-                        frames = 36,
-                    ),
-                ),
-            ),
-            preset(
-                "waveform glitch", CATEGORY_SIGNATURE,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 5,
-                    depth = 6,
-                    ditherMode = DitherMode.MOD_WAVE,
-                    modScale = 12,
-                    colorMode = ColorMode.SOURCE,
-                    effects = EffectStack(
-                        chromatic = ChromaticParams(
-                            enabled = true,
-                            maxDisplace = 6,
-                            waveAmplitude = 18,
-                            waveFrequency = 12,
-                        ),
-                        glow = GlowParams(enabled = true, intensity = 380, radius = 80),
-                    ),
-                    animation = animation(
-                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
-                        sweep(AnimTarget.CHROMATIC_OFFSET, 2, 14),
-                        frames = 36,
-                    ),
-                ),
-            ),
-            preset(
-                "cyberpunk", CATEGORY_SIGNATURE,
-                AsciiParams(
-                    charSetId = "block-quadrant",
                     cellSize = 4,
+                    depth = 4,
+                    contrast = 1.3f,
+                    ditherMode = DitherMode.CRACKED_DIFFUSE,
+                    serpentine = false,
                     colorMode = ColorMode.PALETTE,
-                    paletteId = "neon",
-                    backgroundColor = 0xFF05000C.toInt(),
-                    temporal = TemporalParams(
-                        enabled = true,
-                        pattern = TemporalPattern.INTERFERENCE,
-                        scale = 12,
-                        amount = 40,
-                    ),
-                    effects = EffectStack(
-                        chromatic = ChromaticParams(enabled = true, maxDisplace = 8),
-                        sliceShift = SliceShiftParams(enabled = true, slices = 26, maxOffset = 10, density = 40),
-                        glow = GlowParams(enabled = true, intensity = 560, radius = 100),
-                    ),
-                    animation = animation(sweep(AnimTarget.GLITCH_SEED, 1, 9999, AnimCurve.RANDOM)),
+                    paletteId = "acid",
                 ),
             ),
-            preset(
-                "gemstone", CATEGORY_SIGNATURE,
+            pixel(
+                "edge keeper",
+                CATEGORY_DIFFUSION,
                 AsciiParams(
-                    charSetId = "geo-diamonds",
-                    cellSize = 5,
-                    depth = 6,
-                    ditherMode = DitherMode.MOD_ORB,
-                    modScale = 6,
+                    cellSize = 3,
+                    depth = 5,
+                    contrast = 1.25f,
+                    ditherMode = DitherMode.CONTRAST_AWARE_Y,
                     colorMode = ColorMode.PALETTE,
-                    paletteId = "sunset",
-                    effects = EffectStack(
-                        stars = DiffractionStarsParams(
-                            enabled = true,
-                            rays = 6,
-                            length = 70,
-                            threshold = 55,
-                            intensity = 620,
-                        ),
-                        glow = GlowParams(enabled = true, intensity = 340, radius = 60),
-                    ),
-                    animation = animation(
-                        sweep(AnimTarget.STARS_ANGLE, 0, 359, AnimCurve.SAWTOOTH),
-                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
-                        frames = 36,
-                    ),
+                    paletteId = "ice",
+                ),
+            ),
+            pixel(
+                "riemersma walk",
+                CATEGORY_DIFFUSION,
+                // Diffusion along a space-filling curve rather than along rows: the grain has
+                // no direction at all, which is the one thing row-order diffusion cannot do.
+                AsciiParams(
+                    cellSize = 2,
+                    depth = 4,
+                    contrast = 1.1f,
+                    ditherMode = DitherMode.RIEMERSMA,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFFEDEDED.toInt(),
+                    backgroundColor = 0xFF0B0B0B.toInt(),
+                ),
+            ),
+            pixel(
+                "spiral grain",
+                CATEGORY_DIFFUSION,
+                AsciiParams(
+                    cellSize = 3,
+                    depth = 8,
+                    ditherMode = DitherMode.VORTEX_DIFFUSION,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ember",
+                    animation = animation(sweep(AnimTarget.DITHER_STRENGTH, 40, 100), frames = 34),
                 ),
             ),
 
-            // --- heavy --------------------------------------------------------------
-            preset(
-                "meltdown", CATEGORY_HEAVY,
+            // --- ordered -------------------------------------------------------------
+            // A matrix decides the threshold, so the pattern is fixed and the picture moves
+            // through it. Everything on this shelf is a matrix; nothing here diffuses error.
+            pixel(
+                "bayer eight",
+                CATEGORY_ORDERED,
                 AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 4,
-                    colorMode = ColorMode.SOURCE,
-                    effects = EffectStack(
-                        pixelSort = PixelSortParams(
-                            enabled = true,
-                            thresholdLow = 18,
-                            thresholdHigh = 72,
-                            maxRun = 120,
-                        ),
-                        chromatic = ChromaticParams(enabled = true, maxDisplace = 5),
-                        glow = GlowParams(enabled = true, intensity = 300, radius = 70),
-                    ),
+                    cellSize = 3,
+                    depth = 4,
+                    ditherMode = DitherMode.BAYER_8,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFFFFFFFF.toInt(),
+                    backgroundColor = 0xFF07090C.toInt(),
                 ),
             ),
-            preset(
-                "shredder", CATEGORY_HEAVY,
+            pixel(
+                "bayer two",
+                CATEGORY_ORDERED,
+                // Four thresholds and two levels: the coarsest ordered dither there is, and the
+                // one whose weave you can count.
                 AsciiParams(
-                    charSetId = "block-quadrant",
                     cellSize = 4,
-                    colorMode = ColorMode.SOURCE,
-                    effects = EffectStack(
-                        sliceShift = SliceShiftParams(
-                            enabled = true,
-                            slices = 40,
-                            maxOffset = 18,
-                            density = 70,
-                            colorShift = 45,
-                        ),
-                        pixelSort = PixelSortParams(enabled = true, axis = SortAxis.VERTICAL),
-                        // Sorting after the slicing rather than before: the displaced edges
-                        // become new run boundaries, which is what makes the tear read.
-                        order = listOf(
-                            EffectId.POST, EffectId.BLUR, EffectId.TINT, EffectId.CHROMATIC,
-                            EffectId.GLITCH, EffectId.SLICE, EffectId.SORT, EffectId.STARS,
-                            EffectId.SUBTEXTURE, EffectId.CMYK, EffectId.GLOW,
-                        ),
-                    ),
+                    depth = 2,
+                    contrast = 1.25f,
+                    ditherMode = DitherMode.BAYER_2,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFFFFFFFF.toInt(),
+                    backgroundColor = 0xFF000000.toInt(),
                 ),
             ),
-            preset(
-                "vhs dub", CATEGORY_HEAVY,
+            pixel(
+                "blue noise",
+                CATEGORY_ORDERED,
+                // A matrix with no periodicity to find: the grain reads as texture rather than
+                // as a screen, which is what makes it survive being printed or scaled.
                 AsciiParams(
-                    charSetId = "ascii-standard-10",
+                    cellSize = 2,
+                    depth = 3,
+                    ditherMode = DitherMode.BLUE_NOISE_32,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFFF2F2F2.toInt(),
+                    backgroundColor = 0xFF101010.toInt(),
+                ),
+            ),
+            pixel(
+                "clustered dot",
+                CATEGORY_ORDERED,
+                // Thresholds ordered outward from the centre of the tile, so ink lands in
+                // growing blobs — the ordered matrix that behaves like a printing screen.
+                AsciiParams(
+                    cellSize = 3,
+                    depth = 4,
+                    ditherMode = DitherMode.CLUSTER_8,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFF14110E.toInt(),
+                    backgroundColor = 0xFFF1EADA.toInt(),
+                ),
+            ),
+            pixel(
+                "broken bayer",
+                CATEGORY_ORDERED,
+                // The pattern scale is pulled far past the cell size on purpose: this is the
+                // documented way to drive an ordered dither until it visibly falls apart.
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 3,
+                    ditherMode = DitherMode.BAYER_8,
+                    ditherScale = 340,
+                    contrast = 1.4f,
+                    colorMode = ColorMode.SINGLE,
+                ),
+            ),
+
+            // --- pattern -------------------------------------------------------------
+            // A shape, repeated, carrying the tone: waves, rings, hatching, stipple. The
+            // pattern is the subject as much as the picture is.
+            pixel(
+                "waveform",
+                CATEGORY_PATTERN,
+                AsciiParams(
                     cellSize = 5,
-                    colorMode = ColorMode.SOURCE,
-                    effects = EffectStack(
-                        chromatic = ChromaticParams(enabled = true, maxDisplace = 7, waveAmplitude = 9, waveNoise = 40),
-                        subtexture = SubtextureParams(
-                            enabled = true,
-                            kind = TextureKind.VHS_BANDS,
-                            blend = BlendMode.SCREEN,
-                            intensity = 35,
-                            scale = 20,
-                        ),
-                        blurSharpen = BlurSharpenParams(enabled = true, amount = -45, radius = 3),
-                        postProcessing = PostProcessingParams(enabled = true, grain = 18, saturation = 130),
-                    ),
+                    depth = 6,
+                    ditherMode = DitherMode.MOD_WAVE,
+                    modScale = 10,
+                    modAngle = 25,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ice",
                 ),
             ),
-            preset(
-                "hot iron", CATEGORY_HEAVY,
+            pixel(
+                "ripple",
+                CATEGORY_PATTERN,
                 AsciiParams(
-                    charSetId = "block-shade",
+                    cellSize = 6,
+                    depth = 5,
+                    ditherMode = DitherMode.MOD_RINGS,
+                    modScale = 7,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "amber",
+                ),
+            ),
+            pixel(
+                "honeycomb",
+                CATEGORY_PATTERN,
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 4,
+                    ditherMode = DitherMode.BEEHIVE,
+                    modScale = 6,
+                    contrast = 1.3f,
+                    colorMode = ColorMode.SINGLE,
+                ),
+            ),
+            pixel(
+                "orbital",
+                CATEGORY_PATTERN,
+                AsciiParams(
+                    cellSize = 5,
+                    depth = 4,
+                    ditherMode = DitherMode.MOD_ORB,
+                    modScale = 5,
+                    colorMode = ColorMode.SOURCE,
+                ),
+            ),
+            pixel(
+                "scanlines",
+                CATEGORY_PATTERN,
+                AsciiParams(
+                    cellSize = 5,
+                    depth = 4,
+                    ditherMode = DitherMode.MOD_LINES,
+                    modScale = 4,
+                    modAngle = 90,
+                    colorMode = ColorMode.SINGLE,
+                ),
+            ),
+            // Pen, brush and burin. Few tones on purpose: these styles put their marks where
+            // the picture is dark rather than shading it.
+            pixel(
+                "pen and ink",
+                CATEGORY_PATTERN,
+                AsciiParams(
+                    cellSize = 3,
+                    depth = 3,
+                    contrast = 1.3f,
+                    ditherMode = DitherMode.CROSSHATCH,
+                    modScale = 4,
+                    patternDensity = 35,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFF1A1712.toInt(),
+                    backgroundColor = 0xFFE8DFC8.toInt(),
+                ),
+            ),
+            pixel(
+                "stipple study",
+                CATEGORY_PATTERN,
+                AsciiParams(
+                    cellSize = 3,
+                    depth = 3,
+                    contrast = 1.25f,
+                    ditherMode = DitherMode.STIPPLING,
+                    modScale = 3,
+                    patternDensity = 55,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFF141414.toInt(),
+                    backgroundColor = 0xFFF0EBDD.toInt(),
+                ),
+            ),
+            pixel(
+                "copperplate",
+                CATEGORY_PATTERN,
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 4,
+                    contrast = 1.4f,
+                    ditherMode = DitherMode.DOTTED_LINES,
+                    modScale = 5,
+                    modAngle = 20,
+                    patternDensity = 60,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ink",
+                ),
+            ),
+            pixel(
+                "survey map",
+                CATEGORY_PATTERN,
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 4,
+                    ditherMode = DitherMode.TOPOGRAPHY,
+                    modScale = 10,
+                    patternDensity = 30,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFF23331F.toInt(),
+                    backgroundColor = 0xFFEDE7D2.toInt(),
+                ),
+            ),
+            pixel(
+                "hot iron",
+                CATEGORY_PATTERN,
+                AsciiParams(
                     cellSize = 5,
                     depth = 8,
                     ditherMode = DitherMode.MOD_ORB,
@@ -764,294 +688,12 @@ class PresetStore(context: Context) {
                     ),
                 ),
             ),
-
-            // --- ink ----------------------------------------------------------------
-            // Pen, brush and burin. Fine cells and few tones on purpose: these styles put
-            // their marks where the picture is dark rather than shading it, so giving them a
-            // long ramp asks them to do a job they are not for.
-            preset(
-                "pen and ink", CATEGORY_INK,
-                AsciiParams(
-                    charSetId = "ascii-standard-10",
-                    cellSize = 3,
-                    depth = 3,
-                    contrast = 1.3f,
-                    ditherMode = DitherMode.CROSSHATCH,
-                    modScale = 4,
-                    patternDensity = 35,
-                    inkColor = 0xFF1A1712.toInt(),
-                    backgroundColor = 0xFFE8DFC8.toInt(),
-                ),
-            ),
-            preset(
-                "stipple study", CATEGORY_INK,
-                AsciiParams(
-                    charSetId = "misc-dots",
-                    cellSize = 3,
-                    depth = 3,
-                    contrast = 1.25f,
-                    ditherMode = DitherMode.STIPPLING,
-                    modScale = 3,
-                    patternDensity = 55,
-                    inkColor = 0xFF141414.toInt(),
-                    backgroundColor = 0xFFF0EBDD.toInt(),
-                ),
-            ),
-            preset(
-                "copperplate", CATEGORY_INK,
-                AsciiParams(
-                    charSetId = "block-horizontal",
-                    cellSize = 4,
-                    depth = 4,
-                    contrast = 1.4f,
-                    ditherMode = DitherMode.DOTTED_LINES,
-                    modScale = 5,
-                    modAngle = 20,
-                    patternDensity = 60,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "ink",
-                ),
-            ),
-            preset(
-                "survey map", CATEGORY_INK,
-                AsciiParams(
-                    charSetId = "ascii-standard-10",
-                    cellSize = 4,
-                    depth = 4,
-                    ditherMode = DitherMode.TOPOGRAPHY,
-                    modScale = 10,
-                    patternDensity = 30,
-                    inkColor = 0xFF23331F.toInt(),
-                    backgroundColor = 0xFFEDE7D2.toInt(),
-                ),
-            ),
-
-            // --- geometry -----------------------------------------------------------
-            // Large cells and short ramps, because these flatten areas: a tessellation with
-            // sixty tones is a photograph with visible seams, not a low-poly picture.
-            preset(
-                "low poly", CATEGORY_GEOMETRY,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 6,
-                    depth = 5,
-                    ditherMode = DitherMode.LOW_POLY,
-                    modScale = 10,
-                    patternDensity = 0,
-                    colorMode = ColorMode.SOURCE,
-                ),
-            ),
-            preset(
-                "hex tiles", CATEGORY_GEOMETRY,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 5,
-                    depth = 6,
-                    ditherMode = DitherMode.HEXA_POLY,
-                    modScale = 8,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "sunset",
-                ),
-            ),
-            preset(
-                "camouflage", CATEGORY_GEOMETRY,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 5,
-                    depth = 4,
-                    contrast = 1.2f,
-                    ditherMode = DitherMode.CAMO,
-                    modScale = 7,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "saltmarsh",
-                ),
-            ),
-            preset(
-                "tile floor", CATEGORY_GEOMETRY,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 5,
-                    depth = 6,
-                    ditherMode = DitherMode.SQUARE_MOSAIC,
-                    modScale = 6,
-                    patternDensity = 30,
-                    colorMode = ColorMode.SOURCE,
-                ),
-            ),
-            preset(
-                "dot grid", CATEGORY_GEOMETRY,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 4,
-                    depth = 5,
-                    ditherMode = DitherMode.CIRCLE_GRID,
-                    modScale = 6,
-                    patternDensity = 70,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "ice",
-                ),
-            ),
-
-            // --- the literature ------------------------------------------------------
-            // Deliberately plain: no effects, no palette tricks, a long ramp and a
-            // photographic subject in mind. These exist so the algorithms can be seen.
-            preset(
-                "ostromoukhov", CATEGORY_DITHER,
-                AsciiParams(
-                    charSetId = "ascii-standard-70",
-                    cellSize = 3,
-                    depth = 10,
-                    ditherMode = DitherMode.OSTROMOUKHOV,
-                    serpentine = true,
-                ),
-            ),
-            preset(
-                "shiau-fan", CATEGORY_DITHER,
-                AsciiParams(
-                    charSetId = "ascii-standard-70",
-                    cellSize = 3,
-                    depth = 10,
-                    ditherMode = DitherMode.SHIAU_FAN,
-                    serpentine = true,
-                ),
-            ),
-            preset(
-                "dot diffusion", CATEGORY_DITHER,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 4,
-                    depth = 6,
-                    ditherMode = DitherMode.DOT_DIFFUSION,
-                ),
-            ),
-            preset(
-                "fractal walk", CATEGORY_DITHER,
-                AsciiParams(
-                    charSetId = "misc-dots",
-                    cellSize = 3,
-                    depth = 4,
-                    contrast = 1.2f,
-                    ditherMode = DitherMode.FRACTAL_DIFFUSE,
-                ),
-            ),
-
-            // --- print ---------------------------------------------------------------
-            preset(
-                "process rosette", CATEGORY_PRINT,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 4,
-                    depth = 5,
-                    ditherMode = DitherMode.PRINT_PATTERN,
-                    modScale = 8,
-                    colorMode = ColorMode.SOURCE,
-                ),
-            ),
-            preset(
-                "press halftone", CATEGORY_PRINT,
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 3,
-                    depth = 4,
-                    contrast = 1.35f,
-                    ditherMode = DitherMode.BLOCK_TONE,
-                    modScale = 5,
-                    inkColor = 0xFF15130F.toInt(),
-                    backgroundColor = 0xFFE4DFD2.toInt(),
-                ),
-            ),
-            preset(
-                "low bit halftone", CATEGORY_PRINT,
-                AsciiParams(
-                    charSetId = "block-quadrant",
-                    cellSize = 4,
-                    depth = 4,
-                    ditherMode = DitherMode.BIT_TONE,
-                    modScale = 6,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "cga",
-                ),
-            ),
-
-            // --- signature -----------------------------------------------------------
-            preset(
-                "cracked", CATEGORY_SIGNATURE,
-                AsciiParams(
-                    charSetId = "block-quadrant",
-                    cellSize = 4,
-                    depth = 4,
-                    contrast = 1.3f,
-                    ditherMode = DitherMode.CRACKED_DIFFUSE,
-                    serpentine = false,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "acid",
-                ),
-            ),
-            preset(
-                "tape damage", CATEGORY_SIGNATURE,
-                AsciiParams(
-                    charSetId = "block-horizontal",
-                    cellSize = 4,
-                    depth = 5,
-                    ditherMode = DitherMode.ATKINSON_VHS,
-                    serpentine = false,
-                    colorMode = ColorMode.SOURCE,
-                    effects = EffectStack(
-                        chromatic = ChromaticParams(enabled = true, maxDisplace = 9),
-                    ),
-                ),
-            ),
-            preset(
-                "edge keeper", CATEGORY_SIGNATURE,
-                AsciiParams(
-                    charSetId = "misc-dots",
-                    cellSize = 3,
-                    depth = 5,
-                    contrast = 1.25f,
-                    ditherMode = DitherMode.CONTRAST_AWARE_Y,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "ice",
-                ),
-            ),
-
-            // The four that showcase the newer passes. Each one leans on a single new node and
-            // uses the older chain only to finish it, so what the node does is legible rather
-            // than buried under four other effects.
-            preset(
-                "duotone grain", CATEGORY_DITHER,
-                // Two colours and nothing between them, held together by grain rather than by
-                // tone. The blue-noise pass is what makes that readable: the same look with
-                // ordered dithering reads as a printed pattern, which is a different thing.
-                AsciiParams(
-                    charSetId = "block-shade",
-                    cellSize = 4,
-                    depth = 4,
-                    contrast = 1.25f,
-                    ditherMode = DitherMode.NONE,
-                    colorMode = ColorMode.SOURCE,
-                    effects = EffectStack(
-                        tint = TintParams(
-                            enabled = true,
-                            mode = TintMode.DUOTONE,
-                            shadowColor = 0xFF120A2E.toInt(),
-                            highlightColor = 0xFFFFD9A0.toInt(),
-                            amount = 90,
-                        ),
-                        blueNoise = BlueNoiseDitherParams(
-                            enabled = true,
-                            levels = 3,
-                            noiseScale = 2,
-                            monochrome = true,
-                        ),
-                    ),
-                ),
-            ),
-            preset(
-                "modulation cyberpunk", CATEGORY_SIGNATURE,
+            pixel(
+                "modulation cyberpunk",
+                CATEGORY_PATTERN,
                 // The plot is the picture here: lines carry the image and the glow gives the
                 // dots their bloom, which is what stops a line drawing reading as a diagram.
                 AsciiParams(
-                    charSetId = "misc-dots",
                     cellSize = 3,
                     depth = 4,
                     contrast = 1.3f,
@@ -1080,40 +722,92 @@ class PresetStore(context: Context) {
                     ),
                 ),
             ),
-            preset(
-                "crt arcade monitor", CATEGORY_SIGNATURE,
-                // The order matters more than the values: interlace and the colour crush belong
-                // to the signal, the warp belongs to the glass, so the warp has to come last or
-                // the scan lines curve the wrong way — flat lines on curved glass.
+
+            // --- print ---------------------------------------------------------------
+            pixel(
+                "newsprint",
+                CATEGORY_PRINT,
                 AsciiParams(
-                    charSetId = "block-shade",
                     cellSize = 4,
-                    depth = 6,
-                    contrast = 1.2f,
-                    ditherMode = DitherMode.BAYER_4,
                     colorMode = ColorMode.SOURCE,
+                    backgroundColor = 0xFFF2EDE0.toInt(),
                     effects = EffectStack(
-                        interlace = InterlaceParams(enabled = true, shift = 3, density = 45),
-                        colorDepth = ColorDepthParams(
+                        cmyk = CmykHalftoneParams(enabled = true, frequency = 5, blackInk = 90),
+                        subtexture = SubtextureParams(
                             enabled = true,
-                            colorLevels = 5,
-                            colorSpace = ColorDistance.OKLAB,
-                            dithered = true,
-                        ),
-                        crtWarp = CrtWarpParams(
-                            enabled = true,
-                            warpCurvature = 30,
-                            vignetteIntensity = 45,
+                            kind = TextureKind.PAPER_GRAIN,
+                            blend = BlendMode.MULTIPLY,
+                            intensity = 22,
+                            scale = 2,
                         ),
                     ),
                 ),
             ),
-            preset(
-                "spot colour print", CATEGORY_PRINT,
+            pixel(
+                // Named for the process, not the machine: a coarse halftone screen on warm
+                // uncoated stock. "spot colour print" is the same family done with real plate
+                // misregistration rather than with a screen.
+                "duplicator print",
+                CATEGORY_PRINT,
+                AsciiParams(
+                    cellSize = 5,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "sunset",
+                    backgroundColor = 0xFFF6F1E4.toInt(),
+                    effects = EffectStack(
+                        cmyk = CmykHalftoneParams(enabled = true, frequency = 9, blackInk = 40, angle = 20),
+                        subtexture = SubtextureParams(
+                            enabled = true,
+                            kind = TextureKind.PAPER_FIBRE,
+                            blend = BlendMode.MULTIPLY,
+                            intensity = 30,
+                        ),
+                    ),
+                ),
+            ),
+            pixel(
+                "process rosette",
+                CATEGORY_PRINT,
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 5,
+                    ditherMode = DitherMode.PRINT_PATTERN,
+                    modScale = 8,
+                    colorMode = ColorMode.SOURCE,
+                ),
+            ),
+            pixel(
+                "press halftone",
+                CATEGORY_PRINT,
+                AsciiParams(
+                    cellSize = 3,
+                    depth = 4,
+                    contrast = 1.35f,
+                    ditherMode = DitherMode.BLOCK_TONE,
+                    modScale = 5,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFF15130F.toInt(),
+                    backgroundColor = 0xFFE4DFD2.toInt(),
+                ),
+            ),
+            pixel(
+                "low bit halftone",
+                CATEGORY_PRINT,
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 4,
+                    ditherMode = DitherMode.BIT_TONE,
+                    modScale = 6,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "cga",
+                ),
+            ),
+            pixel(
+                "spot colour print",
+                CATEGORY_PRINT,
                 // Three plates, badly registered, on toned stock. The subtexture pass adds the
                 // fibre the ink sits in; the node's own grain is the ink, not the paper.
                 AsciiParams(
-                    charSetId = "block-quadrant",
                     cellSize = 5,
                     depth = 4,
                     ditherMode = DitherMode.NONE,
@@ -1136,14 +830,529 @@ class PresetStore(context: Context) {
                     ),
                 ),
             ),
-            preset(
-                "matrix particles", CATEGORY_MOTION,
-                // Animated, because the whole point is the wave travelling: the lines are the
-                // rain and the glitch is the transmission it is falling through. The phase track
-                // is what actually moves it — the node reads the clock, but a track makes the
-                // motion editable like every other animated preset in here.
+            pixel(
+                "riso two colour",
+                CATEGORY_PRINT,
+                // Two inks and a clustered screen, which is what a duplicator can actually
+                // lay down. The palette is the whole colour budget, so the dither is doing
+                // the mixing.
                 AsciiParams(
-                    charSetId = "misc-dots",
+                    cellSize = 4,
+                    depth = 4,
+                    ditherMode = DitherMode.CLUSTER_4,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "riso-blue-red",
+                    backgroundColor = 0xFFF7F3E8.toInt(),
+                    effects = EffectStack(
+                        subtexture = SubtextureParams(
+                            enabled = true,
+                            kind = TextureKind.PAPER_FIBRE,
+                            blend = BlendMode.MULTIPLY,
+                            intensity = 25,
+                        ),
+                    ),
+                ),
+            ),
+
+            // --- geometry ------------------------------------------------------------
+            // Large cells and short ramps, because these flatten areas: a tessellation with
+            // sixty tones is a photograph with visible seams, not a low-poly picture.
+            pixel(
+                "low poly",
+                CATEGORY_GEOMETRY,
+                // Palette rather than source colour, and that is not a taste decision: a
+                // region style has no error to carry, so the colour path reduces each cell to
+                // its nearest entry independently and the facets never appear at all. The
+                // level a region averages to is what has to pick the colour.
+                //
+                // Coarser facets than "shifting facets", which animates the cut: at rest the
+                // two would otherwise be one preset with a slider in a different place.
+                AsciiParams(
+                    cellSize = 8,
+                    depth = 5,
+                    ditherMode = DitherMode.LOW_POLY,
+                    modScale = 16,
+                    patternDensity = 0,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ocean",
+                ),
+            ),
+            pixel(
+                "hex tiles",
+                CATEGORY_GEOMETRY,
+                AsciiParams(
+                    cellSize = 5,
+                    depth = 6,
+                    ditherMode = DitherMode.HEXA_POLY,
+                    modScale = 8,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "sunset",
+                ),
+            ),
+            pixel(
+                "camouflage",
+                CATEGORY_GEOMETRY,
+                AsciiParams(
+                    cellSize = 5,
+                    depth = 4,
+                    contrast = 1.2f,
+                    ditherMode = DitherMode.CAMO,
+                    modScale = 7,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "saltmarsh",
+                ),
+            ),
+            pixel(
+                "tile floor",
+                CATEGORY_GEOMETRY,
+                // Palette for the same reason as "low poly": a region style needs the level
+                // to choose the colour, or the tiles it draws are thrown away.
+                AsciiParams(
+                    cellSize = 5,
+                    depth = 6,
+                    ditherMode = DitherMode.SQUARE_MOSAIC,
+                    modScale = 6,
+                    patternDensity = 30,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "sepia",
+                ),
+            ),
+            pixel(
+                "dot grid",
+                CATEGORY_GEOMETRY,
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 5,
+                    ditherMode = DitherMode.CIRCLE_GRID,
+                    modScale = 6,
+                    patternDensity = 70,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ice",
+                ),
+            ),
+
+            // --- colour --------------------------------------------------------------
+            // Palette work: a fixed set of inks, and the dither doing the mixing. In pixel
+            // mode a palette *is* the level count, so the palette is the whole decision.
+            pixel(
+                "gameboy",
+                CATEGORY_COLOR,
+                AsciiParams(
+                    cellSize = 7,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "gameboy",
+                    backgroundColor = 0xFF0F380F.toInt(),
+                ),
+            ),
+            pixel(
+                "c64 lores",
+                CATEGORY_COLOR,
+                AsciiParams(
+                    cellSize = 5,
+                    ditherMode = DitherMode.BAYER_4,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "c64",
+                ),
+            ),
+            pixel(
+                "vapour wash",
+                CATEGORY_COLOR,
+                // Source colour reduced to a palette through the diffusion pass rather than
+                // indexed by luminance: the metric picks the entry, so the same picture in
+                // OKLAB and in RGB comes back different.
+                AsciiParams(
+                    cellSize = 3,
+                    ditherMode = DitherMode.FLOYD_STEINBERG,
+                    colorMode = ColorMode.SOURCE,
+                    paletteId = "vapor",
+                    colorDistance = ColorDistance.OKLAB,
+                ),
+            ),
+            pixel(
+                "oklab crush",
+                CATEGORY_COLOR,
+                // The colour-depth pass instead of a palette: levels per channel, chosen in a
+                // perceptual space, with its own dither to hide the banding.
+                AsciiParams(
+                    cellSize = 2,
+                    ditherMode = DitherMode.NONE,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        colorDepth = ColorDepthParams(
+                            enabled = true,
+                            colorLevels = 4,
+                            colorSpace = ColorDistance.OKLAB,
+                            dithered = true,
+                        ),
+                    ),
+                ),
+            ),
+            pixel(
+                "duotone grain",
+                CATEGORY_COLOR,
+                // Two colours and nothing between them, held together by grain rather than by
+                // tone. The blue-noise pass is what makes that readable: the same look with
+                // ordered dithering reads as a printed pattern, which is a different thing.
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 4,
+                    contrast = 1.25f,
+                    ditherMode = DitherMode.NONE,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        tint = TintParams(
+                            enabled = true,
+                            mode = TintMode.DUOTONE,
+                            shadowColor = 0xFF120A2E.toInt(),
+                            highlightColor = 0xFFFFD9A0.toInt(),
+                            amount = 90,
+                        ),
+                        blueNoise = BlueNoiseDitherParams(
+                            enabled = true,
+                            levels = 3,
+                            noiseScale = 2,
+                            monochrome = true,
+                        ),
+                    ),
+                ),
+            ),
+
+            // --- glitch --------------------------------------------------------------
+            // Damage, in the order it happens to a signal: in the transmission, on the tape,
+            // in the file, on the glass.
+            pixel(
+                "glitch",
+                CATEGORY_GLITCH,
+                // The artefact-glitch style is the dither *being* the fault, rather than a
+                // clean dither with damage applied afterwards.
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 4,
+                    contrast = 1.6f,
+                    ditherMode = DitherMode.ARTIFACT_GLITCH,
+                    colorMode = ColorMode.SINGLE,
+                    effects = EffectStack(
+                        jpegGlitch = JpegGlitchParams(enabled = true, quality = 30, corruption = 45),
+                    ),
+                ),
+            ),
+            pixel(
+                "databend",
+                CATEGORY_GLITCH,
+                AsciiParams(
+                    cellSize = 5,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        chromatic = ChromaticParams(
+                            enabled = true,
+                            maxDisplace = 9,
+                            waveAmplitude = 14,
+                            waveFrequency = 20,
+                            waveNoise = 35,
+                        ),
+                        jpegGlitch = JpegGlitchParams(enabled = true, quality = 18, corruption = 90),
+                    ),
+                ),
+            ),
+            pixel(
+                "crt",
+                CATEGORY_GLITCH,
+                AsciiParams(
+                    cellSize = 5,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "phosphor",
+                    contrast = 1.25f,
+                    effects = EffectStack(
+                        postProcessing = PostProcessingParams(
+                            enabled = true,
+                            scanlines = 45,
+                            scanlineSpacing = 3,
+                            vignette = 35,
+                            grain = 8,
+                        ),
+                        glow = GlowParams(enabled = true, intensity = 420, radius = 90),
+                    ),
+                ),
+            ),
+            pixel(
+                "crt arcade monitor",
+                CATEGORY_GLITCH,
+                // The order matters more than the values: interlace and the colour crush belong
+                // to the signal, the warp belongs to the glass, so the warp has to come last or
+                // the scan lines curve the wrong way — flat lines on curved glass.
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 6,
+                    contrast = 1.2f,
+                    ditherMode = DitherMode.BAYER_4,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        interlace = InterlaceParams(enabled = true, shift = 3, density = 45),
+                        colorDepth = ColorDepthParams(
+                            enabled = true,
+                            colorLevels = 5,
+                            colorSpace = ColorDistance.OKLAB,
+                            dithered = true,
+                        ),
+                        crtWarp = CrtWarpParams(
+                            enabled = true,
+                            warpCurvature = 30,
+                            vignetteIntensity = 45,
+                        ),
+                    ),
+                ),
+            ),
+            pixel(
+                "tape damage",
+                CATEGORY_GLITCH,
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 5,
+                    ditherMode = DitherMode.ATKINSON_VHS,
+                    serpentine = false,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        chromatic = ChromaticParams(enabled = true, maxDisplace = 9),
+                    ),
+                ),
+            ),
+            pixel(
+                "vhs dub",
+                CATEGORY_GLITCH,
+                AsciiParams(
+                    cellSize = 5,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        chromatic = ChromaticParams(enabled = true, maxDisplace = 7, waveAmplitude = 9, waveNoise = 40),
+                        subtexture = SubtextureParams(
+                            enabled = true,
+                            kind = TextureKind.VHS_BANDS,
+                            blend = BlendMode.SCREEN,
+                            intensity = 35,
+                            scale = 20,
+                        ),
+                        blurSharpen = BlurSharpenParams(enabled = true, amount = -45, radius = 3),
+                        postProcessing = PostProcessingParams(enabled = true, grain = 18, saturation = 130),
+                    ),
+                ),
+            ),
+            pixel(
+                "meltdown",
+                CATEGORY_GLITCH,
+                AsciiParams(
+                    cellSize = 4,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        pixelSort = PixelSortParams(
+                            enabled = true,
+                            thresholdLow = 18,
+                            thresholdHigh = 72,
+                            maxRun = 120,
+                        ),
+                        chromatic = ChromaticParams(enabled = true, maxDisplace = 5),
+                        glow = GlowParams(enabled = true, intensity = 300, radius = 70),
+                    ),
+                ),
+            ),
+            pixel(
+                "shredder",
+                CATEGORY_GLITCH,
+                AsciiParams(
+                    cellSize = 4,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        sliceShift = SliceShiftParams(
+                            enabled = true,
+                            slices = 40,
+                            maxOffset = 18,
+                            density = 70,
+                            colorShift = 45,
+                        ),
+                        pixelSort = PixelSortParams(enabled = true, axis = SortAxis.VERTICAL),
+                        // Sorting after the slicing rather than before: the displaced edges
+                        // become new run boundaries, which is what makes the tear read.
+                        order = listOf(
+                            EffectId.POST, EffectId.BLUR, EffectId.TINT, EffectId.CHROMATIC,
+                            EffectId.GLITCH, EffectId.SLICE, EffectId.SORT, EffectId.STARS,
+                            EffectId.SUBTEXTURE, EffectId.CMYK, EffectId.GLOW,
+                        ),
+                    ),
+                ),
+            ),
+
+            // --- motion --------------------------------------------------------------
+            /*
+             * These arrive with the animation already switched on and the track already
+             * aimed, so applying one and pressing play is the whole interaction.
+             *
+             * Nearly all of them move a *pattern* rather than the picture, which is why they
+             * loop cleanly: a sawtooth over the modulation phase travels exactly one period
+             * and arrives where it began. The ones driving the second axis use a sine
+             * instead, because that axis has no period to complete — a sawtooth there would
+             * snap back visibly at the seam.
+             */
+            pixel(
+                "drifting wave",
+                CATEGORY_MOTION,
+                AsciiParams(
+                    cellSize = 5,
+                    depth = 5,
+                    ditherMode = DitherMode.MOD_WAVE,
+                    modScale = 9,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ice",
+                    // A sawtooth over a whole period is what makes the pattern travel rather
+                    // than rock back and forth.
+                    animation = animation(sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH)),
+                ),
+            ),
+            pixel(
+                "bad signal",
+                CATEGORY_MOTION,
+                AsciiParams(
+                    cellSize = 5,
+                    colorMode = ColorMode.SOURCE,
+                    temporal = TemporalParams(
+                        enabled = true,
+                        pattern = TemporalPattern.SCANLINE_ROLL,
+                        scale = 6,
+                        amount = 55,
+                    ),
+                    effects = EffectStack(
+                        sliceShift = SliceShiftParams(enabled = true, slices = 18, maxOffset = 8, density = 35),
+                    ),
+                    animation = animation(sweep(AnimTarget.GLITCH_SEED, 1, 9999, AnimCurve.RANDOM)),
+                ),
+            ),
+            pixel(
+                "static storm",
+                CATEGORY_MOTION,
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 4,
+                    colorMode = ColorMode.SINGLE,
+                    temporal = TemporalParams(
+                        enabled = true,
+                        pattern = TemporalPattern.PLASMA,
+                        scale = 10,
+                        speed = 2,
+                        amount = 70,
+                    ),
+                    animation = animation(sweep(AnimTarget.DITHER_STRENGTH, 30, 100)),
+                ),
+            ),
+            pixel(
+                "rolling glow",
+                CATEGORY_MOTION,
+                AsciiParams(
+                    cellSize = 6,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "ember",
+                    effects = EffectStack(
+                        glow = GlowParams(enabled = true, intensity = 520, radius = 120, aspectRatio = 240),
+                    ),
+                    animation = animation(sweep(AnimTarget.GLOW_DIRECTION, 0, 359, AnimCurve.SAWTOOTH)),
+                ),
+            ),
+            pixel(
+                "modulation lines",
+                CATEGORY_MOTION,
+                AsciiParams(
+                    cellSize = 5,
+                    depth = 5,
+                    ditherMode = DitherMode.MOD_LINES,
+                    modScale = 6,
+                    modAngle = 90,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "phosphor",
+                    animation = animation(
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        frames = 36,
+                    ),
+                ),
+            ),
+            pixel(
+                "waveform glitch",
+                CATEGORY_MOTION,
+                AsciiParams(
+                    cellSize = 5,
+                    depth = 6,
+                    ditherMode = DitherMode.MOD_WAVE,
+                    modScale = 12,
+                    colorMode = ColorMode.SOURCE,
+                    effects = EffectStack(
+                        chromatic = ChromaticParams(
+                            enabled = true,
+                            maxDisplace = 6,
+                            waveAmplitude = 18,
+                            waveFrequency = 12,
+                        ),
+                        glow = GlowParams(enabled = true, intensity = 380, radius = 80),
+                    ),
+                    animation = animation(
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        sweep(AnimTarget.CHROMATIC_OFFSET, 2, 14),
+                        frames = 36,
+                    ),
+                ),
+            ),
+            pixel(
+                "cyberpunk",
+                CATEGORY_MOTION,
+                AsciiParams(
+                    cellSize = 4,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "neon",
+                    backgroundColor = 0xFF05000C.toInt(),
+                    temporal = TemporalParams(
+                        enabled = true,
+                        pattern = TemporalPattern.INTERFERENCE,
+                        scale = 12,
+                        amount = 40,
+                    ),
+                    effects = EffectStack(
+                        chromatic = ChromaticParams(enabled = true, maxDisplace = 8),
+                        sliceShift = SliceShiftParams(enabled = true, slices = 26, maxOffset = 10, density = 40),
+                        glow = GlowParams(enabled = true, intensity = 560, radius = 100),
+                    ),
+                    animation = animation(sweep(AnimTarget.GLITCH_SEED, 1, 9999, AnimCurve.RANDOM)),
+                ),
+            ),
+            pixel(
+                "gemstone",
+                CATEGORY_MOTION,
+                AsciiParams(
+                    cellSize = 5,
+                    depth = 6,
+                    ditherMode = DitherMode.MOD_ORB,
+                    modScale = 6,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "sunset",
+                    effects = EffectStack(
+                        stars = DiffractionStarsParams(
+                            enabled = true,
+                            rays = 6,
+                            length = 70,
+                            threshold = 55,
+                            intensity = 620,
+                        ),
+                        glow = GlowParams(enabled = true, intensity = 340, radius = 60),
+                    ),
+                    animation = animation(
+                        sweep(AnimTarget.STARS_ANGLE, 0, 359, AnimCurve.SAWTOOTH),
+                        sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                        frames = 36,
+                    ),
+                ),
+            ),
+            pixel(
+                "matrix particles",
+                CATEGORY_MOTION,
+                // The lines are the rain and the glitch is the transmission it is falling
+                // through. The phase track is what actually moves it — the node reads the
+                // clock, but a track makes the motion editable like every other animated
+                // preset in here.
+                AsciiParams(
                     cellSize = 3,
                     depth = 5,
                     contrast = 1.35f,
@@ -1166,22 +1375,10 @@ class PresetStore(context: Context) {
                     animation = animation(sweep(AnimTarget.MODULATION_PHASE, 0, 100), frames = 30),
                 ),
             ),
-
-            // --- motion --------------------------------------------------------------
-            /*
-             * These arrive with the animation already switched on and the track already
-             * aimed, so applying one and pressing play is the whole interaction.
-             *
-             * Nearly all of them move a *pattern* rather than the picture, which is why they
-             * loop cleanly: a sawtooth over the modulation phase travels exactly one period
-             * and arrives where it began. The ones driving the second axis use a sine
-             * instead, because that axis has no period to complete — a sawtooth there would
-             * snap back visibly at the seam.
-             */
-            preset(
-                "winding vortex", CATEGORY_MOTION,
+            pixel(
+                "winding vortex",
+                CATEGORY_MOTION,
                 AsciiParams(
-                    charSetId = "block-shade",
                     cellSize = 4,
                     depth = 6,
                     ditherMode = DitherMode.VORTEX,
@@ -1196,10 +1393,10 @@ class PresetStore(context: Context) {
                     ),
                 ),
             ),
-            preset(
-                "breathing contours", CATEGORY_MOTION,
+            pixel(
+                "breathing contours",
+                CATEGORY_MOTION,
                 AsciiParams(
-                    charSetId = "ascii-standard-10",
                     cellSize = 4,
                     depth = 4,
                     ditherMode = DitherMode.TOPOGRAPHY,
@@ -1210,10 +1407,10 @@ class PresetStore(context: Context) {
                     animation = animation(sweep(AnimTarget.PATTERN_DENSITY, 5, 60), frames = 44),
                 ),
             ),
-            preset(
-                "ripple peaks", CATEGORY_MOTION,
+            pixel(
+                "ripple peaks",
+                CATEGORY_MOTION,
                 AsciiParams(
-                    charSetId = "block-shade",
                     cellSize = 4,
                     depth = 5,
                     ditherMode = DitherMode.RADIAL_PEAKS,
@@ -1227,10 +1424,10 @@ class PresetStore(context: Context) {
                     ),
                 ),
             ),
-            preset(
-                "moire drift", CATEGORY_MOTION,
+            pixel(
+                "moire drift",
+                CATEGORY_MOTION,
                 AsciiParams(
-                    charSetId = "block-quadrant",
                     cellSize = 3,
                     depth = 3,
                     ditherMode = DitherMode.SINE_DISTORT,
@@ -1241,10 +1438,10 @@ class PresetStore(context: Context) {
                     animation = animation(sweep(AnimTarget.PATTERN_DENSITY, 30, 65), frames = 48),
                 ),
             ),
-            preset(
-                "waveform scan", CATEGORY_MOTION,
+            pixel(
+                "waveform scan",
+                CATEGORY_MOTION,
                 AsciiParams(
-                    charSetId = "block-horizontal",
                     cellSize = 4,
                     depth = 5,
                     ditherMode = DitherMode.WAVEFORM,
@@ -1259,10 +1456,10 @@ class PresetStore(context: Context) {
                     ),
                 ),
             ),
-            preset(
-                "spinning burst", CATEGORY_MOTION,
+            pixel(
+                "spinning burst",
+                CATEGORY_MOTION,
                 AsciiParams(
-                    charSetId = "misc-dots",
                     cellSize = 4,
                     depth = 4,
                     ditherMode = DitherMode.RADIAL_BURST,
@@ -1276,10 +1473,10 @@ class PresetStore(context: Context) {
                     ),
                 ),
             ),
-            preset(
-                "tearing signal", CATEGORY_MOTION,
+            pixel(
+                "tearing signal",
+                CATEGORY_MOTION,
                 AsciiParams(
-                    charSetId = "block-quadrant",
                     cellSize = 4,
                     depth = 4,
                     ditherMode = DitherMode.GLITCH,
@@ -1295,16 +1492,17 @@ class PresetStore(context: Context) {
                     ),
                 ),
             ),
-            preset(
-                "crawling hatch", CATEGORY_MOTION,
+            pixel(
+                "crawling hatch",
+                CATEGORY_MOTION,
                 AsciiParams(
-                    charSetId = "ascii-standard-10",
                     cellSize = 3,
                     depth = 3,
                     contrast = 1.3f,
                     ditherMode = DitherMode.CROSSHATCH,
                     modScale = 5,
                     patternDensity = 40,
+                    colorMode = ColorMode.SINGLE,
                     inkColor = 0xFF1A1712.toInt(),
                     backgroundColor = 0xFFE8DFC8.toInt(),
                     animation = animation(
@@ -1313,10 +1511,10 @@ class PresetStore(context: Context) {
                     ),
                 ),
             ),
-            preset(
-                "pulsing stipple", CATEGORY_MOTION,
+            pixel(
+                "pulsing stipple",
+                CATEGORY_MOTION,
                 AsciiParams(
-                    charSetId = "misc-dots",
                     cellSize = 3,
                     depth = 3,
                     ditherMode = DitherMode.STIPPLING,
@@ -1327,10 +1525,10 @@ class PresetStore(context: Context) {
                     animation = animation(sweep(AnimTarget.PATTERN_DENSITY, 20, 75), frames = 40),
                 ),
             ),
-            preset(
-                "rolling gridlock", CATEGORY_MOTION,
+            pixel(
+                "rolling gridlock",
+                CATEGORY_MOTION,
                 AsciiParams(
-                    charSetId = "block-shade",
                     cellSize = 4,
                     depth = 4,
                     ditherMode = DitherMode.GRIDLOCK,
@@ -1348,15 +1546,16 @@ class PresetStore(context: Context) {
              * which of the six triangle cuts is used, so a sawtooth across it steps through
              * every tessellation in turn and the whole surface re-facets at each step.
              */
-            preset(
-                "shifting facets", CATEGORY_MOTION,
+            pixel(
+                "shifting facets",
+                CATEGORY_MOTION,
                 AsciiParams(
-                    charSetId = "block-shade",
                     cellSize = 6,
                     depth = 5,
                     ditherMode = DitherMode.LOW_POLY,
                     modScale = 10,
-                    colorMode = ColorMode.SOURCE,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "arctic",
                     // A triangle rather than a sawtooth: the axis picks one of six cuts and
                     // does not wrap, so it rides up through them and back down instead of
                     // snapping from the last to the first in view.
@@ -1367,24 +1566,224 @@ class PresetStore(context: Context) {
                     ),
                 ),
             ),
-            preset(
-                "spiral grain", CATEGORY_MOTION,
+
+            // --- layered -------------------------------------------------------------
+            // One image, two treatments, blended. A layer is a complete second set of
+            // settings rendered at the same size, so what these demonstrate is the thing you
+            // cannot get from any single dither: two screens at once.
+            pixel(
+                "two pass screen",
+                CATEGORY_LAYERED,
                 AsciiParams(
-                    charSetId = "ascii-standard-70",
-                    cellSize = 3,
-                    depth = 8,
-                    ditherMode = DitherMode.VORTEX_DIFFUSION,
-                    colorMode = ColorMode.PALETTE,
-                    paletteId = "ember",
-                    animation = animation(sweep(AnimTarget.DITHER_STRENGTH, 40, 100), frames = 34),
+                    cellSize = 6,
+                    depth = 3,
+                    ditherMode = DitherMode.CLUSTER_8,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFF161310.toInt(),
+                    backgroundColor = 0xFFF2ECDD.toInt(),
+                    layers = listOf(
+                        Layer(
+                            name = "fine screen",
+                            params = AsciiParams(
+                                renderMode = RenderMode.PurePixel,
+                                cellSize = 3,
+                                depth = 3,
+                                ditherMode = DitherMode.BAYER_8,
+                                colorMode = ColorMode.SINGLE,
+                                inkColor = 0xFF161310.toInt(),
+                                backgroundColor = 0xFFF2ECDD.toInt(),
+                            ),
+                            blend = LayerBlend.MULTIPLY,
+                            opacity = 60,
+                        ),
+                    ),
                 ),
             ),
+            pixel(
+                "offset plates",
+                CATEGORY_LAYERED,
+                // Two inks laid down slightly out of register — the misalignment is the
+                // picture, so the layer offset carries the whole effect.
+                AsciiParams(
+                    cellSize = 4,
+                    depth = 2,
+                    ditherMode = DitherMode.FLOYD_STEINBERG,
+                    colorMode = ColorMode.SINGLE,
+                    inkColor = 0xFF1B3F8F.toInt(),
+                    backgroundColor = 0xFFF7F3E8.toInt(),
+                    layers = listOf(
+                        Layer(
+                            name = "second plate",
+                            params = AsciiParams(
+                                renderMode = RenderMode.PurePixel,
+                                cellSize = 4,
+                                depth = 2,
+                                ditherMode = DitherMode.FLOYD_STEINBERG,
+                                colorMode = ColorMode.SINGLE,
+                                inkColor = 0xFFD2263F.toInt(),
+                                backgroundColor = 0xFFF7F3E8.toInt(),
+                            ),
+                            blend = LayerBlend.MULTIPLY,
+                            opacity = 70,
+                            offsetX = 2,
+                            offsetY = -2,
+                        ),
+                    ),
+                ),
+            ),
+
+            // --- glyph art -----------------------------------------------------------
+            // The render module, not the premise. Each of these demonstrates a different
+            // glyph capability rather than a different look: the ramp, its length, a
+            // non-Latin set, the edge pass, injection, and colour on characters.
+            glyph(
+                "terminal",
+                CATEGORY_GLYPH,
+                AsciiParams(charSetId = "ascii-standard-10", cellSize = 6, contrast = 1.2f),
+            ),
+            glyph(
+                "phosphor",
+                CATEGORY_GLYPH,
+                // Seventy steps: the long ramp, where the mapping has enough glyphs to render
+                // a tonal photograph rather than a poster.
+                AsciiParams(
+                    charSetId = "ascii-standard-70",
+                    cellSize = 5,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "phosphor",
+                    contrast = 1.3f,
+                ),
+            ),
+            glyph(
+                "braille",
+                CATEGORY_GLYPH,
+                AsciiParams(charSetId = "braille-ramp", cellSize = 4, contrast = 1.4f, gamma = 1.2f),
+            ),
+            glyph(
+                "matrix",
+                CATEGORY_GLYPH,
+                AsciiParams(
+                    charSetId = "lang-katakana",
+                    cellSize = 8,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "phosphor",
+                    contrast = 1.5f,
+                ),
+            ),
+            glyph(
+                "monogram",
+                CATEGORY_GLYPH,
+                // Injection: characters of your own appended to the dense end of the ramp, so
+                // the darkest parts of the picture are drawn with them.
+                AsciiParams(
+                    charSetId = "ascii-standard-10",
+                    cellSize = 6,
+                    depth = 8,
+                    offset = 2,
+                    injection = "@#&%",
+                    contrast = 1.2f,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "bone",
+                ),
+            ),
+            glyph(
+                "ascii poster",
+                CATEGORY_GLYPH,
+                // Characters carrying the source colour, one hue per cell — the thing the
+                // pixel path cannot do, because there is no character to colour.
+                AsciiParams(
+                    charSetId = "ascii-standard-70",
+                    cellSize = 5,
+                    contrast = 1.15f,
+                    colorMode = ColorMode.SOURCE,
+                ),
+            ),
+            glyph(
+                "blueprint",
+                CATEGORY_GLYPH,
+                // Edge glyphs only: the Sobel pass picks a line character per cell and the
+                // tonal mapping is switched off entirely.
+                AsciiParams(
+                    charSetId = "line-box",
+                    cellSize = 6,
+                    edgeEnabled = true,
+                    edgeOnly = true,
+                    edgeThreshold = 18,
+                    edgeSetId = "box",
+                    inkColor = 0xFFCFE4FF.toInt(),
+                    backgroundColor = 0xFF0E2A4A.toInt(),
+                ),
+            ),
+            glyph(
+                "engraving",
+                CATEGORY_GLYPH,
+                // The same edge pass laid *over* a tonal ramp rather than replacing it.
+                AsciiParams(
+                    charSetId = "ascii-standard-70",
+                    cellSize = 4,
+                    edgeEnabled = true,
+                    edgeThreshold = 30,
+                    edgeSetId = "ascii",
+                    contrast = 1.5f,
+                    inkColor = 0xFF1A1410.toInt(),
+                    backgroundColor = 0xFFEFE3C8.toInt(),
+                ),
+            ),
+            glyph(
+                "breathing",
+                CATEGORY_GLYPH,
+                // Animated glyph art: the ramp length itself is the track, so the picture is
+                // redrawn with more and then fewer characters.
+                AsciiParams(
+                    charSetId = "ascii-standard-70",
+                    cellSize = 5,
+                    colorMode = ColorMode.PALETTE,
+                    paletteId = "phosphor",
+                    animation = animation(sweep(AnimTarget.DEPTH, 3, 40)),
+                ),
+            ),
+        )
+
+        /**
+         * The test bench: one picture, one set of settings, and the algorithm as the only
+         * variable.
+         *
+         * Separate from [curated] and counted separately, because these are not looks. They
+         * are how you find out what a kernel actually does, and a curated library that opened
+         * on six versions of the same grey gradient would describe a laboratory rather than
+         * an application.
+         *
+         * Everything here is deliberately identical apart from [AsciiParams.ditherMode]: same
+         * cell size, same level count, same neutral ink, no effects, no palette. That is the
+         * whole point — a difference you can see is a difference the algorithm made.
+         */
+        private fun lab(name: String, mode: DitherMode) = pixel(
+            name,
+            CATEGORY_LAB,
+            AsciiParams(
+                cellSize = 2,
+                depth = 6,
+                ditherMode = mode,
+                serpentine = true,
+                colorMode = ColorMode.SINGLE,
+                inkColor = 0xFFFFFFFF.toInt(),
+                backgroundColor = 0xFF000000.toInt(),
+            ),
+        )
+
+        private val laboratory: List<Preset> = listOf(
+            lab("floyd-steinberg", DitherMode.FLOYD_STEINBERG),
+            lab("atkinson", DitherMode.ATKINSON),
+            lab("ostromoukhov", DitherMode.OSTROMOUKHOV),
+            lab("shiau-fan", DitherMode.SHIAU_FAN),
+            lab("dot diffusion", DitherMode.DOT_DIFFUSION),
+            lab("fractal walk", DitherMode.FRACTAL_DIFFUSE),
         )
 
         /**
          * Declared last on purpose: a Kotlin object initialises its properties in source
          * order, so reading [curated] from above where it is defined would hand back null.
          */
-        val builtIns: List<Preset> = curated
+        val builtIns: List<Preset> = curated + laboratory
     }
 }
