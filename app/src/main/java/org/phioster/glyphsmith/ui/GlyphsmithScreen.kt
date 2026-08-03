@@ -501,7 +501,7 @@ private fun PresetBar(
     onImport: (android.net.Uri) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    var category by remember { mutableStateOf(PRESET_FILTER_ALL) }
+    var category by remember { mutableStateOf<PresetFilter>(PresetFilter.All) }
     var name by remember { mutableStateOf("") }
 
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -510,11 +510,16 @@ private fun PresetBar(
 
     // Only the categories that actually have presets — an empty filter chip is a dead end.
     val available = remember(presets) {
-        listOf(PRESET_FILTER_ALL) +
-            PresetStore.categories.filter { c -> presets.any { it.category == c } }
+        listOf(PresetFilter.All) +
+            PresetStore.categories
+                .filter { c -> presets.any { it.category == c } }
+                .map { PresetFilter.Category(it) }
     }
     val shown = remember(presets, category) {
-        val matching = if (category == PRESET_FILTER_ALL) presets else presets.filter { it.category == category }
+        val matching = when (val active = category) {
+            PresetFilter.All -> presets
+            is PresetFilter.Category -> presets.filter { it.category == active.id }
+        }
         matching.sortedWith(compareByDescending<Preset> { it.favourite }.thenBy { it.name })
     }
 
@@ -544,7 +549,7 @@ private fun PresetBar(
             available.forEach { entry ->
                 TerminalChip(
                     // The chip carries the category's name, not the string it is stored as.
-                    label = PresetStore.label(entry).lowercase(),
+                    label = entry.label,
                     selected = entry == category,
                     onClick = { category = entry },
                 )
@@ -600,4 +605,24 @@ private fun PresetBar(
     }
 }
 
-private const val PRESET_FILTER_ALL = "ALL"
+/**
+ * What the preset bar is filtered to.
+ *
+ * "All" is not a category, and spelling it as the string "ALL" put it in the same namespace as
+ * the stored category tokens: a preset filed under that word would have been shadowed by the
+ * show-everything chip and unreachable through the filter. Typed, the two cannot be confused.
+ */
+private sealed interface PresetFilter {
+
+    data object All : PresetFilter
+
+    /** A stored category token — see [PresetStore.categories]. */
+    data class Category(val id: String) : PresetFilter
+
+    /** Lower case because the bar's chips are set that way; [PresetStore.label] supplies the words. */
+    val label: String
+        get() = when (this) {
+            All -> "all"
+            is Category -> PresetStore.label(id).lowercase()
+        }
+}

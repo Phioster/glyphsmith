@@ -95,15 +95,13 @@ fun PresetPanel(
                 .thenBy { PresetStore.categories.indexOf(it.category).let { i -> if (i < 0) 99 else i } }
                 .thenBy { it.name },
         )
-        var lastHeader: String? = null
+        var lastShelf: Shelf? = null
 
         ordered.forEach { preset ->
-            val header = if (preset.favourite) "FAVOURITES" else preset.category
-            if (header != lastHeader) {
-                // Grouped by the stored category, headed by what that category is *called* —
-                // the token is an identifier in a file, not a word to put in front of anyone.
-                SectionHeader(if (preset.favourite) "Favourites" else PresetStore.label(header))
-                lastHeader = header
+            val shelf = Shelf.of(preset)
+            if (shelf != lastShelf) {
+                SectionHeader(shelf.label)
+                lastShelf = shelf
             }
 
             Row(
@@ -276,5 +274,36 @@ fun PresetPanel(
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 6.dp),
         )
+    }
+}
+
+/**
+ * What a run of presets sits under.
+ *
+ * A heading is not a category. Favourites are gathered from every shelf and have no category of
+ * their own, and modelling that as the string "FAVOURITES" put it in the same namespace as the
+ * stored category tokens — so a preset somebody had filed under that word would have silently
+ * merged into the favourites run, and un-starring it would have moved it somewhere else.
+ *
+ * Typed instead, the two cannot collide, and the heading text is decided in one place rather
+ * than by asking `preset.favourite` twice on the way past.
+ */
+private sealed interface Shelf {
+
+    /** Starred presets, which sort above everything and come from every category. */
+    data object Favourites : Shelf
+
+    /** A stored category token — see [PresetStore.categories]. */
+    data class Category(val id: String) : Shelf
+
+    val label: String
+        get() = when (this) {
+            Favourites -> "Favourites"
+            is Category -> PresetStore.label(id)
+        }
+
+    companion object {
+        fun of(preset: Preset): Shelf =
+            if (preset.favourite) Favourites else Category(preset.category)
     }
 }
