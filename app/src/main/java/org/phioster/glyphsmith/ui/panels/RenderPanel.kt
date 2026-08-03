@@ -32,6 +32,7 @@ import org.phioster.glyphsmith.render.ColorMode
 import org.phioster.glyphsmith.render.GlyphFont
 import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.render.RenderMode
+import org.phioster.glyphsmith.render.RenderModules
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton
@@ -86,12 +87,12 @@ fun RenderPanel(
         // between the other two: it runs both, in order. A boolean cannot say that.
         StepperDropdown(
             label = "mode",
-            items = RenderMode.entries.toList(),
-            selectedIndex = RenderMode.entries.indexOf(params.renderMode),
-            onSelect = { onChange(params.copy(renderMode = RenderMode.entries[it])) },
-            itemLabel = { labelOf(it) },
+            items = RenderModules.all,
+            selectedIndex = RenderModules.all.indexOfFirst { it.mode == params.renderMode },
+            onSelect = { onChange(params.copy(renderMode = RenderModules.all[it].mode)) },
+            itemLabel = { it.displayName },
             itemDetail = {
-                when (it) {
+                when (it.mode) {
                     RenderMode.PurePixel -> "levels become palette colours"
                     RenderMode.GlyphMatrix -> "levels become characters from the ramp"
                     RenderMode.PixelThenGlyph -> "dither to the palette first, then read glyphs off it"
@@ -525,9 +526,4 @@ private fun PixelModeControls(params: RenderSettings, onChange: (RenderSettings)
     )
 }
 
-/** Display names for the modes. The serialised enum entries are deliberately left alone. */
-private fun labelOf(mode: RenderMode): String = when (mode) {
-    RenderMode.PurePixel -> "pixel dither"
-    RenderMode.GlyphMatrix -> "glyph art"
-    RenderMode.PixelThenGlyph -> "pixel dither → glyphs"
-}
+
