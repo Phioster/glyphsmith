@@ -241,6 +241,17 @@ data class AsciiParams(
     fun isStopLocked(index: Int): Boolean = paletteLocks.getOrElse(index) { false }
 
     companion object {
+        /**
+         * The settings a new session opens with.
+         *
+         * Exists because the constructor default cannot be it. That default is the value a
+         * preset falls back to when it names no render mode, and it has to stay Glyph Art or
+         * every preset written before the field existed would change appearance. This is the
+         * other default — what a session with nothing loaded starts in — and that is Pixel
+         * Dither, the general-purpose mode.
+         */
+        fun newSession(): AsciiParams = AsciiParams(renderMode = RenderMode.DEFAULT)
+
         const val MAX_INJECTION = 10
         const val MAX_DEPTH = 64
         /**
