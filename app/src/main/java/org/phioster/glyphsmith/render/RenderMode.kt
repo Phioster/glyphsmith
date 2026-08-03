@@ -9,9 +9,15 @@ import kotlinx.serialization.Serializable
  * they do with the index each cell comes out with, and therefore in how many levels they ask
  * the dither for.
  *
- * The default is [GlyphMatrix] and has to stay that way: this field arrived after presets were
- * already being written to disk, and a preset without it must render exactly as it did before
- * the field existed.
+ * There are two defaults here and they are deliberately different values.
+ *
+ * The *field* default on `AsciiParams.renderMode` is [GlyphMatrix] and has to stay that way:
+ * this field arrived after presets were already being written to disk, and a preset without it
+ * must render exactly as it did before the field existed.
+ *
+ * [DEFAULT] is what new work starts in, and it is [PurePixel]. Pixel dithering is the
+ * general-purpose mode; glyph rendering is a render module you choose. Keeping the two apart is
+ * what lets new sessions open in the general mode without the saved library changing under it.
  */
 @Serializable
 enum class RenderMode {
@@ -45,4 +51,15 @@ enum class RenderMode {
 
     /** True when a palette dither runs before anything else looks at the image. */
     val ditherFirst: Boolean get() = this != GlyphMatrix
+
+    companion object {
+        /**
+         * The mode new work starts in: new sessions, and any general-purpose roll of a look.
+         *
+         * Not the same thing as the default of `AsciiParams.renderMode`, which answers a
+         * different question — what a preset that names no mode should be read as — and must
+         * stay [GlyphMatrix] for as long as presets written before the field exist.
+         */
+        val DEFAULT = PurePixel
+    }
 }

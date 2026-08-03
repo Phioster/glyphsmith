@@ -26,6 +26,8 @@ import org.phioster.glyphsmith.anim.GifEncoder
 import org.phioster.glyphsmith.anim.Mp4Encoder
 import org.phioster.glyphsmith.ascii.AsciiRenderer
 import org.phioster.glyphsmith.ascii.CharacterSets
+import org.phioster.glyphsmith.ascii.RandomLook
+import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.ascii.ColorMode
 import org.phioster.glyphsmith.ascii.Pipeline
 import org.phioster.glyphsmith.ascii.GlyphCoverage
@@ -42,21 +44,6 @@ import org.phioster.glyphsmith.data.Settings
 import org.phioster.glyphsmith.data.Source
 import org.phioster.glyphsmith.data.StillSource
 import org.phioster.glyphsmith.data.VideoSource
-import org.phioster.glyphsmith.effects.BlurSharpenParams
-import org.phioster.glyphsmith.effects.ChromaticParams
-import org.phioster.glyphsmith.effects.CmykHalftoneParams
-import org.phioster.glyphsmith.effects.DiffractionStarsParams
-import org.phioster.glyphsmith.effects.EffectId
-import org.phioster.glyphsmith.effects.EffectStack
-import org.phioster.glyphsmith.effects.GlowParams
-import org.phioster.glyphsmith.effects.InterlaceParams
-import org.phioster.glyphsmith.effects.JpegGlitchParams
-import org.phioster.glyphsmith.effects.PixelSortParams
-import org.phioster.glyphsmith.effects.PostProcessingParams
-import org.phioster.glyphsmith.effects.SliceShiftParams
-import org.phioster.glyphsmith.effects.SubtextureParams
-import org.phioster.glyphsmith.effects.TextureKind
-import org.phioster.glyphsmith.effects.TintParams
 import org.phioster.glyphsmith.export.Exporter
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.export.SvgExporter
@@ -64,18 +51,15 @@ import org.phioster.glyphsmith.export.SvgMode
 import org.phioster.glyphsmith.export.TextExporters
 import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.ui.theme.TermThemes
-import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.color.Palettes
-import org.phioster.glyphsmith.effects.CrtWarpParams
-import org.phioster.glyphsmith.effects.BlueNoiseDitherParams
-import org.phioster.glyphsmith.effects.ColorDepthParams
-import org.phioster.glyphsmith.effects.SpotColorPrintParams
-import org.phioster.glyphsmith.effects.ModulationColorMode
-import org.phioster.glyphsmith.effects.ModulationLinesParams
-import org.phioster.glyphsmith.core.color.ColorDistance
 
 data class UiState(
-    val params: AsciiParams = AsciiParams(),
+    /**
+     * A session with nothing loaded starts in Pixel Dither, not in the field default — see
+     * [AsciiParams.newSession]. Loading a preset replaces this wholesale, so the mode a saved
+     * look carries still wins.
+     */
+    val params: AsciiParams = AsciiParams.newSession(),
     val preview: Bitmap? = null,
     val hasImage: Boolean = false,
     /** The source is a video, so the preview can be scrubbed and playback has real frames. */
@@ -136,14 +120,16 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
 
-    private val paramsFlow = MutableStateFlow(AsciiParams())
+    private val paramsFlow = MutableStateFlow(AsciiParams.newSession())
 
     // History is captured at the debounce point rather than in updateParams(): one slider
     // drag emits dozens of values but only ever settles once, so this turns a drag into a
     // single undo step without any gesture tracking.
     private val undoStack = ArrayDeque<AsciiParams>()
     private val redoStack = ArrayDeque<AsciiParams>()
-    private var lastCommitted = AsciiParams()
+    // Seeded with the same value the session opens on, or the first edit would record an undo
+    // step back to a mode the user never saw.
+    private var lastCommitted = AsciiParams.newSession()
     private var suppressHistory = false
 
     private var source: Source? = null
@@ -858,144 +844,18 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     /**
      * Rolls a look at random.
      *
-     * Deliberately narrow: a genuinely uniform roll over every parameter produces an empty
-     * or unreadable image far more often than an interesting one, which makes the button
-     * useless. Cell size, depth and the effect count are all kept inside the range that
-     * reliably yields something worth looking at, and the effects are picked one at a time
-     * rather than all rolled independently.
+     * The roll itself is [RandomLook] — a plain function, so the ranges that make it produce
+     * something worth looking at are testable without a device. This binds it to the session:
+     * one undo step, and a status line naming what came up.
+     *
+     * No mode is passed, so it rolls [RenderMode.DEFAULT] — Pixel Dither. Surprise Me is the
+     * general-purpose button and Glyph Art is chosen deliberately, not stumbled into.
      */
     fun randomise() {
-        val random = kotlin.random.Random.Default
-        val set = CharacterSets.all.random(random)
-        val palette = Palettes.all.random(random)
-        val dither = DitherMode.entries.random(random)
-
-        var effects = EffectStack()
-        repeat(random.nextInt(0, 3)) {
-            effects = when (EffectId.entries.random(random)) {
-                EffectId.POST -> effects.copy(
-                    postProcessing = PostProcessingParams(
-                        enabled = true,
-                        grain = random.nextInt(0, 40),
-                        vignette = random.nextInt(0, 60),
-                        scanlines = random.nextInt(0, 60),
-                    ),
-                )
-
-                EffectId.BLUR -> effects.copy(
-                    blurSharpen = BlurSharpenParams(enabled = true, amount = random.nextInt(-70, 70)),
-                )
-
-                EffectId.TINT -> effects.copy(tint = TintParams(enabled = true, color = palette.colors.last()))
-                EffectId.CHROMATIC -> effects.copy(
-                    chromatic = ChromaticParams(enabled = true, maxDisplace = random.nextInt(2, 18)),
-                )
-
-                EffectId.GLITCH -> effects.copy(
-                    jpegGlitch = JpegGlitchParams(enabled = true, corruption = random.nextInt(20, 140)),
-                )
-
-                EffectId.SORT -> effects.copy(
-                    pixelSort = PixelSortParams(
-                        enabled = true,
-                        thresholdLow = random.nextInt(10, 40),
-                        thresholdHigh = random.nextInt(55, 90),
-                    ),
-                )
-
-                EffectId.SLICE -> effects.copy(
-                    sliceShift = SliceShiftParams(enabled = true, maxOffset = random.nextInt(4, 20)),
-                )
-
-                EffectId.INTERLACE -> effects.copy(
-                    interlace = InterlaceParams(
-                        enabled = true,
-                        shift = random.nextInt(2, 18),
-                        density = random.nextInt(30, 90),
-                        tearColor = random.nextInt(0, 60),
-                    ),
-                )
-
-                EffectId.STARS -> effects.copy(stars = DiffractionStarsParams(enabled = true))
-                EffectId.SUBTEXTURE -> effects.copy(
-                    subtexture = SubtextureParams(
-                        enabled = true,
-                        kind = TextureKind.entries.random(random),
-                        intensity = random.nextInt(20, 60),
-                    ),
-                )
-
-                EffectId.CMYK -> effects.copy(
-                    cmyk = CmykHalftoneParams(enabled = true, frequency = random.nextInt(4, 14)),
-                )
-
-                EffectId.GLOW -> effects.copy(
-                    glow = GlowParams(enabled = true, intensity = random.nextInt(200, 600)),
-                )
-
-                EffectId.MODULATION -> effects.copy(
-                    modulationLines = ModulationLinesParams(
-                        enabled = true,
-                        lineSpacing = random.nextInt(4, 16),
-                        amplitude = random.nextInt(3, 20),
-                        colorMode = ModulationColorMode.entries.random(random),
-                    ),
-                )
-
-                EffectId.PRINT -> effects.copy(
-                    spotPrint = SpotColorPrintParams(
-                        enabled = true,
-                        misalignment = random.nextInt(10, 60),
-                        inkCount = random.nextInt(2, 5),
-                        seed = random.nextInt(1, 999),
-                    ),
-                )
-
-                EffectId.DEPTH -> effects.copy(
-                    colorDepth = ColorDepthParams(
-                        enabled = true,
-                        colorLevels = random.nextInt(2, 10),
-                        colorSpace = ColorDistance.entries.random(random),
-                    ),
-                )
-
-                EffectId.DITHER -> effects.copy(
-                    blueNoise = BlueNoiseDitherParams(
-                        enabled = true,
-                        levels = random.nextInt(2, 6),
-                        noiseScale = random.nextInt(1, 4),
-                    ),
-                )
-
-                EffectId.WARP -> effects.copy(
-                    crtWarp = CrtWarpParams(
-                        enabled = true,
-                        warpCurvature = random.nextInt(10, 60),
-                        vignetteIntensity = random.nextInt(15, 60),
-                    ),
-                )
-            }
-        }
-
-        updateParams(
-            _state.value.params.copy(
-                charSetId = set.id,
-                cellSize = random.nextInt(4, 13),
-                depth = random.nextInt(3, 24),
-                invert = random.nextBoolean(),
-                ditherMode = dither,
-                ditherStrength = random.nextInt(50, 101),
-                modScale = random.nextInt(4, 16),
-                modAngle = random.nextInt(0, 360),
-                colorMode = ColorMode.entries.random(random),
-                paletteId = palette.id,
-                paletteOverride = emptyList(),
-                paletteLocks = emptyList(),
-                rampOverride = "",
-                effects = effects,
-            ),
-        )
-        _state.value = _state.value.copy(status = "rolled ${set.name} · ${dither.label}")
+        val rolled = RandomLook.roll(_state.value.params)
+        updateParams(rolled)
+        val set = CharacterSets.byId(rolled.charSetId)
+        _state.value = _state.value.copy(status = "rolled ${set.name} · ${rolled.ditherMode.label}")
     }
 
     private var live: LiveCamera? = null
