@@ -2,6 +2,7 @@ package org.phioster.glyphsmith.data
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
@@ -9,8 +10,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.ascii.ColorMode
+import org.phioster.glyphsmith.ascii.Layer
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.effects.ChromaticParams
+import org.phioster.glyphsmith.effects.EffectId
 import org.phioster.glyphsmith.effects.EffectStack
 import org.phioster.glyphsmith.render.RenderMode
 
@@ -107,6 +110,156 @@ class PresetSchemaTest {
         assertEquals(6, preset.params.cellSize)
         assertEquals(7, preset.params.depth)
         assertEquals("ice", preset.params.paletteId)
+    }
+
+    // --- version 2: enum constants, before the stable ids ----------------------------
+
+    /**
+     * What a version 2 file contains is Kotlin constant names. They still have to read, and
+     * they have to come back as exactly the same style — a preset is only worth keeping if it
+     * keeps looking like itself.
+     */
+    @Test
+    fun `a version 2 preset named by enum constants keeps every identity`() {
+        val legacy = """
+            {"schemaVersion":2,"presets":[{"name":"old","params":{
+              "renderMode":"PurePixel","ditherMode":"FLOYD_STEINBERG","cellSize":5,"depth":6,
+              "effects":{"order":["GLOW","POST","CHROMATIC"]}}}]}
+        """.trimIndent()
+
+        val params = PresetSchema.decode(legacy).single().params
+
+        assertEquals(RenderMode.PurePixel, params.renderMode)
+        assertEquals(DitherMode.FLOYD_STEINBERG, params.ditherMode)
+        assertEquals(listOf(EffectId.GLOW, EffectId.POST, EffectId.CHROMATIC), params.effects.order)
+        assertEquals(5, params.cellSize)
+        assertEquals(6, params.depth)
+    }
+
+    /** A layer carries a whole second set of params, and a second dither style with it. */
+    @Test
+    fun `a version 2 preset carries its layers across too`() {
+        val legacy = """
+            {"schemaVersion":2,"presets":[{"name":"stacked","params":{
+              "renderMode":"GlyphMatrix","ditherMode":"ATKINSON",
+              "layers":[{"name":"over","params":{"renderMode":"PurePixel","ditherMode":"BAYER_8"}}]}}]}
+        """.trimIndent()
+
+        val params = PresetSchema.decode(legacy).single().params
+        val layer = params.layers.single().params
+
+        assertEquals(DitherMode.ATKINSON, params.ditherMode)
+        assertEquals(RenderMode.PurePixel, layer.renderMode)
+        assertEquals(DitherMode.BAYER_8, layer.ditherMode)
+    }
+
+    /** The two spellings are the same preset, so they must render as the same preset. */
+    @Test
+    fun `a preset named by enum constants and one named by ids read alike`() {
+        val legacy = """{"schemaVersion":2,"presets":[{"name":"same","params":
+            {"renderMode":"PurePixel","ditherMode":"MOD_WAVE","effects":{"order":["GLOW","POST"]}}}]}"""
+        val current = """{"schemaVersion":3,"presets":[{"name":"same","params":
+            {"renderMode":"render.pixel-dither","ditherMode":"dither.modulation-wave",
+             "effects":{"order":["effect.glow","effect.post-processing"]}}}]}"""
+
+        assertEquals(PresetSchema.decode(legacy), PresetSchema.decode(current))
+    }
+
+    // --- version 3: what is actually written -----------------------------------------
+
+    @Test
+    fun `the written format names things by their stable ids`() {
+        val preset = Preset(
+            "written",
+            AsciiParams(renderMode = RenderMode.PurePixel, ditherMode = DitherMode.ATKINSON),
+        )
+
+        val params = Json.parseToJsonElement(PresetSchema.encode(listOf(preset)))
+            .jsonObject["presets"]!!.jsonArray.single().jsonObject["params"]!!.jsonObject
+
+        assertEquals("render.pixel-dither", params["renderMode"]?.jsonPrimitive?.content)
+        assertEquals("dither.atkinson", params["ditherMode"]?.jsonPrimitive?.content)
+        assertEquals(
+            "effect.post-processing",
+            params["effects"]?.jsonObject?.get("order")?.jsonArray?.first()?.jsonPrimitive?.content,
+        )
+    }
+
+    /** A preset saved today, reloaded, has to be the same preset down to the effect order. */
+    @Test
+    fun `a preset written now survives being read back whole`() {
+        val preset = Preset(
+            name = "everything",
+            params = AsciiParams(
+                renderMode = RenderMode.PixelThenGlyph,
+                ditherMode = DitherMode.OSTROMOUKHOV,
+                cellSize = 5,
+                depth = 7,
+                effects = EffectStack(
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = 9),
+                    order = listOf(EffectId.GLOW, EffectId.WARP) + (EffectId.entries - EffectId.GLOW - EffectId.WARP),
+                ),
+                layers = listOf(Layer(name = "over", params = AsciiParams(ditherMode = DitherMode.BAYER_8))),
+            ),
+            category = PresetStore.CATEGORY_DITHER,
+        )
+
+        assertEquals(listOf(preset), PresetSchema.decode(PresetSchema.encode(listOf(preset))))
+    }
+
+    // --- identities this build does not know ------------------------------------------
+
+    /**
+     * The failure that matters. An unknown style must never come back as some *other* style —
+     * a preset that silently renders with the wrong algorithm is worse than one that is
+     * reported missing, because nothing tells you it happened.
+     */
+    @Test
+    fun `an unknown dither id is refused rather than swapped for another style`() {
+        val document = """
+            {"schemaVersion":3,"presets":[{"name":"from later","params":{"ditherMode":"dither.not-invented-yet"}}]}
+        """.trimIndent()
+
+        assertEquals(emptyList<Preset>(), PresetSchema.decode(document))
+    }
+
+    @Test
+    fun `an unknown render mode id is refused rather than falling back to a default`() {
+        val document = """
+            {"schemaVersion":3,"presets":[{"name":"from later","params":{"renderMode":"render.not-invented-yet"}}]}
+        """.trimIndent()
+
+        assertEquals(emptyList<Preset>(), PresetSchema.decode(document))
+    }
+
+    @Test
+    fun `an unknown effect id is refused rather than dropped from the chain`() {
+        val document = """
+            {"schemaVersion":3,"presets":[{"name":"from later","params":{"effects":{"order":["effect.not-invented-yet"]}}}]}
+        """.trimIndent()
+
+        assertEquals(emptyList<Preset>(), PresetSchema.decode(document))
+    }
+
+    /** One preset from a newer build must not cost the ones around it. */
+    @Test
+    fun `a library holding an unknown id keeps every preset that does read`() {
+        val document = """
+            {"schemaVersion":3,"presets":[
+              {"name":"before","params":{"ditherMode":"dither.atkinson"}},
+              {"name":"from later","params":{"ditherMode":"dither.not-invented-yet"}},
+              {"name":"after","params":{"cellSize":5}}
+            ]}
+        """.trimIndent()
+
+        val reading = PresetSchema.read(document)
+
+        assertEquals(listOf("before", "after"), reading.presets.map { it.name })
+        assertEquals(listOf("from later"), reading.skipped.map { it.name })
+        assertTrue(
+            "the reason should name the id it could not read: ${reading.skipped.single().reason}",
+            reading.skipped.single().reason.contains("dither.not-invented-yet"),
+        )
     }
 
     // --- entries that will not read --------------------------------------------------

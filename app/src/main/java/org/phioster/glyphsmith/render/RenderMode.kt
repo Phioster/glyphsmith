@@ -18,8 +18,10 @@ import kotlinx.serialization.Serializable
  * [DEFAULT] is what new work starts in, and it is [PurePixel]. Pixel dithering is the
  * general-purpose mode; glyph rendering is a render module you choose. Keeping the two apart is
  * what lets new sessions open in the general mode without the saved library changing under it.
+ *
+ * On disk a mode is a stable id — see [RenderModeIds] — never the constant's own name.
  */
-@Serializable
+@Serializable(with = RenderModeIds::class)
 enum class RenderMode {
     /** Levels become characters from the ramp. The original behaviour. */
     GlyphMatrix,

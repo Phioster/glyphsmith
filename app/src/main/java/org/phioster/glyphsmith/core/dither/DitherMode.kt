@@ -1,5 +1,7 @@
 package org.phioster.glyphsmith.core.dither
 
+import kotlinx.serialization.Serializable
+
 /**
  * The shelf a style is filed under.
  *
@@ -18,7 +20,12 @@ enum class DitherCategory(val label: String) {
     SPECIAL("Special"),
 }
 
-/** How the quantisation error is dealt with when a cell picks its glyph. */
+/**
+ * How the quantisation error is dealt with when a cell picks its glyph.
+ *
+ * On disk a style is a stable id — see [DitherModeIds] — never the constant's own name.
+ */
+@Serializable(with = DitherModeIds::class)
 enum class DitherMode {
     NONE,
     FLOYD_STEINBERG,
