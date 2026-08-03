@@ -32,6 +32,22 @@ class RandomLookTest {
         assertEquals(RenderMode.PurePixel, RandomLook.roll(glyph, seeded).renderMode)
     }
 
+    /**
+     * Pressing the button again is the normal way to use it, and every press has to land in
+     * the same mode — a roll that walked out of Pixel Dither after the first press would make
+     * the general-purpose button a way to end up in Glyph Art by accident.
+     */
+    @Test
+    fun `rolling again stays in pixel dither`() {
+        var look = AsciiParams()
+
+        repeat(5) { press ->
+            look = RandomLook.roll(look, Random(press))
+
+            assertEquals(RenderMode.PurePixel, look.renderMode)
+        }
+    }
+
     @Test
     fun `the rolled mode is the one the mode names as default`() {
         assertEquals(RenderMode.DEFAULT, RandomLook.roll(AsciiParams(), seeded).renderMode)
