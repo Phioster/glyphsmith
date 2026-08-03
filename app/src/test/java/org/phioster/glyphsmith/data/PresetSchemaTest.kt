@@ -185,6 +185,23 @@ class PresetSchemaTest {
         )
     }
 
+    /**
+     * The mode a preset was saved in is the mode it comes back in — for every mode, not just
+     * the two that happen to appear in the round trips above. Saving is where the new default
+     * could leak into the library: a mode dropped on the way out would be read back as the
+     * field default and the preset would change appearance.
+     */
+    @Test
+    fun `every render mode survives being saved and reloaded`() {
+        RenderMode.entries.forEach { mode ->
+            val preset = Preset("saved in $mode", AsciiParams(renderMode = mode))
+
+            val reloaded = PresetSchema.decode(PresetSchema.encode(listOf(preset))).single()
+
+            assertEquals(mode, reloaded.params.renderMode)
+        }
+    }
+
     /** A preset saved today, reloaded, has to be the same preset down to the effect order. */
     @Test
     fun `a preset written now survives being read back whole`() {

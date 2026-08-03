@@ -1,6 +1,7 @@
 package org.phioster.glyphsmith.render
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import org.phioster.glyphsmith.ascii.AsciiParams
 import org.phioster.glyphsmith.data.PresetStore
@@ -52,5 +53,25 @@ class SessionDefaultTest {
         val modes = PresetStore.builtIns.map { it.params.renderMode }.toSet()
 
         assertEquals(setOf(RenderMode.GlyphMatrix), modes)
+    }
+
+    /**
+     * What undo and redo restore is a whole [AsciiParams] — the stacks hold nothing else — so
+     * the mode travels with a history step for exactly as long as it stays a field of that
+     * object. Hoisting it into the UI state instead would make a mode switch invisible to the
+     * history: the two values either side of it would compare equal, no step would be
+     * recorded, and undo would come back with the wrong renderer.
+     *
+     * The stacks themselves live in the view model, which needs an `Application` and cannot be
+     * built in a JVM test; this pins the property they rest on.
+     */
+    @Test
+    fun `a mode switch is a history step of its own`() {
+        val before = AsciiParams.newSession()
+        val after = before.copy(renderMode = RenderMode.GlyphMatrix)
+
+        assertNotEquals(before, after)
+        assertEquals(RenderMode.PurePixel, before.renderMode)
+        assertEquals(RenderMode.GlyphMatrix, after.renderMode)
     }
 }
