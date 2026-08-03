@@ -379,6 +379,6 @@ class PresetSchemaTest {
     /** What actually ships has to survive the trip, or a reset would change what people see. */
     @Test
     fun `the built-in library survives being written and read back`() {
-        assertEquals(PresetStore.builtIns, PresetSchema.decode(PresetSchema.encode(PresetStore.builtIns)))
+        assertEquals(PresetLibrary.builtIns, PresetSchema.decode(PresetSchema.encode(PresetLibrary.builtIns)))
     }
 }
