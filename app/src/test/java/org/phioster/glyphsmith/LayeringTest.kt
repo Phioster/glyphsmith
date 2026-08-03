@@ -24,13 +24,13 @@ class LayeringTest {
 
     private val forbidden = mapOf(
         // The engine. Knows about no render module at all, not even indirectly.
-        "core" to setOf("render", "glyph", "pipeline", "ui", "data", "export", "anim", "effects"),
+        "core" to setOf("render", "glyph", "pipeline", "state", "ui", "data", "export", "anim", "effects"),
         // Shared render infrastructure: sampling, quantisation, settings, layers, the pixel
         // module. Both modules are built on it, so it may not know either of them.
-        "render" to setOf("glyph", "pipeline", "ui", "data", "export"),
+        "render" to setOf("glyph", "pipeline", "state", "ui", "data", "export"),
         // The glyph module. Sits on top of the shared core and is free to use it; it must not
         // reach up into what composes the two modules, nor sideways into storage or the UI.
-        "glyph" to setOf("pipeline", "ui", "data", "export"),
+        "glyph" to setOf("pipeline", "state", "ui", "data", "export"),
     )
 
     private val sourceRoot: File by lazy {
