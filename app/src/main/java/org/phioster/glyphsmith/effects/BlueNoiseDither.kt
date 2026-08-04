@@ -41,6 +41,12 @@ data class BlueNoiseDitherParams(
  */
 object BlueNoiseDither {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(
+        EffectStack::blueNoise,
+        BlueNoiseDitherParams::enabled,
+    ) { pixels, params, ctx -> apply(pixels, params, ctx) }
+
     /** 32 is large enough that the tiling is invisible and small enough to stay cache-warm. */
     private const val MASK_SIZE = 32
 

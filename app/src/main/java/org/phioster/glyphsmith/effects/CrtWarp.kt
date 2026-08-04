@@ -36,6 +36,11 @@ data class CrtWarpParams(
  */
 object CrtWarp {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(EffectStack::crtWarp, CrtWarpParams::enabled) { pixels, params, ctx ->
+        apply(pixels, params, ctx)
+    }
+
     fun apply(source: Pixels, params: CrtWarpParams, ctx: RenderContext): Pixels {
         if (!params.enabled) return source
         if (params.warpCurvature == 0 && params.vignetteIntensity == 0) return source

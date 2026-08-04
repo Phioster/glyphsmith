@@ -12,6 +12,12 @@ import org.phioster.glyphsmith.core.image.Pixels
  */
 object BlurSharpen {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(
+        EffectStack::blurSharpen,
+        BlurSharpenParams::enabled,
+    ) { pixels, params, _ -> apply(pixels, params) }
+
     fun apply(source: Pixels, params: BlurSharpenParams): Pixels {
         if (!params.enabled || params.amount == 0) return source
 

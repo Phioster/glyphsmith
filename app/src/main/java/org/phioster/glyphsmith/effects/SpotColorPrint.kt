@@ -47,6 +47,12 @@ data class SpotColorPrintParams(
  */
 object SpotColorPrint {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(
+        EffectStack::spotPrint,
+        SpotColorPrintParams::enabled,
+    ) { pixels, params, ctx -> apply(pixels, params, ctx) }
+
     private const val MAX_OFFSET_PIXELS = 8f
 
     fun apply(source: Pixels, params: SpotColorPrintParams, ctx: RenderContext): Pixels {

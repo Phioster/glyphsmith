@@ -14,6 +14,12 @@ import org.phioster.glyphsmith.core.image.Pixels
  */
 object DiffractionStars {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(
+        EffectStack::stars,
+        DiffractionStarsParams::enabled,
+    ) { pixels, params, _ -> apply(pixels, params) }
+
     private const val WORK_MAX_SIDE = 320
 
     fun apply(source: Pixels, params: DiffractionStarsParams): Pixels {

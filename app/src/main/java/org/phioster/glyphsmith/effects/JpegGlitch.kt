@@ -17,6 +17,11 @@ import org.phioster.glyphsmith.core.image.Pixels
  */
 object JpegGlitch {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(EffectStack::jpegGlitch, JpegGlitchParams::enabled) { pixels, params, _ ->
+        apply(pixels, params)
+    }
+
     private const val MAX_ATTEMPTS = 4
 
     fun apply(source: Pixels, params: JpegGlitchParams): Pixels {
