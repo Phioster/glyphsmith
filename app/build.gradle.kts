@@ -108,6 +108,32 @@ detekt {
     parallel = true
 }
 
+// A green build is not evidence that the tests ran. Gradle prints nothing at all when they
+// pass, so a suite that silently stopped being executed — a runner that failed to load, a
+// source set that stopped being compiled — looks exactly like a suite that passed. This prints
+// the totals per class, so the log says which tests ran and how many.
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+    addTestListener(object : TestListener {
+        override fun beforeSuite(suite: TestDescriptor) = Unit
+        override fun beforeTest(test: TestDescriptor) = Unit
+        override fun afterTest(test: TestDescriptor, result: TestResult) = Unit
+        override fun afterSuite(suite: TestDescriptor, result: TestResult) {
+            if (suite.parent == null) {
+                logger.lifecycle(
+                    "tests: ${result.testCount} run, ${result.successfulTestCount} passed, " +
+                        "${result.failedTestCount} failed, ${result.skippedTestCount} skipped",
+                )
+            } else if (suite.className != null) {
+                logger.lifecycle("  ${result.testCount} ${suite.className!!.substringAfterLast('.')}")
+            }
+        }
+    })
+}
+
 tasks.withType<Detekt>().configureEach {
     jvmTarget = "17"
     reports {
