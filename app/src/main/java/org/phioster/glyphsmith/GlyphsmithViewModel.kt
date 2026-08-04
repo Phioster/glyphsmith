@@ -51,7 +51,7 @@ import org.phioster.glyphsmith.data.Settings
 import org.phioster.glyphsmith.data.Source
 import org.phioster.glyphsmith.data.StillSource
 import org.phioster.glyphsmith.data.VideoSource
-import org.phioster.glyphsmith.export.Exporter
+import org.phioster.glyphsmith.export.AnimationFormat
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.glyph.SvgExporter
 import org.phioster.glyphsmith.glyph.SvgMode
@@ -273,16 +273,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Writes the palette in use to its own file, so colours can be shared without a look. */
     fun exportPalette() = runExport("palette") {
-        val palette = _state.value.params.activePalette()
-        val text = PaletteFile.encode(palette)
-        val name = Exporter.timestampedName("json")
-            .replace("glyphsmith-", "glyphsmith-palette-")
-        val uri = withContext(Dispatchers.IO) { Exporter.saveJson(context, text, name) }
-        if (uri != null) {
-            "palette saved to Download/Glyphsmith"
-        } else {
-            "save failed"
-        }
+        val text = PaletteFile.encode(_state.value.params.activePalette())
+        withContext(Dispatchers.IO) { exports.palette(text) }
     }
 
     fun importPalette(uri: Uri) = runExport("palette") {
@@ -564,13 +556,10 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                         ).bitmap
                     }
                     val format = _state.value.exportFormat
-                    val name = Exporter.timestampedName(format.extension)
-                        .replace("glyphsmith-", "glyphsmith-batch-${index + 1}-")
-                    val uriOut = withContext(Dispatchers.IO) {
-                        Exporter.saveImage(context, bitmap, format, name)
+                    val written = withContext(Dispatchers.IO) {
+                        exports.batchImage(bitmap, format, index + 1)
                     }
-                    bitmap.recycle()
-                    if (uriOut != null) saved++ else failed++
+                    if (written) saved++ else failed++
                 }
                 _state.value = _state.value.copy(
                     batchDone = index + 1,
@@ -582,11 +571,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 working = false,
                 batchDone = 0,
                 batchTotal = 0,
-                status = if (failed == 0) {
-                    "batch done — $saved saved to Pictures/Glyphsmith"
-                } else {
-                    "batch done — $saved saved, $failed failed"
-                },
+                status = exports.batchStatus(saved, failed),
             )
             rebuild(_state.value.params)
         }
@@ -731,10 +716,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 out.toByteArray()
             }
         }
-        val uri = withContext(Dispatchers.IO) {
-            Exporter.saveBytes(context, bytes, Exporter.timestampedName("gif"), "image/gif")
-        }
-        if (uri != null) "gif saved to Download/Glyphsmith" else "save failed"
+        withContext(Dispatchers.IO) { exports.animation(bytes, AnimationFormat.GIF) }
     }
 
     fun exportMp4() = runExport("mp4") {
@@ -749,11 +731,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             result
         }
         if (failure != null) return@runExport "mp4: $failure"
-        val uri = withContext(Dispatchers.IO) {
-            Exporter.saveBytes(context, file.readBytes(), Exporter.timestampedName("mp4"), "video/mp4")
+        val status = withContext(Dispatchers.IO) {
+            exports.animation(file.readBytes(), AnimationFormat.MP4)
         }
         file.delete()
-        if (uri != null) "mp4 saved to Download/Glyphsmith" else "save failed"
+        status
     }
 
     fun savePreset(name: String, description: String = "") =

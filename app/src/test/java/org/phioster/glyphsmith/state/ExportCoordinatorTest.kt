@@ -3,9 +3,11 @@ package org.phioster.glyphsmith.state
 import android.graphics.Bitmap
 import android.net.Uri
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.phioster.glyphsmith.export.AnimationFormat
 import org.phioster.glyphsmith.export.Exports
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.glyph.SvgMode
@@ -31,8 +33,13 @@ class ExportCoordinatorTest {
 
         private fun result(): Uri? = if (succeed) Uri.parse("content://test/1") else null
 
-        override fun saveImage(bitmap: Bitmap, format: ImageFormat): Uri? {
-            calls += "saveImage:${format.extension}"
+        override fun saveImage(bitmap: Bitmap, format: ImageFormat, name: String?): Uri? {
+            calls += "saveImage:${format.extension}" + if (name == null) "" else ":$name"
+            return result()
+        }
+
+        override fun saveBytes(bytes: ByteArray, name: String, mimeType: String): Uri? {
+            calls += "saveBytes:$name:$mimeType:${bytes.size}"
             return result()
         }
 
@@ -155,6 +162,73 @@ class ExportCoordinatorTest {
         assertTrue(status, status.contains("4 KB"))
         assertTrue(status, status.contains(SvgMode.OUTLINES.label))
         assertTrue(status, status.endsWith("Download/Glyphsmith"))
+    }
+
+    // --- the four that used to go around this class ---------------------------------------
+
+    /**
+     * A folder of `glyphsmith-20260804-*.json` gives no way to tell a palette from a preset
+     * export, which is the whole reason the name is not the ordinary one.
+     */
+    @Test
+    fun `a palette goes out under a name that says it is one`() {
+        val (exports, fake) = coordinator()
+
+        assertEquals("palette saved to Download/Glyphsmith", exports.palette("{}"))
+
+        val name = fake.calls.single().removePrefix("saveJson:")
+        assertTrue(name, name.startsWith("glyphsmith-palette-"))
+        assertTrue(name, name.endsWith(".json"))
+    }
+
+    @Test
+    fun `an animation is written as its own format`() {
+        val (gif, gifCalls) = coordinator()
+        assertEquals("gif saved to Download/Glyphsmith", gif.animation(ByteArray(3), AnimationFormat.GIF))
+        assertTrue(gifCalls.calls.single(), gifCalls.calls.single().contains("image/gif"))
+
+        val (mp4, mp4Calls) = coordinator()
+        assertEquals("mp4 saved to Download/Glyphsmith", mp4.animation(ByteArray(3), AnimationFormat.MP4))
+        assertTrue(mp4Calls.calls.single(), mp4Calls.calls.single().contains("video/mp4"))
+    }
+
+    @Test
+    fun `a refused animation and a refused palette are failures too`() {
+        val (exports, _) = coordinator(succeed = false)
+
+        assertEquals("save failed", exports.palette("{}"))
+        assertEquals("save failed", exports.animation(ByteArray(1), AnimationFormat.GIF))
+    }
+
+    /** Numbered, so a run of twenty stays in the order they were picked rather than by clock. */
+    @Test
+    fun `a batch image carries its number in the file name`() {
+        val (exports, fake) = coordinator()
+
+        assertTrue(exports.batchImage(bitmap(), ImageFormat.JPG, 3))
+
+        val name = fake.calls.single().removePrefix("saveImage:jpg:")
+        assertTrue(name, name.startsWith("glyphsmith-batch-3-"))
+        assertTrue(name, name.endsWith(".jpg"))
+    }
+
+    @Test
+    fun `a batch image is released whether it was written or not`() {
+        val saved = bitmap()
+        coordinator().first.batchImage(saved, ImageFormat.PNG, 1)
+        assertTrue("a saved batch image was left allocated", saved.isRecycled)
+
+        val refused = bitmap()
+        assertFalse(coordinator(succeed = false).first.batchImage(refused, ImageFormat.PNG, 1))
+        assertTrue("a batch image leaked when the write was refused", refused.isRecycled)
+    }
+
+    @Test
+    fun `a batch says how many it saved, and only mentions failures when there were some`() {
+        val (exports, _) = coordinator()
+
+        assertEquals("batch done — 4 saved to Pictures/Glyphsmith", exports.batchStatus(4, 0))
+        assertEquals("batch done — 4 saved, 2 failed", exports.batchStatus(4, 2))
     }
 
     @Test
