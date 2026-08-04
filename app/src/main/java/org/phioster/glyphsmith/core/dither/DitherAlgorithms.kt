@@ -31,15 +31,29 @@ internal object DitherAlgorithms {
         DitherMode.NONE -> NoDither
 
         // --- error diffusion ----------------------------------------------------------------
-        DitherMode.FLOYD_STEINBERG, DitherMode.ATKINSON, DitherMode.JARVIS,
-        DitherMode.SIERRA_LITE, DitherMode.STUCKI, DitherMode.BURKES, DitherMode.SIERRA,
-        DitherMode.SIERRA_TWO_ROW, DitherMode.FALSE_FLOYD, DitherMode.STEVENSON_ARCE,
-        DitherMode.SMOOTH_DIFFUSE, DitherMode.DIFFUSE_Y, DitherMode.DIFFUSE_X,
-        DitherMode.OSTROMOUKHOV, DitherMode.SHIAU_FAN, DitherMode.GAUSSIAN,
-        DitherMode.ARTIFACT_MODULATION, DitherMode.VARIABLE_ERROR, DitherMode.CRACKED_DIFFUSE,
-        DitherMode.ARTIFACT_GLITCH, DitherMode.ATKINSON_VHS, DitherMode.ATKINSON_LINE_MOD,
-        DitherMode.STUCKI_LINES,
-        -> ErrorDiffusion()
+        DitherMode.FLOYD_STEINBERG -> DiffusionKernels.FLOYD_STEINBERG
+        DitherMode.ATKINSON -> DiffusionKernels.ATKINSON
+        DitherMode.JARVIS -> DiffusionKernels.JARVIS
+        DitherMode.SIERRA_LITE -> DiffusionKernels.SIERRA_LITE
+        DitherMode.STUCKI -> DiffusionKernels.STUCKI
+        DitherMode.BURKES -> DiffusionKernels.BURKES
+        DitherMode.SIERRA -> DiffusionKernels.SIERRA
+        DitherMode.SIERRA_TWO_ROW -> DiffusionKernels.SIERRA_TWO_ROW
+        DitherMode.FALSE_FLOYD -> DiffusionKernels.FALSE_FLOYD
+        DitherMode.STEVENSON_ARCE -> DiffusionKernels.STEVENSON_ARCE
+        DitherMode.SMOOTH_DIFFUSE -> DiffusionKernels.SMOOTH_DIFFUSE
+        DitherMode.DIFFUSE_Y -> DiffusionKernels.DIFFUSE_Y
+        DitherMode.DIFFUSE_X -> DiffusionKernels.DIFFUSE_X
+        DitherMode.OSTROMOUKHOV -> DiffusionKernels.OSTROMOUKHOV
+        DitherMode.SHIAU_FAN -> DiffusionKernels.SHIAU_FAN
+        DitherMode.GAUSSIAN -> DiffusionKernels.GAUSSIAN
+        DitherMode.ARTIFACT_MODULATION -> DiffusionKernels.ARTIFACT_MODULATION
+        DitherMode.VARIABLE_ERROR -> DiffusionKernels.VARIABLE_ERROR
+        DitherMode.CRACKED_DIFFUSE -> DiffusionKernels.CRACKED_DIFFUSE
+        DitherMode.ARTIFACT_GLITCH -> DiffusionKernels.ARTIFACT_GLITCH
+        DitherMode.ATKINSON_VHS -> DiffusionKernels.ATKINSON_VHS
+        DitherMode.ATKINSON_LINE_MOD -> DiffusionKernels.ATKINSON_LINE_MOD
+        DitherMode.STUCKI_LINES -> DiffusionKernels.STUCKI_LINES
 
         // --- ordered matrices ---------------------------------------------------------------
         DitherMode.BAYER_2, DitherMode.BAYER_4, DitherMode.BAYER_8, DitherMode.BAYER_16,
@@ -133,7 +147,14 @@ internal object DitherAlgorithms {
         DitherMode.ORDERED_MODULATION -> Modulation(periodLabel = "sequence length")
         DitherMode.GLITCH -> Modulation(periodLabel = "band height")
 
-        // --- resolved up front, by walking an order of their own -----------------------------
+        /*
+         * --- resolved up front, by walking an order of their own -----------------------------
+         *
+         * These carry no kernel even where they plainly diffuse. Knuth's dot diffusion decides
+         * its own order and its own neighbours, Riemersma and Fractal Diffuse follow a curve,
+         * and Contrast Aware measures a neighbourhood a per-cell kernel cannot see. All of them
+         * hand back a finished grid, so there are no taps for the row loop to read.
+         */
         DitherMode.RIEMERSMA, DitherMode.DOT_DIFFUSION, DitherMode.FRACTAL_DIFFUSE,
         DitherMode.CONTRAST_AWARE_X, DitherMode.CONTRAST_AWARE_Y, DitherMode.VORTEX_DIFFUSION,
         -> Precomputed()

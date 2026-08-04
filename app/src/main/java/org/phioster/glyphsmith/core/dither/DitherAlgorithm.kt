@@ -62,8 +62,39 @@ class Modulation(
     val readsContent: Boolean = false,
 ) : DitherAlgorithm(periodLabel, densityLabel)
 
-/** A cell's quantisation error, passed on to the neighbours that have not been decided yet. */
-class ErrorDiffusion : DitherAlgorithm(DEFAULT_PERIOD_LABEL, null)
+/**
+ * A cell's quantisation error, passed on to the neighbours that have not been decided yet.
+ *
+ * [taps] is the whole algorithm for almost all of them: what differs between the published
+ * kernels is only how far and how evenly the error is spread. The few whose weights change with
+ * the value being quantised declare [perValue] as well — Ostromoukhov's entire result comes from
+ * picking different weights per input level, so his kernel cannot be hoisted out of the loop the
+ * way the others are.
+ */
+class ErrorDiffusion(
+    val taps: List<DiffusionTap>,
+    private val perValue: ((Float) -> List<DiffusionTap>)? = null,
+) : DitherAlgorithm(DEFAULT_PERIOD_LABEL, null) {
+
+    /** Whether the weights change with the value being quantised. */
+    val varies: Boolean = perValue != null
+
+    /**
+     * How many rows below the current one the kernel reaches — the error buffer's depth.
+     *
+     * Measured off [taps], which is why a mode with a [perValue] kernel must still declare a
+     * representative one: the buffer is sized once, before any cell is known.
+     */
+    val depth: Int = (taps.maxOfOrNull { it.dy } ?: 0) + 1
+
+    /**
+     * The kernel for a cell of brightness [value] in 0..1, or null when the weights are constant.
+     *
+     * **Returns a cached list, never a fresh one.** This is asked once per cell, and a megapixel
+     * image is a million allocations if it is answered carelessly.
+     */
+    fun kernelFor(value: Float): List<DiffusionTap>? = perValue?.invoke(value)
+}
 
 /**
  * A style that decides every cell up front instead of along the rows.
