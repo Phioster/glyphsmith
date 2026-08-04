@@ -29,9 +29,11 @@ import org.phioster.glyphsmith.anim.ColorQuantizer
 import org.phioster.glyphsmith.anim.QuantizeMethod
 import org.phioster.glyphsmith.anim.GifEncoder
 import org.phioster.glyphsmith.anim.Mp4Encoder
+import org.phioster.glyphsmith.glyph.GlyphRenderOutput
 import org.phioster.glyphsmith.glyph.GlyphRenderer
+import org.phioster.glyphsmith.render.RenderBudget
 import org.phioster.glyphsmith.glyph.CharacterSets
-import org.phioster.glyphsmith.pipeline.RandomLook
+import org.phioster.glyphsmith.state.RandomLook
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.render.ColorMode
 import org.phioster.glyphsmith.pipeline.RenderPipeline
@@ -50,9 +52,9 @@ import org.phioster.glyphsmith.data.StillSource
 import org.phioster.glyphsmith.data.VideoSource
 import org.phioster.glyphsmith.export.Exporter
 import org.phioster.glyphsmith.export.ImageFormat
-import org.phioster.glyphsmith.export.SvgExporter
-import org.phioster.glyphsmith.export.SvgMode
-import org.phioster.glyphsmith.export.TextExporters
+import org.phioster.glyphsmith.glyph.SvgExporter
+import org.phioster.glyphsmith.glyph.SvgMode
+import org.phioster.glyphsmith.glyph.TextExporters
 import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.ui.theme.TermThemes
 import org.phioster.glyphsmith.core.color.Palettes
@@ -444,13 +446,17 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val scrub = scrubbing
         val budget = if (scrub) SCRUB_MAX_SIDE else _state.value.previewQuality.maxSide
         val result = withContext(Dispatchers.Default) {
-            RenderPipeline.run(pixels, current.width, current.height, params, budget, isScrubbing = scrub)
+            RenderPipeline.run(
+                pixels, current.width, current.height, params, budget, AppRenderModules,
+                isScrubbing = scrub,
+            )
         }
-        art = result.art
+        val glyphs = result.output as? GlyphRenderOutput
+        art = glyphs?.art
         // Measured once per rebuild and cached inside GlyphCoverage, so a slider drag pays
         // for the rasterisation only the first time a glyph is seen in this face. The pixel
         // mode has no face to profile, so there is nothing to measure and nothing to show.
-        val face = result.face
+        val face = glyphs?.face
         val coverage = if (face == null) {
             emptyList()
         } else {
@@ -479,7 +485,10 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val pixels = current.pixelsAt(_state.value.previewPosition)
         val params = _state.value.params
         return withContext(Dispatchers.Default) {
-            RenderPipeline.run(pixels, current.width, current.height, params, GlyphRenderer.MAX_OUTPUT_SIDE).bitmap
+            RenderPipeline.run(
+                pixels, current.width, current.height, params, RenderBudget.MAX_OUTPUT_SIDE,
+                AppRenderModules,
+            ).bitmap
         }
     }
 
@@ -559,7 +568,10 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                     loaded.recycle()
 
                     val bitmap = withContext(Dispatchers.Default) {
-                        RenderPipeline.run(pixels, width, height, params, GlyphRenderer.MAX_OUTPUT_SIDE).bitmap
+                        RenderPipeline.run(
+                            pixels, width, height, params, RenderBudget.MAX_OUTPUT_SIDE,
+                            AppRenderModules,
+                        ).bitmap
                     }
                     val format = _state.value.exportFormat
                     val name = Exporter.timestampedName(format.extension)
@@ -697,7 +709,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 .let { it.copy(temporal = it.temporal.copy(time = position)) }
             // A still hands back the same buffer every time; a video decodes this position.
             val pixels = source.pixelsAt(position)
-            val rendered = RenderPipeline.run(pixels, source.width, source.height, frameParams, budgetSide).bitmap
+            val rendered = RenderPipeline.run(
+                pixels, source.width, source.height, frameParams, budgetSide, AppRenderModules,
+            ).bitmap
             if (frame == 0) {
                 width = rendered.width
                 height = rendered.height
@@ -819,9 +833,12 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         camera.start(owner, _state.value.frontCamera) { frame ->
             lastLive = frame
             val result = runCatching {
-                RenderPipeline.run(frame.pixels, frame.width, frame.height, _state.value.params, LiveCamera.MAX_SIDE)
+                RenderPipeline.run(
+                    frame.pixels, frame.width, frame.height, _state.value.params,
+                    LiveCamera.MAX_SIDE, AppRenderModules,
+                )
             }.getOrNull() ?: return@start
-            art = result.art
+            art = (result.output as? GlyphRenderOutput)?.art
             _state.value = _state.value.copy(
                 preview = result.bitmap,
                 hasImage = true,
@@ -902,6 +919,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                         current.height,
                         preset.params,
                         THUMB_MAX_SIDE,
+                        AppRenderModules,
                     ).bitmap
                 }
             }

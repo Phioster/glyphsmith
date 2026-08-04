@@ -1,6 +1,5 @@
-package org.phioster.glyphsmith.export
+package org.phioster.glyphsmith.glyph
 
-import org.phioster.glyphsmith.glyph.GlyphGrid
 import org.phioster.glyphsmith.render.RenderSettings
 import java.util.Locale
 

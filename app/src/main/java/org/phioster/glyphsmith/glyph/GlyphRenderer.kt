@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import kotlin.math.ceil
 import kotlin.math.max
+import org.phioster.glyphsmith.render.RenderBudget
 import org.phioster.glyphsmith.render.RenderSettings
 
 /** Glyph cell geometry for a given font size and ramp. */
@@ -25,9 +26,6 @@ data class CellMetrics(
  * (CJK, braille) still land on a true grid instead of drifting out of column.
  */
 object GlyphRenderer {
-
-    /** Hard ceiling on either output dimension — beyond this a bitmap allocation fails. */
-    const val MAX_OUTPUT_SIDE = 8192
 
     /** Upper bound for the canvas-mode glyph-size search. */
     private const val MAX_CANVAS_FONT_SIZE = 400
@@ -136,9 +134,9 @@ object GlyphRenderer {
         // given and the glyphs are sized to fill it, centred, letterboxed when the grid's
         // aspect doesn't match the canvas.
         val canvasWidth = (params.canvasWidth * canvasScale).toInt()
-            .coerceIn(1, MAX_OUTPUT_SIDE)
+            .coerceIn(1, RenderBudget.MAX_OUTPUT_SIDE)
         val canvasHeight = (params.canvasHeight * canvasScale).toInt()
-            .coerceIn(1, MAX_OUTPUT_SIDE)
+            .coerceIn(1, RenderBudget.MAX_OUTPUT_SIDE)
 
         val size: Int
         val width: Int
@@ -148,10 +146,10 @@ object GlyphRenderer {
             width = canvasWidth
             height = canvasHeight
         } else {
-            size = fitFontSize(art.cols, art.rows, ramp, fontSizePx, MAX_OUTPUT_SIDE, face)
+            size = fitFontSize(art.cols, art.rows, ramp, fontSizePx, RenderBudget.MAX_OUTPUT_SIDE, face)
             val cell = metrics(size, ramp, face)
-            width = (art.cols * cell.width).coerceIn(1, MAX_OUTPUT_SIDE)
-            height = (art.rows * cell.height).coerceIn(1, MAX_OUTPUT_SIDE)
+            width = (art.cols * cell.width).coerceIn(1, RenderBudget.MAX_OUTPUT_SIDE)
+            height = (art.rows * cell.height).coerceIn(1, RenderBudget.MAX_OUTPUT_SIDE)
         }
         val cell = metrics(size, ramp, face)
         return GridLayout(

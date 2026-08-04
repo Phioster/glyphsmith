@@ -1,10 +1,9 @@
-package org.phioster.glyphsmith.export
+package org.phioster.glyphsmith.glyph
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.phioster.glyphsmith.glyph.GlyphGrid
 import org.phioster.glyphsmith.render.RenderSettings
 import javax.xml.parsers.DocumentBuilderFactory
 

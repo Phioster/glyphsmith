@@ -1,4 +1,4 @@
-package org.phioster.glyphsmith.pipeline
+package org.phioster.glyphsmith.state
 
 import kotlin.random.Random
 import org.phioster.glyphsmith.core.color.ColorDistance
@@ -46,6 +46,12 @@ import org.phioster.glyphsmith.core.color.PaletteProvider
  *
  * Anything not named in the final copy is left as the caller had it. The roll moves the look,
  * not every knob in the app.
+ *
+ * It sits with the view model's other split-out halves rather than in `pipeline`, because it
+ * rolls a *character set* as well as a dither and a palette, and the set library belongs to
+ * Glyph Art. A settings generator that has to know both modules is not shared render
+ * infrastructure — it is the layer above, which is exactly where knowing both is allowed. In
+ * `pipeline` it was the one file keeping the shared pipeline dependent on the glyph module.
  */
 object RandomLook {
 

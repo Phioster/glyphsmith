@@ -1,4 +1,4 @@
-package org.phioster.glyphsmith.pipeline
+package org.phioster.glyphsmith.state
 
 import kotlin.random.Random
 import org.junit.Assert.assertEquals

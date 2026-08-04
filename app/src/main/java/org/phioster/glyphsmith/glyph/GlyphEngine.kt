@@ -5,7 +5,6 @@ import org.phioster.glyphsmith.render.IndexGrid
 import org.phioster.glyphsmith.render.QuantisePass
 import org.phioster.glyphsmith.core.color.Palettes
 import org.phioster.glyphsmith.render.ColorMode
-import org.phioster.glyphsmith.render.EdgeDetect
 import org.phioster.glyphsmith.render.RenderSettings
 
 /**
@@ -84,7 +83,7 @@ object GlyphEngine {
         val palette = params.renderPalette()
 
         val edges = grid.edges
-        val edgeSet = EdgeDetect.setById(params.edgeSetId)
+        val edgeSet = EdgeGlyphs.setById(params.edgeSetId)
         val edgeThreshold = params.edgeThreshold / 100f
 
         for (row in 0 until rows) {
@@ -94,7 +93,7 @@ object GlyphEngine {
                 if (edges != null) {
                     val magnitude = edges.magnitudeAt(col, row)
                     if (magnitude >= edgeThreshold) {
-                        glyph = EdgeDetect.glyphFor(edges.angleAt(col, row), edgeSet)
+                        glyph = EdgeGlyphs.glyphFor(edges.angleAt(col, row), edgeSet)
                     } else if (params.edgeOnly) {
                         glyph = ' '
                     }

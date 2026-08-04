@@ -3,7 +3,7 @@ package org.phioster.glyphsmith.state
 import android.graphics.Bitmap
 import org.phioster.glyphsmith.export.Exports
 import org.phioster.glyphsmith.export.ImageFormat
-import org.phioster.glyphsmith.export.SvgMode
+import org.phioster.glyphsmith.glyph.SvgMode
 
 /**
  * What happens to a finished render, and what is said about it.

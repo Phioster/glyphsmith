@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.render.RenderSettings
-import org.phioster.glyphsmith.render.EdgeDetect
+import org.phioster.glyphsmith.glyph.EdgeGlyphs
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.StylePicker
@@ -298,10 +298,10 @@ fun MappingPanel(
             )
             StepperDropdown(
                 label = "edge glyphs",
-                items = EdgeDetect.sets,
-                selectedIndex = EdgeDetect.sets.indexOfFirst { it.id == params.edgeSetId }
+                items = EdgeGlyphs.sets,
+                selectedIndex = EdgeGlyphs.sets.indexOfFirst { it.id == params.edgeSetId }
                     .coerceAtLeast(0),
-                onSelect = { onChange(params.copy(edgeSetId = EdgeDetect.sets[it].id)) },
+                onSelect = { onChange(params.copy(edgeSetId = EdgeGlyphs.sets[it].id)) },
                 itemLabel = { it.name },
                 itemDetail = { it.glyphs },
             )
