@@ -1,6 +1,5 @@
 package org.phioster.glyphsmith.render
 
-import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
@@ -15,29 +14,20 @@ class EdgeField(
     fun angleAt(col: Int, row: Int): Float = angle[row * cols + col]
 }
 
-/** A named set of glyphs, one per edge direction, ordered from horizontal upwards. */
-data class EdgeSet(val id: String, val name: String, val glyphs: String)
-
 /**
  * Sobel over the **cell grid**, not the source pixels.
  *
  * The cell grid is what actually gets drawn, and it is only `cols × rows` values — running
  * the operator there costs nothing measurable, where running it on a 2048² source would be
  * the most expensive thing in the pipeline. It also means the detected edge is at exactly
- * the resolution the glyph can express.
+ * the resolution one cell can express.
+ *
+ * A gradient field is not a character. Which glyph a direction is drawn as, and the sets those
+ * glyphs come from, is Glyph Art's answer to this field and lives with it — see
+ * `glyph.EdgeGlyphs`. The detection itself is shared: the pixel path runs the same operator,
+ * and the field is carried on the quantised grid for both.
  */
 object EdgeDetect {
-
-    val sets: List<EdgeSet> = listOf(
-        EdgeSet("ascii", "ASCII", "-/|\\"),
-        EdgeSet("box", "Box Drawing", "─╱│╲"),
-        EdgeSet("blocks", "Block Corners", "▄▖▌▘"),
-        EdgeSet("heavy", "Heavy", "━╱┃╲"),
-    )
-
-    private val byId = sets.associateBy { it.id }
-
-    fun setById(id: String): EdgeSet = byId[id] ?: sets.first()
 
     fun sobel(luma: FloatArray, cols: Int, rows: Int): EdgeField {
         val magnitude = FloatArray(cols * rows)
@@ -67,20 +57,5 @@ object EdgeDetect {
             }
         }
         return EdgeField(magnitude, angle, cols, rows)
-    }
-
-    /**
-     * Glyph for a gradient direction. The *edge* runs perpendicular to the gradient, so the
-     * angle is rotated by 90° before it is bucketed — otherwise every line would be drawn
-     * across itself.
-     */
-    fun glyphFor(gradientAngle: Float, set: EdgeSet): Char {
-        val glyphs = set.glyphs
-        if (glyphs.isEmpty()) return ' '
-        val edgeAngle = gradientAngle + (PI / 2).toFloat()
-        // Direction is mod 180°: a line at 10° and one at 190° look identical.
-        val normalised = ((edgeAngle % PI.toFloat()) + PI.toFloat()) % PI.toFloat()
-        val bucket = ((normalised / PI.toFloat()) * glyphs.length + 0.5f).toInt() % glyphs.length
-        return glyphs[bucket]
     }
 }

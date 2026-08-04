@@ -31,6 +31,15 @@ class LayeringTest {
         // The glyph module. Sits on top of the shared core and is free to use it; it must not
         // reach up into what composes the two modules, nor sideways into storage or the UI.
         "glyph" to setOf("pipeline", "state", "ui", "data", "export"),
+        // The pipeline: sampling to effects to layers, for whatever module was handed to it.
+        // It runs Glyph Art without knowing that Glyph Art exists — the binding of a mode to a
+        // module is the application's, and arrives as an argument. This is the rule the render
+        // pipeline used to break by having the branch for all three modes inside it.
+        "pipeline" to setOf("glyph", "state", "ui", "data", "export"),
+        // The export sink: bytes to a file. What produced them is not its business, and a
+        // glyph grid is certainly not — the text, ANSI, HTML and SVG writers are Glyph Art's
+        // own output and live with it.
+        "export" to setOf("glyph", "pipeline", "state", "ui"),
     )
 
     private val sourceRoot: File by lazy {
@@ -45,23 +54,27 @@ class LayeringTest {
         error("cannot find the sources from ${System.getProperty("user.dir")}")
     }
 
-    private fun importsIn(layer: String): List<Pair<File, String>> =
+    private fun sourcesIn(layer: String): List<File> =
         File(sourceRoot, layer).walkTopDown()
             .filter { it.isFile && it.extension == "kt" }
-            .flatMap { file ->
-                file.readLines()
-                    .mapNotNull { PREFIX.find(it.trim())?.groupValues?.get(1) }
-                    .map { file to it }
-            }
             .toList()
+
+    private fun importsIn(layer: String): List<Pair<File, String>> =
+        sourcesIn(layer).flatMap { file ->
+            file.readLines()
+                .mapNotNull { PREFIX.find(it.trim())?.groupValues?.get(1) }
+                .map { file to it }
+        }
 
     @Test
     fun `no layer depends on one that is meant to sit above it`() {
         forbidden.forEach { (layer, banned) ->
-            val imports = importsIn(layer)
-            assertTrue("$layer has no sources at all — did a package move?", imports.isNotEmpty())
+            // The canary is the *files*, not the imports: a layer with nothing to import from
+            // anywhere else is the healthiest thing on this list, and `export` is now exactly
+            // that. Asserting on imports would have read a leaf package as a missing one.
+            assertTrue("$layer has no sources at all — did a package move?", sourcesIn(layer).isNotEmpty())
 
-            val violations = imports
+            val violations = importsIn(layer)
                 .filter { (_, target) -> target in banned }
                 .map { (file, target) -> "${file.name} -> $target" }
 

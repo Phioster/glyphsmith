@@ -1,10 +1,8 @@
-package org.phioster.glyphsmith.export
+package org.phioster.glyphsmith.glyph
 
 import android.graphics.Path
 import android.graphics.PathMeasure
-import org.phioster.glyphsmith.glyph.GlyphGrid
 import org.phioster.glyphsmith.render.RenderSettings
-import org.phioster.glyphsmith.glyph.GlyphRenderer
 import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.max

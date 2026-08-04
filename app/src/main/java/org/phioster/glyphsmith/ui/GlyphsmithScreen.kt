@@ -47,7 +47,7 @@ import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PlaybackQuality
 import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.export.ImageFormat
-import org.phioster.glyphsmith.export.SvgMode
+import org.phioster.glyphsmith.glyph.SvgMode
 import org.phioster.glyphsmith.ui.panels.AnimPanel
 import org.phioster.glyphsmith.ui.panels.RenderPanel
 import org.phioster.glyphsmith.ui.panels.ColorPanel

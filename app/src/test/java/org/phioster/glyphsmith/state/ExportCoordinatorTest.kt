@@ -8,7 +8,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.phioster.glyphsmith.export.Exports
 import org.phioster.glyphsmith.export.ImageFormat
-import org.phioster.glyphsmith.export.SvgMode
+import org.phioster.glyphsmith.glyph.SvgMode
 import org.robolectric.RobolectricTestRunner
 
 /**
