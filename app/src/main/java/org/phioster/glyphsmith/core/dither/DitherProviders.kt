@@ -25,8 +25,12 @@ object DitherProviders : Registry<DitherProvider>(
     ProviderCategory.DITHER,
     DitherMode.entries.map(::DitherProvider),
 ) {
-    fun of(mode: DitherMode): DitherProvider = all.first { it.mode == mode }
+    private val byMode = all.associateBy { it.mode }
+    private val byFamily = all.groupBy { it.family }
+
+    /** The provider describing [mode]. Indexed rather than scanned: the picker asks per frame. */
+    fun of(mode: DitherMode): DitherProvider = byMode.getValue(mode)
 
     /** The algorithms in one family, in the order they are declared. */
-    fun inFamily(family: DitherCategory): List<DitherProvider> = all.filter { it.family == family }
+    fun inFamily(family: DitherCategory): List<DitherProvider> = byFamily[family].orEmpty()
 }

@@ -60,6 +60,7 @@ import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.data.PresetStore
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.text.BasicTextField
+import org.phioster.glyphsmith.render.RenderModules
 
 private enum class Tab(val label: String) {
     ASCII("SET"),
@@ -245,7 +246,9 @@ fun GlyphsmithScreen(
 
         // Switching to pixel mode while sitting on a glyph-only tab would leave the user on a
         // panel that is no longer offered, so the selection follows the mode back to the top.
-        val glyphMode = state.params.renderMode.isGlyph
+        // Asked of the module rather than of the mode: what a render can do is the module's
+        // to declare, and the panels below only need the answer.
+        val glyphMode = RenderModules.of(state.params.renderMode).producesGlyphs
         if (!glyphMode && tab == Tab.MAPPING) tab = Tab.ASCII
 
         TabRow(tab, glyphMode) { tab = it }

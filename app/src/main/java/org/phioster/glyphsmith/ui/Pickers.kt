@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.dither.DitherCategory
+import org.phioster.glyphsmith.core.dither.DitherProviders
 
 /**
  * `LABEL` over `[ value ▾ ] [<] [>]` — the stepper-plus-dropdown control the original uses
@@ -307,11 +308,15 @@ fun StylePicker(
     // open next time, instead of snapping back to wherever the user started.
     var openCategory by remember(selected) { mutableStateOf<DitherCategory?>(selected.category) }
 
-    val all = DitherMode.entries
-    val starred = all.filter { it.name in favourites }
-    val grouped = DitherCategory.entries.map { category ->
-        category to all.filter { it.category == category }
-    }.filter { it.second.isNotEmpty() }
+    // Enumerated from the registry rather than from the enum: what algorithms exist, what they
+    // are called and which family each belongs to are the provider's to answer, and asking it
+    // here means the picker cannot drift from what the rest of the app believes ships.
+    val all = DitherProviders.all
+    val starred = all.filter { it.mode.name in favourites }
+    val grouped = DitherCategory.entries
+        .map { family -> family to DitherProviders.inFamily(family) }
+        .filter { it.second.isNotEmpty() }
+    val current = DitherProviders.of(selected)
 
     Column(modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(label.uppercase(), color = Term.InkDim, style = MaterialTheme.typography.bodySmall)
@@ -335,7 +340,7 @@ fun StylePicker(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            selected.label,
+                            current.displayName,
                             color = Term.Ink,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -343,7 +348,7 @@ fun StylePicker(
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
-                            "${selected.category.label.lowercase()} ▾",
+                            "${current.family.label.lowercase()} ▾",
                             color = Term.InkDim,
                             maxLines = 1,
                             style = MaterialTheme.typography.bodySmall,
@@ -363,37 +368,42 @@ fun StylePicker(
                             onClick = { openCategory = if (openCategory == null) selected.category else null },
                         )
                         if (openCategory == null) {
-                            starred.forEach { mode ->
-                                StyleRow(mode, selected, favourites, itemDetail, onToggleFavourite) {
+                            starred.forEach { provider ->
+                                StyleRow(
+                                    provider.mode, selected, favourites, itemDetail, onToggleFavourite,
+                                ) {
                                     expanded = false
-                                    onSelect(mode)
+                                    onSelect(provider.mode)
                                 }
                             }
                         }
                     }
-                    grouped.forEach { (category, modes) ->
+                    grouped.forEach { (family, providers) ->
                         SectionRow(
-                            title = category.label,
-                            count = modes.size,
-                            open = openCategory == category,
-                            onClick = { openCategory = if (openCategory == category) null else category },
+                            title = family.label,
+                            count = providers.size,
+                            open = openCategory == family,
+                            onClick = { openCategory = if (openCategory == family) null else family },
                         )
-                        if (openCategory == category) {
-                            modes.forEach { mode ->
-                                StyleRow(mode, selected, favourites, itemDetail, onToggleFavourite) {
+                        if (openCategory == family) {
+                            providers.forEach { provider ->
+                                StyleRow(
+                                    provider.mode, selected, favourites, itemDetail, onToggleFavourite,
+                                ) {
                                     expanded = false
-                                    onSelect(mode)
+                                    onSelect(provider.mode)
                                 }
                             }
                         }
                     }
                 }
             }
+            val here = all.indexOf(current)
             StepButton("<") {
-                onSelect(all[(all.indexOf(selected) - 1 + all.size) % all.size])
+                onSelect(all[(here - 1 + all.size) % all.size].mode)
             }
             StepButton(">") {
-                onSelect(all[(all.indexOf(selected) + 1) % all.size])
+                onSelect(all[(here + 1) % all.size].mode)
             }
         }
     }

@@ -191,6 +191,23 @@ class ProviderRegistryTest {
         }
     }
 
+    /**
+     * The capabilities used to be negations — `isGlyph` was `this != PurePixel` and
+     * `ditherFirst` was `this != GlyphMatrix`. A negation answers for modes that do not exist
+     * yet: a fourth would have been glyph art the moment it was declared, and the first sign
+     * would have been text exports offered for a render with no characters in it.
+     *
+     * They are exhaustive now, so the compiler refuses a new module that has not said what it
+     * produces. This is the same claim from the outside: every module answers both questions,
+     * and no two modules answer both the same way, which is what makes them worth asking.
+     */
+    @Test
+    fun `each render module is told apart by what it can do`() {
+        val answers = RenderModules.all.map { it.producesGlyphs to it.ditherFirst }
+
+        assertEquals("two modules are indistinguishable by capability", answers.size, answers.toSet().size)
+    }
+
     /** The dither families are what the picker groups by, so every algorithm needs the right one. */
     @Test
     fun `every dither provider carries its family`() {
