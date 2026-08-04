@@ -1,13 +1,6 @@
 package org.phioster.glyphsmith.core.dither
 
-import kotlin.math.PI
-import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.min
 import kotlin.math.floor
-import kotlin.math.hypot
-import kotlin.math.sin
 import kotlin.math.roundToInt
 
 /**
@@ -78,9 +71,14 @@ data class OrbOptions(
 data class DiffusionTap(val dx: Int, val dy: Int, val weight: Float)
 
 /**
- * Dither matrices and error-diffusion kernels, applied to the *cell grid* rather than to
- * pixels — the cell is the smallest thing this app can draw, so that's the resolution the
- * error has to be spread across.
+ * What the render loop asks a style about, applied to the *cell grid* rather than to pixels —
+ * the cell is the smallest thing this app can draw, so that is the resolution a threshold is
+ * read at and an error is spread across.
+ *
+ * The algorithms themselves no longer live here. Each is declared beside its own explanation —
+ * in [DiffusionKernels], [OrderedScreens] and [ModulationSurfaces] — and reached through the
+ * provider that carries it. What is left is the set of questions the loop needs answered, which
+ * is a much smaller thing than the twelve `when (mode)` dispatches it replaced.
  */
 object Dither {
 
@@ -96,108 +94,37 @@ object Dither {
         return (value.coerceIn(0f, 1f) * (levels - 1)).roundToInt()
     }
 
-    /** Matrix-driven modes: the threshold comes from a fixed tile. */
     /**
-     * Deliberately a plain `when` rather than `matrix(mode) != null`: the picker asks this
+     * The algorithm behind [mode].
+     *
+     * Everything below that used to switch over the enum asks this instead. The lookup is an
+     * array index and the declarations are shared, so a per-cell caller pays nothing for going
+     * through the provider — see [DitherProviders.of].
+     */
+    private fun algorithmOf(mode: DitherMode): DitherAlgorithm =
+        DitherProviders.of(mode).algorithm
+
+    /**
+     * Matrix-driven modes: the threshold comes from a fixed tile.
+     *
+     * Deliberately the declared kind rather than `matrix(mode) != null`: the picker asks this
      * for every mode as it draws, and the generated matrices are built on first use. Going
      * through [matrix] would generate every blue-noise mask just to open a dropdown.
      */
-    fun isOrdered(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.BAYER_2, DitherMode.BAYER_4, DitherMode.BAYER_8, DitherMode.BAYER_16,
-        DitherMode.CLUSTER_4, DitherMode.CLUSTER_8,
-        DitherMode.BLUE_NOISE_16, DitherMode.BLUE_NOISE_32,
-        -> true
-
-        else -> false
-    }
+    fun isOrdered(mode: DitherMode): Boolean = algorithmOf(mode) is OrderedMatrix
 
     /** Modes whose threshold is a continuous function of position rather than a tile. */
-    fun isModulation(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.MOD_LINES, DitherMode.MOD_WAVE, DitherMode.MOD_RINGS,
-        DitherMode.MOD_ORB, DitherMode.BEEHIVE, DitherMode.UNIFORM_MODULATION,
-        DitherMode.HEART_GRID, DitherMode.POP_TONE,
-        DitherMode.CHECKERS, DitherMode.DIAMOND, DitherMode.CROSSHATCH,
-        DitherMode.STIPPLING, DitherMode.BIT_TONE, DitherMode.BLOCK_TONE,
-        DitherMode.PRINT_PATTERN, DitherMode.GRIDLOCK, DitherMode.RANDOM_ORDERED,
-        DitherMode.NOISE, DitherMode.WAVE, DitherMode.RADIAL_BURST,
-        DitherMode.SINE_DISTORT,
-        DitherMode.WAVEFORM, DitherMode.WAVEFORM_ALT, DitherMode.THRESHOLDER,
-        DitherMode.SINE_WAVE_MOD, DitherMode.TOPOGRAPHY, DitherMode.VORTEX,
-        DitherMode.RADIAL_PEAKS, DitherMode.DOTTED_LINES, DitherMode.DISPLACE_CONTOUR,
-        DitherMode.ORB_MATRIX, DitherMode.ORDERED_MODULATION, DitherMode.GLITCH,
-        -> true
+    fun isModulation(mode: DitherMode): Boolean = algorithmOf(mode) is Modulation
 
-        else -> false
-    }
+    /** Styles that read the cell's brightness as well as its position. */
+    fun isContentAware(mode: DitherMode): Boolean =
+        (algorithmOf(mode) as? Modulation)?.readsContent == true
 
-    /**
-     * Styles that read the cell's brightness as well as its position.
-     *
-     * The distinction is worth naming rather than leaving implicit. A pattern that ignores
-     * the picture tiles the same way over a face and over a blank wall; one that reads it
-     * puts its ink where the image is dark, which is what a pen does. Everything else must
-     * keep ignoring it, and a test enforces exactly this split.
-     */
-    fun isContentAware(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.CROSSHATCH, DitherMode.STIPPLING,
-        DitherMode.WAVEFORM, DitherMode.WAVEFORM_ALT, DitherMode.THRESHOLDER,
-        DitherMode.SINE_WAVE_MOD, DitherMode.TOPOGRAPHY, DitherMode.RADIAL_PEAKS,
-        DitherMode.DISPLACE_CONTOUR,
-        -> true
-        else -> false
-    }
-
-    /**
-     * What the pattern-size slider is actually called for this style.
-     *
-     * The storage is one field; the meaning is not. Labelling it "period" while it sets a
-     * dot size is the kind of small dishonesty that makes a panel feel arbitrary.
-     */
-    fun periodLabel(mode: DitherMode): String = when (mode) {
-        DitherMode.CHECKERS -> "block size"
-        DitherMode.CROSSHATCH -> "line spacing"
-        DitherMode.STIPPLING -> "dot spacing"
-        DitherMode.BIT_TONE, DitherMode.BLOCK_TONE -> "dot size"
-        DitherMode.PRINT_PATTERN -> "dot scale"
-        DitherMode.GRIDLOCK -> "grid size"
-        DitherMode.RANDOM_ORDERED -> "block size"
-        DitherMode.NOISE -> "grain"
-        DitherMode.WAVE, DitherMode.SINE_DISTORT -> "frequency"
-        DitherMode.RADIAL_BURST -> "ring spacing"
-        DitherMode.MOSAIC, DitherMode.SQUARE_MOSAIC -> "tile size"
-        DitherMode.CIRCLE_GRID, DitherMode.DIAMOND_GRID -> "grid size"
-        DitherMode.TRI_POLY, DitherMode.LOW_POLY -> "triangle size"
-        DitherMode.HEXA_POLY, DitherMode.PENTA_POLY -> "hex size"
-        DitherMode.CAMO -> "cell size"
-        DitherMode.WAVEFORM, DitherMode.WAVEFORM_ALT, DitherMode.SINE_WAVE_MOD -> "wavelength"
-        DitherMode.TOPOGRAPHY, DitherMode.DISPLACE_CONTOUR -> "contour spacing"
-        DitherMode.VORTEX, DitherMode.RADIAL_PEAKS -> "ring spacing"
-        DitherMode.DOTTED_LINES -> "line spacing"
-        DitherMode.ORDERED_MODULATION -> "sequence length"
-        DitherMode.GLITCH -> "band height"
-        else -> "period"
-    }
+    /** What the pattern-size slider is actually called for this style. */
+    fun periodLabel(mode: DitherMode): String = algorithmOf(mode).periodLabel
 
     /** Styles that use the second axis, and what it means there. */
-    fun densityLabel(mode: DitherMode): String? = when (mode) {
-        DitherMode.SINE_DISTORT -> "second frequency"
-        DitherMode.RADIAL_BURST -> "spokes"
-        DitherMode.CROSSHATCH -> "line weight"
-        DitherMode.STIPPLING -> "dot size"
-        DitherMode.SQUARE_MOSAIC -> "grout"
-        DitherMode.CIRCLE_GRID, DitherMode.DIAMOND_GRID -> "fill"
-        DitherMode.LOW_POLY -> "triangle type"
-        DitherMode.PENTA_POLY -> "split direction"
-        DitherMode.WAVEFORM -> "frequency range"
-        DitherMode.WAVEFORM_ALT -> "bend"
-        DitherMode.THRESHOLDER -> "content weight"
-        DitherMode.TOPOGRAPHY -> "warp"
-        DitherMode.VORTEX -> "twist"
-        DitherMode.RADIAL_PEAKS -> "interference"
-        DitherMode.DOTTED_LINES -> "dotting"
-        DitherMode.DISPLACE_CONTOUR -> "displacement"
-        else -> null
-    }
+    fun densityLabel(mode: DitherMode): String? = algorithmOf(mode).densityLabel
 
     /**
      * Every mode that picks its glyph from a threshold at ([x], [y]) instead of by passing
@@ -206,67 +133,22 @@ object Dither {
      */
     fun isThresholdBased(mode: DitherMode): Boolean = isOrdered(mode) || isModulation(mode)
 
-    private val BAYER_2X2 = arrayOf(
-        intArrayOf(0, 2),
-        intArrayOf(3, 1),
-    )
-
-    /** `M₂ₙ = [[4M+0, 4M+2], [4M+3, 4M+1]]` — the standard recursive construction. */
-    private fun grow(base: Array<IntArray>): Array<IntArray> {
-        val n = base.size
-        val out = Array(n * 2) { IntArray(n * 2) }
-        for (y in 0 until n) {
-            for (x in 0 until n) {
-                val v = base[y][x] * 4
-                out[y][x] = v
-                out[y][x + n] = v + 2
-                out[y + n][x] = v + 3
-                out[y + n][x + n] = v + 1
-            }
-        }
-        return out
-    }
-
-    private val BAYER_4X4 = grow(BAYER_2X2)
-    private val BAYER_8X8 = grow(BAYER_4X4)
-    private val BAYER_16X16 = grow(BAYER_8X8)
-
-    fun matrix(mode: DitherMode): Array<IntArray>? = when (mode) {
-        DitherMode.BAYER_2 -> BAYER_2X2
-        DitherMode.BAYER_4 -> BAYER_4X4
-        DitherMode.BAYER_8 -> BAYER_8X8
-        DitherMode.BAYER_16 -> BAYER_16X16
-        DitherMode.CLUSTER_4 -> DitherMatrices.clusteredDot(4)
-        DitherMode.CLUSTER_8 -> DitherMatrices.clusteredDot(8)
-        DitherMode.BLUE_NOISE_16 -> DitherMatrices.blueNoise(16)
-        DitherMode.BLUE_NOISE_32 -> DitherMatrices.blueNoise(32)
-        else -> null
-    }
+    /** The tile [mode] reads its threshold off, or null when it is not a matrix style at all. */
+    fun matrix(mode: DitherMode): Array<IntArray>? = (algorithmOf(mode) as? OrderedMatrix)?.matrix
 
     /** Normalised threshold in 0..1 for the cell at ([x], [y]). */
-    fun orderedThreshold(mode: DitherMode, x: Int, y: Int): Float {
-        val m = matrix(mode) ?: return 0.5f
-        val n = m.size
-        val value = m[Math.floorMod(y, n)][Math.floorMod(x, n)]
-        return (value + 0.5f) / (n * n)
-    }
-
-    private const val TAU = 2.0 * PI
-
-    /** Fractional part, always in 0..1 — `x % 1` would go negative on the left half. */
-    private fun frac(x: Float): Float = x - floor(x)
+    fun orderedThreshold(mode: DitherMode, x: Int, y: Int): Float =
+        (algorithmOf(mode) as? OrderedMatrix)?.thresholdAt(x, y) ?: 0.5f
 
     /**
-     * Threshold in 0..1 for any threshold-based mode, with [options] applied.
+     * Threshold in 0..1 for any threshold-based style, with [options] applied.
      *
-     * Both families go through here so that [PatternOptions.scale] — the pattern-size
-     * control that is deliberately independent of the cell size — reaches Bayer too.
+     * Both families go through here so that [PatternOptions.scale] — the pattern-size control
+     * that is deliberately independent of the cell size — reaches an ordered screen too.
      *
-     * [value] is the cell's own brightness in 0..1. Every mode that existed before the
-     * catalogue arrived ignores it, and a test holds them to that. It is here for the styles
-     * that cannot work without it: a crosshatch whose lines thicken in the shadows, a stipple
-     * whose dots crowd where the image is dark. Those read the picture as well as the
-     * position, which is precisely what separates them from a repeating tile.
+     * [value] is the cell's own brightness in 0..1, and only the styles that declared themselves
+     * content-aware do anything with it. What each family does with the position is the
+     * algorithm's own business: a screen tiles it, a surface is a function of it.
      */
     fun threshold(
         mode: DitherMode,
@@ -276,741 +158,32 @@ object Dither {
         options: PatternOptions,
     ): Float {
         val factor = (options.scale / 100f).coerceAtLeast(0.01f)
-        if (isOrdered(mode)) {
-            // Floored rather than rounded: rounding would make the tile stutter by a cell
-            // every time the scaled coordinate crosses a half-step.
-            return orderedThreshold(mode, floor(x / factor).toInt(), floor(y / factor).toInt())
-        }
-        if (!isModulation(mode)) return 0.5f
-        // The centre is given in unscaled cells, so it has to travel with the coordinates —
-        // otherwise the rings would crawl away from the image centre as the scale changes.
-        return modulatedThreshold(
-            mode,
-            x / factor,
-            y / factor,
-            value,
-            options.copy(centerX = options.centerX / factor, centerY = options.centerY / factor),
-        )
-    }
+        return when (val algorithm = algorithmOf(mode)) {
+            // Floored rather than rounded: rounding would make the tile stutter by a cell every
+            // time the scaled coordinate crosses a half-step.
+            is OrderedMatrix ->
+                algorithm.thresholdAt(floor(x / factor).toInt(), floor(y / factor).toInt())
 
-    /**
-     * The modulation family: a threshold surface sampled at a scaled cell coordinate.
-     *
-     * The vendor publishes neither the maths nor the names behind the reference app's modulation
-     * category — only that "Modulation Lines", "Waveform" and "Beehive" exist. These five
-     * are this app's own reading of that category, not a reconstruction of theirs.
-     */
-    @Suppress("UNUSED_PARAMETER")
-    fun modulatedThreshold(
-        mode: DitherMode,
-        x: Float,
-        y: Float,
-        value: Float,
-        options: PatternOptions,
-    ): Float {
-        val period = options.period.coerceAtLeast(1).toFloat()
-        val radians = options.angle * PI / 180.0
-        val c = cos(radians).toFloat()
-        val s = sin(radians).toFloat()
-        // Rotate into the pattern's own frame, then measure in periods rather than cells.
-        val u = (x * c + y * s) / period
-        val v = (-x * s + y * c) / period
-        val phase = options.phase
-
-        return when (mode) {
-            DitherMode.MOD_LINES -> frac(u + phase)
-
-            // A sine band whose phase is dragged along the perpendicular axis — straight
-            // stripes would be MOD_LINES with a softer edge, which is not worth a mode.
-            DitherMode.MOD_WAVE -> {
-                val warp = 0.25f * sin(TAU * (v * 0.5f + phase)).toFloat()
-                0.5f + 0.5f * sin(TAU * (u + warp + phase)).toFloat()
-            }
-
-            DitherMode.MOD_RINGS -> {
-                val r = hypot(x - options.centerX, y - options.centerY) / period
-                0.5f + 0.5f * sin(TAU * (r + phase)).toFloat()
-            }
-
-            // Square wave instead of a sine: bands of equal width with a hard step between
-            // them, where MOD_LINES ramps and MOD_WAVE eases. "Uniform" is theirs and it is
-            // a fair description — every band gets the same weight.
-            DitherMode.UNIFORM_MODULATION -> if (frac(u + phase) < 0.5f) 0.25f else 0.75f
-
-            // The implicit heart curve (x²+y²−1)³ − x²y³, evaluated per cell of the lattice.
-            // Inside the curve the value is negative, so the sign becomes the threshold and
-            // the shape falls out of the arithmetic rather than being drawn.
-            DitherMode.HEART_GRID -> {
-                val hx = (frac(u + phase) - 0.5f) * 2.6f
-                val hy = -(frac(v) - 0.5f) * 2.6f
-                val t = hx * hx + hy * hy - 1f
-                val inside = t * t * t - hx * hx * hy * hy * hy
-                if (inside <= 0f) 0f else (inside * 0.9f).coerceIn(0f, 1f)
-            }
-
-            // Pop Tone. Named in their tutorials but never demonstrated, so this is a guess:
-            // a coarse dot with a very hard rim, which is the pop-art screen look and the
-            // only reading of the name I can defend. Marked as such rather than presented
-            // as a reconstruction.
-            DitherMode.POP_TONE -> {
-                val dx = frac(u + phase) - 0.5f
-                val dy = frac(v) - 0.5f
-                val d = hypot(dx, dy) / 0.70710678f
-                if (d < 0.62f) 0.08f else 0.92f
-            }
-
-            // --- geometry -----------------------------------------------------------
-            // These read the position and nothing else, so they tile a face exactly as they
-            // tile a wall. That is not a shortcoming: a screen is supposed to be indifferent
-            // to what is printed through it.
-
-            DitherMode.CHECKERS ->
-                if ((floor(u + phase).toInt() + floor(v).toInt()) % 2 == 0) 0.25f else 0.75f
-
-            // Manhattan distance rather than Euclidean, which is the whole difference between
-            // a diamond and a circle.
-            DitherMode.DIAMOND ->
-                (abs(frac(u + phase) - 0.5f) + abs(frac(v) - 0.5f)).coerceIn(0f, 1f)
-
-            /*
-             * Crosshatch. Four stroke directions, and a direction only starts drawing once
-             * the cell is dark enough to need it — which is what a pen actually does, and the
-             * reason this style cannot work from position alone. Light areas get one set of
-             * strokes, shadows get all four crossing.
-             */
-            DitherMode.CROSSHATCH -> {
-                val darkness = 1f - value
-                val weight = 0.15f + options.density / 100f * 0.45f
-                val strokes = floatArrayOf(
-                    v + phase,
-                    u + phase,
-                    (u + v) * 0.70710678f,
-                    (u - v) * 0.70710678f,
-                )
-                var inked = false
-                for (k in strokes.indices) {
-                    if (darkness * strokes.size < k) break
-                    if (frac(strokes[k]) < weight) {
-                        inked = true
-                        break
-                    }
-                }
-                if (inked) 0.1f else 0.9f
-            }
-
-            /*
-             * Stippling. One dot per lattice cell, jittered off the grid so the eye reads
-             * scatter rather than rows, and its radius grows as the cell darkens. The jitter
-             * is keyed to the cell so a dot stays put between frames instead of boiling.
-             */
-            DitherMode.STIPPLING -> {
-                val cu = floor(u + phase).toInt()
-                val cv = floor(v).toInt()
-                val dx = frac(u + phase) - hash(cu, cv, 7)
-                val dy = frac(v) - hash(cv, cu, 13)
-                val radius = (1f - value) * (0.2f + options.density / 100f * 0.6f)
-                if (hypot(dx, dy) < radius) 0.1f else 0.9f
-            }
-
-            // Concentric rings quantised to four steps. The quantisation is the style: a
-            // smooth dot is Block Tone, a stepped one reads as low-bit.
-            DitherMode.BIT_TONE -> {
-                val dx = frac(u + phase) - 0.5f
-                val dy = frac(v) - 0.5f
-                val d = (hypot(dx, dy) / 0.70710678f).coerceIn(0f, 1f)
-                floor(d * 4f) / 4f
-            }
-
-            // The printer's screen sits at 45°, where the lattice is least visible to the
-            // eye. Rotating it here rather than asking for an angle is the difference between
-            // a halftone and a grid of circles.
-            DitherMode.BLOCK_TONE -> {
-                val ru = (u + v) * 0.70710678f + phase
-                val rv = (v - u) * 0.70710678f
-                val dx = frac(ru) - 0.5f
-                val dy = frac(rv) - 0.5f
-                (hypot(dx, dy) / 0.70710678f).coerceIn(0f, 1f)
-            }
-
-            // Process colour uses four screens at 15°, 75°, 0° and 45° — angles chosen so
-            // that their overlap makes a rosette instead of a moiré. Overlaying all four is
-            // what makes this read as print rather than as one halftone.
-            DitherMode.PRINT_PATTERN -> {
-                var nearest = 1f
-                for (degrees in SCREEN_ANGLES) {
-                    val r = degrees * PI / 180.0
-                    val c2 = cos(r).toFloat()
-                    val s2 = sin(r).toFloat()
-                    val du = frac(u * c2 + v * s2 + phase) - 0.5f
-                    val dv = frac(-u * s2 + v * c2) - 0.5f
-                    nearest = min(nearest, hypot(du, dv) / 0.70710678f)
-                }
-                nearest.coerceIn(0f, 1f)
-            }
-
-            // Two diagonal rules crossing. The threshold is the distance to whichever rule is
-            // nearer, so the lines themselves stay dark while the fields between them open up.
-            DitherMode.GRIDLOCK -> {
-                val a = abs(frac((u + v) * 0.70710678f + phase) - 0.5f)
-                val b = abs(frac((u - v) * 0.70710678f) - 0.5f)
-                (min(a, b) * 2f).coerceIn(0f, 1f)
-            }
-
-            // A threshold rolled once per block. Bigger blocks read as torn paper, single
-            // cells as film grain — which is why Noise below rolls per cell instead.
-            DitherMode.RANDOM_ORDERED -> hash(floor(u + phase).toInt(), floor(v).toInt(), 3)
-
-            DitherMode.NOISE -> hash(
-                floor((u + phase) * period).toInt(),
-                floor(v * period).toInt(),
-                5,
-            )
-
-            DitherMode.WAVE -> 0.5f + 0.5f * sin(TAU * (u + phase)).toFloat()
-
-            // Rings and spokes at once: the radius gives the concentric waves, the angle
-            // gives the burst, and adding them before the sine is what curves the spokes.
-            DitherMode.RADIAL_BURST -> {
-                val dx = x - options.centerX
-                val dy = y - options.centerY
-                val spokes = 1f + options.density / 100f * 15f
-                val ring = hypot(dx, dy) / period
-                val spoke = (atan2(dy, dx) / TAU).toFloat() * spokes
-                0.5f + 0.5f * sin(TAU * (ring + spoke + phase)).toFloat()
-            }
-
-            // Two sines at different frequencies laid over each other. Where their crests
-            // nearly agree they beat against one another, and that beat is the moiré.
-            DitherMode.SINE_DISTORT -> {
-                val second = 0.2f + options.density / 100f * 3f
-                val a = sin(TAU * (u + phase)).toFloat()
-                val b = sin(TAU * (v * second)).toFloat()
-                (0.5f + 0.25f * (a + b)).coerceIn(0f, 1f)
-            }
-
-            // --- glitch and special -------------------------------------------------
-            /*
-             * The rest of the catalogue. The vendor names these and describes them in a line;
-             * the mathematics is this app's own, and that is stated here rather than left for
-             * someone to assume otherwise. What their controls are called told us what each
-             * one is *for*, which turned out to be most of the work.
-             */
-
-            // Waveform. The wave's frequency follows the picture, so detail crowds the crests
-            // together and flat areas stretch them out — a wave that reports what it crosses.
-            DitherMode.WAVEFORM -> {
-                val rate = 0.5f + (1f - value) * (1f + options.density / 100f * 3f)
-                0.5f + 0.5f * sin(TAU * (u * rate + phase)).toFloat()
-            }
-
-            // The same idea with the wave itself bent by brightness rather than sped up, so
-            // the crests bow around what is bright instead of bunching against it.
-            DitherMode.WAVEFORM_ALT -> {
-                val bend = (value - 0.5f) * (options.density / 100f * 4f)
-                0.5f + 0.5f * sin(TAU * (u + v * bend + phase)).toFloat()
-            }
-
-            // Three sines at unrelated frequencies, summed and then pushed by the cell's own
-            // brightness. Unrelated on purpose: rational ratios would beat into a visible
-            // repeat, and the point of this one is a threshold with no period at all.
-            DitherMode.THRESHOLDER -> {
-                val a = sin(TAU * (u + phase)).toFloat()
-                val b = sin(TAU * (v * 1.6180339f)).toFloat()
-                val c2 = sin(TAU * ((u + v) * 0.7548776f)).toFloat()
-                val field = (a + b + c2) / 6f
-                (0.5f + field + (value - 0.5f) * (options.density / 100f)).coerceIn(0f, 1f)
-            }
-
-            // Two sines crossed into a lattice of hollows, with brightness raising or lowering
-            // the water level so the pools open and close across the picture.
-            DitherMode.SINE_WAVE_MOD -> {
-                val a = sin(TAU * (u + phase)).toFloat()
-                val b = sin(TAU * v).toFloat()
-                (0.5f + 0.25f * a * b + (1f - value - 0.5f) * 0.4f).coerceIn(0f, 1f)
-            }
-
-            /*
-             * Topography. Contour lines at fixed heights through the brightness, exactly as a
-             * map draws them, with the height field warped a little so the lines wander the
-             * way a coastline does instead of sitting in perfect rings.
-             */
-            DitherMode.TOPOGRAPHY -> {
-                val warp = options.density / 100f * 0.25f *
-                    sin(TAU * (u * 0.5f + phase)).toFloat() * sin(TAU * (v * 0.5f)).toFloat()
-                val height = (value + warp) * (period * 0.75f)
-                val band = abs(frac(height) - 0.5f) * 2f
-                band.coerceIn(0f, 1f)
-            }
-
-            // A polar spiral: turning the angle into the radius is what makes a circle into a
-            // coil, and the second axis says how tightly it winds.
-            DitherMode.VORTEX -> {
-                val dx = x - options.centerX
-                val dy = y - options.centerY
-                val r = hypot(dx, dy) / period
-                val twist = 0.5f + options.density / 100f * 4f
-                val a = (atan2(dy, dx) / TAU).toFloat()
-                0.5f + 0.5f * sin(TAU * (r + a * twist + phase)).toFloat()
-            }
-
-            /*
-             * Rings spreading from bright cores. A cell's brightness offsets the ring phase,
-             * so light areas push their rings outwards while dark ones hold them back, and
-             * where two fields meet the rings interfere the way ripples do.
-             */
-            DitherMode.RADIAL_PEAKS -> {
-                val dx = x - options.centerX
-                val dy = y - options.centerY
-                val r = hypot(dx, dy) / period
-                val push = value * (options.density / 100f * 2f)
-                0.5f + 0.5f * sin(TAU * (r - push + phase)).toFloat()
-            }
-
-            // Flowing lines broken into dashes. The line is one sine and the dashing another
-            // across it, so the dashes travel along the line rather than sitting on a grid.
-            DitherMode.DOTTED_LINES -> {
-                val line = 0.5f + 0.5f * sin(TAU * (v + phase)).toFloat()
-                val dash = 0.5f + 0.5f * sin(TAU * (u * (1f + options.density / 100f * 6f)))
-                    .toFloat()
-                (line * 0.6f + dash * 0.4f).coerceIn(0f, 1f)
-            }
-
-            /*
-             * Contours displaced by the picture. Same banding as Topography, but the bands are
-             * pushed sideways by brightness rather than warped in place, so the lines bunch
-             * where the image changes fast — thick in flat areas, tight over detail.
-             */
-            DitherMode.DISPLACE_CONTOUR -> {
-                val shift = (value - 0.5f) * (1f + options.density / 100f * 5f)
-                val band = abs(frac(u + shift + phase) - 0.5f) * 2f
-                band.coerceIn(0f, 1f)
-            }
-
-            // Orbs and a Bayer tile at once. Neither alone gives both a shape and a texture:
-            // the orb decides where ink gathers, the matrix decides how it breaks up.
-            DitherMode.ORB_MATRIX -> {
-                val orb = orbField(u + phase, v, options.orb, 0f)
-                val matrix = orderedThreshold(DitherMode.BAYER_8, floor(x).toInt(), floor(y).toInt())
-                (orb * 0.6f + matrix * 0.4f).coerceIn(0f, 1f)
-            }
-
-            // A one-dimensional Bayer sequence read along a wavy line rather than a straight
-            // one, so the ordered texture keeps its evenness while the rows themselves ripple.
-            DitherMode.ORDERED_MODULATION -> {
-                val ripple = 0.35f * sin(TAU * (v * 0.5f + phase)).toFloat()
-                val along = floor((u + ripple) * period).toInt()
-                BAYER_1D[Math.floorMod(along, BAYER_1D.size)]
-            }
-
-            /*
-             * Glitch. Whole bands of rows torn sideways by a random amount, with the tear
-             * rolled per band rather than per cell — damage arrives in blocks, and a per-cell
-             * roll would be noise, which is a different style entirely.
-             */
-            DitherMode.GLITCH -> {
-                val band = floor(v * 2f).toInt()
-                val roll = hash(band, 0, 17)
-                val torn = if (roll < 0.35f) hash(band, 1, 23) * 2f - 1f else 0f
-                frac(u + torn + phase)
-            }
-
-            DitherMode.MOD_ORB -> orbField(u + phase, v, options.orb, 0f)
-
-            // Offsetting every other row by half a cell is what turns a square grid of orbs
-            // into a honeycomb — the cells pack against each other instead of lining up.
-            // It is the same machinery as the orb offset control, fixed at a half step.
-            DitherMode.BEEHIVE -> orbField(u + phase, v, options.orb, 0.5f)
+            is Modulation ->
+                algorithm.thresholdAt(ModulationCell(x / factor, y / factor, value, options, factor))
 
             else -> 0.5f
         }
     }
 
     /**
-     * The orb lattice: distance from the centre of the cell containing ([u], [v]), shaped by
-     * [orb]. Low in the middle, high at the edges — dark glyphs therefore clump into dots,
-     * which is the halftone look.
+     * Where a cell's error goes, or nothing at all for a style that does not diffuse.
      *
-     * [rowShift] is applied on top of [OrbOptions.offset] and is what BEEHIVE uses to stagger
-     * its rows; keeping it a parameter means the honeycomb and the offset slider are the same
-     * mechanism rather than two that can disagree.
+     * The kernels themselves are declared per style in [DiffusionKernels]. A style that resolves
+     * the whole grid up front carries none even where it plainly diffuses — there are no taps
+     * for the row loop to read, because the row loop never runs.
      */
-    private fun orbField(u: Float, v: Float, orb: OrbOptions, rowShift: Float): Float {
-        val count = orb.count.coerceIn(1, 20).toFloat()
-        val radians = orb.direction * PI / 180.0
-        val c = cos(radians).toFloat()
-        val s = sin(radians).toFloat()
-        // Rotated and multiplied up, so the lattice can turn and repeat independently of the
-        // pattern that placed it.
-        val lu = (u * c + v * s) * count
-        val lv = (-u * s + v * c) * count
-
-        val row = floor(lv).toInt()
-        val stagger = rowShift + orb.offset / 100f
-        val shifted = lu + if (Math.floorMod(row, 2) == 0) 0f else stagger
-
-        var dx = frac(shifted) - 0.5f
-        var dy = frac(lv) - 0.5f
-        if (orb.random > 0) {
-            // Jitter is keyed to the cell, not to the pixel, so a whole orb moves as one
-            // rather than dissolving into noise.
-            val jitter = orb.random / 100f * 0.5f
-            dx += (hash(floor(shifted).toInt(), row, orb.seed) - 0.5f) * jitter
-            dy += (hash(row, floor(shifted).toInt(), orb.seed + 71) - 0.5f) * jitter
-        }
-
-        val radius = (orb.size / 100f).coerceIn(0.02f, 1f)
-        val distance = hypot(dx, dy) / 0.70710678f / radius
-        // Intensity is the hardness of the edge: at 100 the disc is flat and its rim abrupt,
-        // at 0 the orb is a smooth gradient with no rim at all.
-        val hardness = (orb.intensity / 100f).coerceIn(0f, 1f)
-        val soft = distance.coerceIn(0f, 1f)
-        val hard = if (distance < 1f) 0f else 1f
-        return (soft * (1f - hardness) + hard * hardness).coerceIn(0f, 1f)
-    }
-
-    /**
-     * A Bayer sequence in one dimension — the same recursive interleave, along a line.
-     *
-     * Eight steps, each as far as possible from the ones already placed, which is what gives
-     * an ordered dither its evenness. Written out because a 1×8 case is not worth generating.
-     */
-    private val BAYER_1D = floatArrayOf(
-        0.0625f, 0.5625f, 0.3125f, 0.8125f, 0.1875f, 0.6875f, 0.4375f, 0.9375f,
-    )
-
-    /** The trade's process-colour screen angles, in the order cyan, magenta, yellow, black. */
-    private val SCREEN_ANGLES = intArrayOf(15, 75, 0, 45)
-
-    private fun hash(x: Int, y: Int, seed: Int): Float {
-        var h = x * 374761393 + y * 668265263 + seed * 1274126177
-        h = (h xor (h shr 13)) * 1274126177
-        return ((h xor (h shr 16)) and 0x7FFFFFFF) / 0x7FFFFFFF.toFloat()
-    }
-
-    /**
-     * Where a cell's error goes. Weights sum to 1 for every kernel **except Atkinson**,
-     * which deliberately throws away a quarter of the error — that loss is exactly what
-     * gives Atkinson its higher-contrast, less muddy look, so it is not normalised away.
-     */
-    fun diffusionKernel(mode: DitherMode): List<DiffusionTap> = when (mode) {
-        DitherMode.FLOYD_STEINBERG -> listOf(
-            DiffusionTap(1, 0, 7 / 16f),
-            DiffusionTap(-1, 1, 3 / 16f),
-            DiffusionTap(0, 1, 5 / 16f),
-            DiffusionTap(1, 1, 1 / 16f),
-        )
-
-        DitherMode.ATKINSON -> listOf(
-            DiffusionTap(1, 0, 1 / 8f),
-            DiffusionTap(2, 0, 1 / 8f),
-            DiffusionTap(-1, 1, 1 / 8f),
-            DiffusionTap(0, 1, 1 / 8f),
-            DiffusionTap(1, 1, 1 / 8f),
-            DiffusionTap(0, 2, 1 / 8f),
-        )
-
-        DitherMode.JARVIS -> listOf(
-            DiffusionTap(1, 0, 7 / 48f),
-            DiffusionTap(2, 0, 5 / 48f),
-            DiffusionTap(-2, 1, 3 / 48f),
-            DiffusionTap(-1, 1, 5 / 48f),
-            DiffusionTap(0, 1, 7 / 48f),
-            DiffusionTap(1, 1, 5 / 48f),
-            DiffusionTap(2, 1, 3 / 48f),
-            DiffusionTap(-2, 2, 1 / 48f),
-            DiffusionTap(-1, 2, 3 / 48f),
-            DiffusionTap(0, 2, 5 / 48f),
-            DiffusionTap(1, 2, 3 / 48f),
-            DiffusionTap(2, 2, 1 / 48f),
-        )
-
-        DitherMode.SIERRA_LITE -> listOf(
-            DiffusionTap(1, 0, 2 / 4f),
-            DiffusionTap(-1, 1, 1 / 4f),
-            DiffusionTap(0, 1, 1 / 4f),
-        )
-
-        // The published kernels below are transcribed from the halftoning literature, where
-        // each is named after whoever proposed it. Their weights are the whole algorithm —
-        // what differs between them is only how far and how evenly the error is spread, and
-        // that is exactly what makes their grain look different.
-        DitherMode.STUCKI -> listOf(
-            DiffusionTap(1, 0, 8 / 42f),
-            DiffusionTap(2, 0, 4 / 42f),
-            DiffusionTap(-2, 1, 2 / 42f),
-            DiffusionTap(-1, 1, 4 / 42f),
-            DiffusionTap(0, 1, 8 / 42f),
-            DiffusionTap(1, 1, 4 / 42f),
-            DiffusionTap(2, 1, 2 / 42f),
-            DiffusionTap(-2, 2, 1 / 42f),
-            DiffusionTap(-1, 2, 2 / 42f),
-            DiffusionTap(0, 2, 4 / 42f),
-            DiffusionTap(1, 2, 2 / 42f),
-            DiffusionTap(2, 2, 1 / 42f),
-        )
-
-        // Stucki with the bottom row dropped — faster, and a touch sharper for it.
-        DitherMode.BURKES -> listOf(
-            DiffusionTap(1, 0, 8 / 32f),
-            DiffusionTap(2, 0, 4 / 32f),
-            DiffusionTap(-2, 1, 2 / 32f),
-            DiffusionTap(-1, 1, 4 / 32f),
-            DiffusionTap(0, 1, 8 / 32f),
-            DiffusionTap(1, 1, 4 / 32f),
-            DiffusionTap(2, 1, 2 / 32f),
-        )
-
-        DitherMode.SIERRA -> listOf(
-            DiffusionTap(1, 0, 5 / 32f),
-            DiffusionTap(2, 0, 3 / 32f),
-            DiffusionTap(-2, 1, 2 / 32f),
-            DiffusionTap(-1, 1, 4 / 32f),
-            DiffusionTap(0, 1, 5 / 32f),
-            DiffusionTap(1, 1, 4 / 32f),
-            DiffusionTap(2, 1, 2 / 32f),
-            DiffusionTap(-1, 2, 2 / 32f),
-            DiffusionTap(0, 2, 3 / 32f),
-            DiffusionTap(1, 2, 2 / 32f),
-        )
-
-        DitherMode.SIERRA_TWO_ROW -> listOf(
-            DiffusionTap(1, 0, 4 / 16f),
-            DiffusionTap(2, 0, 3 / 16f),
-            DiffusionTap(-2, 1, 1 / 16f),
-            DiffusionTap(-1, 1, 2 / 16f),
-            DiffusionTap(0, 1, 3 / 16f),
-            DiffusionTap(1, 1, 2 / 16f),
-            DiffusionTap(2, 1, 1 / 16f),
-        )
-
-        // A widely copied mistranscription of Floyd-Steinberg that took on a life of its own.
-        // It is included because it genuinely looks different — coarser, more directional —
-        // not because it is correct. The name says so.
-        DitherMode.FALSE_FLOYD -> listOf(
-            DiffusionTap(1, 0, 3 / 8f),
-            DiffusionTap(0, 1, 3 / 8f),
-            DiffusionTap(1, 1, 2 / 8f),
-        )
-
-        /*
-         * Stevenson-Arce, 1985. The weights sit on a hexagonal lattice — every second
-         * column of the 7x4 window is empty — which is why it reaches three cells sideways
-         * yet costs about what a 5x3 kernel does. The staggering is the point: a hexagonal
-         * neighbourhood has no axis for artefacts to line up along.
-         */
-        DitherMode.STEVENSON_ARCE -> listOf(
-            DiffusionTap(2, 0, 32 / 200f),
-            DiffusionTap(-3, 1, 12 / 200f),
-            DiffusionTap(-1, 1, 26 / 200f),
-            DiffusionTap(1, 1, 30 / 200f),
-            DiffusionTap(3, 1, 16 / 200f),
-            DiffusionTap(-2, 2, 12 / 200f),
-            DiffusionTap(0, 2, 26 / 200f),
-            DiffusionTap(2, 2, 12 / 200f),
-            DiffusionTap(-3, 3, 5 / 200f),
-            DiffusionTap(-1, 3, 12 / 200f),
-            DiffusionTap(1, 3, 12 / 200f),
-            DiffusionTap(3, 3, 5 / 200f),
-        )
-
-        /*
-         * Smooth Diffuse. Named in their tutorials; the weights are this app's own reading.
-         *
-         * The classic kernels concentrate most of the error on the two or three cells
-         * nearest the current one, which is what gives their grain its bite. Spreading it
-         * thinly and evenly over a wider neighbourhood instead trades that bite for a much
-         * finer, more even texture — the same total error, simply shared further.
-         */
-        DitherMode.SMOOTH_DIFFUSE -> listOf(
-            DiffusionTap(1, 0, 4 / 32f),
-            DiffusionTap(2, 0, 3 / 32f),
-            DiffusionTap(3, 0, 2 / 32f),
-            DiffusionTap(-3, 1, 1 / 32f),
-            DiffusionTap(-2, 1, 2 / 32f),
-            DiffusionTap(-1, 1, 3 / 32f),
-            DiffusionTap(0, 1, 4 / 32f),
-            DiffusionTap(1, 1, 3 / 32f),
-            DiffusionTap(2, 1, 2 / 32f),
-            DiffusionTap(3, 1, 1 / 32f),
-            DiffusionTap(-2, 2, 1 / 32f),
-            DiffusionTap(-1, 2, 2 / 32f),
-            DiffusionTap(0, 2, 2 / 32f),
-            DiffusionTap(1, 2, 2 / 32f),
-            DiffusionTap(2, 2, 0 / 32f),
-        )
-
-        // Axis-dominant diffusion. The four classic kernels all spread the error roughly
-        // evenly forward and down, which is what makes their noise look isotropic. Pushing
-        // almost all of it along one axis instead makes the error travel in a line, and the
-        // result reads as streaks rather than as grain — the "diffuse along Y" look.
-        DitherMode.DIFFUSE_Y -> listOf(
-            DiffusionTap(0, 1, 11 / 20f),
-            DiffusionTap(0, 2, 5 / 20f),
-            DiffusionTap(1, 0, 2 / 20f),
-            DiffusionTap(-1, 1, 1 / 20f),
-            DiffusionTap(1, 1, 1 / 20f),
-        )
-
-        DitherMode.DIFFUSE_X -> listOf(
-            DiffusionTap(1, 0, 12 / 20f),
-            DiffusionTap(2, 0, 5 / 20f),
-            DiffusionTap(0, 1, 2 / 20f),
-            DiffusionTap(1, 1, 1 / 20f),
-        )
-
-        /*
-         * Ostromoukhov, SIGGRAPH 2001. The weights are looked up per input level rather than
-         * fixed — see [Ostromoukhov]. This entry is only the shape: it tells the engine that
-         * the mode diffuses at all and how deep an error buffer it needs.
-         */
-        DitherMode.OSTROMOUKHOV -> Ostromoukhov.representative
-
-        /*
-         * Shiau-Fan. Transcribed from Figure 1 of Ostromoukhov's paper, where it is drawn
-         * beside Floyd-Steinberg for comparison. Nearly all of the error goes to the right and
-         * straight down; what reaches the row below travels a long way left, which is what
-         * breaks up the diagonal worms Floyd-Steinberg leaves behind.
-         */
-        DitherMode.SHIAU_FAN -> listOf(
-            DiffusionTap(1, 0, 8 / 16f),
-            DiffusionTap(-3, 1, 1 / 16f),
-            DiffusionTap(-2, 1, 1 / 16f),
-            DiffusionTap(-1, 1, 2 / 16f),
-            DiffusionTap(0, 1, 4 / 16f),
-        )
-
-        /*
-         * Knuth's dot diffusion needs no kernel — it decides its own order and its own
-         * neighbours, in [DotDiffusion]. It appears here only so the engine sizes an error
-         * buffer for it; the taps are never read.
-         */
-        DitherMode.DOT_DIFFUSION -> emptyList()
-
-        /*
-         * A Gaussian falling off over a 5x5 window, computed rather than chosen: the weight of
-         * each tap is exp(-d²/2σ²) with σ = 1.2, normalised over the forward half. The classic
-         * kernels all have a bias built into their integer weights; this one has none, and the
-         * grain comes out correspondingly soft and even.
-         */
-        DitherMode.GAUSSIAN -> listOf(
-            DiffusionTap(1, 0, 24 / 128f),
-            DiffusionTap(2, 0, 9 / 128f),
-            DiffusionTap(-2, 1, 6 / 128f),
-            DiffusionTap(-1, 1, 17 / 128f),
-            DiffusionTap(0, 1, 24 / 128f),
-            DiffusionTap(1, 1, 17 / 128f),
-            DiffusionTap(2, 1, 6 / 128f),
-            DiffusionTap(-2, 2, 2 / 128f),
-            DiffusionTap(-1, 2, 6 / 128f),
-            DiffusionTap(0, 2, 9 / 128f),
-            DiffusionTap(1, 2, 6 / 128f),
-            DiffusionTap(2, 2, 2 / 128f),
-        )
-
-        // Every neighbour weighted the same. The classic kernels are shaped precisely to
-        // avoid this — equal weights let the error pile up in step with the grid and throw
-        // off a regular artefact, which here is the point rather than the failure.
-        DitherMode.ARTIFACT_MODULATION -> listOf(
-            DiffusionTap(1, 0, 1 / 4f),
-            DiffusionTap(-1, 1, 1 / 4f),
-            DiffusionTap(0, 1, 1 / 4f),
-            DiffusionTap(1, 1, 1 / 4f),
-        )
-
-        /*
-         * Floyd-Steinberg's footprint with the split between right and down-left decided by
-         * the cell's own brightness — see [variableKernel]. Highlights push their error
-         * sideways and shadows push it down, so the grain leans one way in the light and the
-         * other in the dark. This entry is the balanced middle.
-         */
-        DitherMode.VARIABLE_ERROR -> variableErrorKernel(0.5f)
-
-        /*
-         * Diffusion along a Hilbert curve, in [Riemersma]. Like dot diffusion it decides its
-         * own order, and appears here only so the engine knows it diffuses.
-         */
-        DitherMode.FRACTAL_DIFFUSE -> emptyList()
-
-        // Error split evenly between right and straight down, with nothing on the diagonal.
-        // Denying it the diagonal is what makes the artefacts run in unbroken horizontal and
-        // vertical runs that never cross — the cracks the name refers to.
-        DitherMode.CRACKED_DIFFUSE -> listOf(
-            DiffusionTap(1, 0, 1 / 2f),
-            DiffusionTap(0, 1, 1 / 2f),
-        )
-
-        // Nothing ever reaches the row below, so an error runs to the end of its line and
-        // stops. Errors cannot average out across rows, and each line drifts independently —
-        // which is what a dropped video line looks like.
-        DitherMode.ARTIFACT_GLITCH -> listOf(
-            DiffusionTap(1, 0, 8 / 16f),
-            DiffusionTap(2, 0, 5 / 16f),
-            DiffusionTap(3, 0, 3 / 16f),
-        )
-
-        // Atkinson smeared sideways. It keeps his eighths — including the quarter he throws
-        // away, which is what holds the contrast up — but reaches four cells along the row
-        // instead of two, so the loss trails behind bright areas like a tape head catching up.
-        DitherMode.ATKINSON_VHS -> listOf(
-            DiffusionTap(1, 0, 1 / 8f),
-            DiffusionTap(2, 0, 1 / 8f),
-            DiffusionTap(3, 0, 1 / 8f),
-            DiffusionTap(4, 0, 1 / 8f),
-            DiffusionTap(0, 1, 1 / 8f),
-            DiffusionTap(1, 1, 1 / 8f),
-        )
-
-        /*
-         * Atkinson whose sideways bias follows the brightness — see [variableKernel]. Highlights
-         * send their error along the row and shadows send it down, so the smear appears only
-         * where the picture is light. Modulation in the literal sense: one thing varying another.
-         */
-        DitherMode.ATKINSON_LINE_MOD -> atkinsonLineKernel(0.5f)
-
-        // Stucki with its first row weighted far more heavily than its lower ones. The error
-        // therefore travels much further along a row than down the image, and the grain
-        // stretches into lines without ever becoming purely horizontal.
-        DitherMode.STUCKI_LINES -> listOf(
-            DiffusionTap(1, 0, 12 / 42f),
-            DiffusionTap(2, 0, 8 / 42f),
-            DiffusionTap(3, 0, 4 / 42f),
-            DiffusionTap(-2, 1, 1 / 42f),
-            DiffusionTap(-1, 1, 2 / 42f),
-            DiffusionTap(0, 1, 6 / 42f),
-            DiffusionTap(1, 1, 4 / 42f),
-            DiffusionTap(2, 1, 2 / 42f),
-            DiffusionTap(-1, 2, 1 / 42f),
-            DiffusionTap(0, 2, 1 / 42f),
-            DiffusionTap(1, 2, 1 / 42f),
-        )
-
-        /*
-         * These three decide their own order or need the whole grid, so they carry no taps.
-         * Contrast Aware X and Y measure a neighbourhood, which a per-cell kernel cannot see;
-         * Vortex Diffusion walks a spiral. All three go through the precomputed path.
-         */
-        DitherMode.CONTRAST_AWARE_X, DitherMode.CONTRAST_AWARE_Y,
-        DitherMode.VORTEX_DIFFUSION,
-        -> emptyList()
-
-        else -> emptyList()
-    }
-
-    /** Atkinson's eighths, with the split between along-the-row and down set by brightness. */
-    private fun atkinsonLineKernel(value: Float): List<DiffusionTap> {
-        val lean = value.coerceIn(0f, 1f)
-        return listOf(
-            DiffusionTap(1, 0, (1f + lean) / 8f),
-            DiffusionTap(2, 0, (1f + lean * 0.5f) / 8f),
-            DiffusionTap(-1, 1, (1f - lean * 0.5f) / 8f),
-            DiffusionTap(0, 1, (1f - lean * 0.5f) / 8f),
-            DiffusionTap(1, 1, (1f - lean * 0.5f) / 8f),
-        )
-    }
+    fun diffusionKernel(mode: DitherMode): List<DiffusionTap> =
+        (algorithmOf(mode) as? ErrorDiffusion)?.taps ?: emptyList()
 
     /** How many rows below the current one a kernel reaches — the error buffer's depth. */
     fun kernelDepth(mode: DitherMode): Int =
-        (diffusionKernel(mode).maxOfOrNull { it.dy } ?: 0) + 1
+        (algorithmOf(mode) as? ErrorDiffusion)?.depth ?: 1
 
     /**
      * Whether this mode's weights change with the value being quantised.
@@ -1020,58 +193,12 @@ object Dither {
      * comes from picking different weights per input level, so his kernel cannot be hoisted
      * out of the loop the way the others are.
      */
-    fun hasVariableKernel(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.OSTROMOUKHOV, DitherMode.VARIABLE_ERROR,
-        DitherMode.ATKINSON_LINE_MOD,
-        -> true
+    fun hasVariableKernel(mode: DitherMode): Boolean =
+        (algorithmOf(mode) as? ErrorDiffusion)?.varies == true
 
-        else -> false
-    }
-
-    /**
-     * The kernel for a cell of brightness [value] in 0..1, or null if [mode] uses a constant.
-     *
-     * **Implementations must return a cached list, never build one.** This is asked once per
-     * cell, and a megapixel image is a million allocations if it is answered carelessly.
-     *
-     * A mode with a variable kernel must still declare a representative one in
-     * [diffusionKernel] — that is what [kernelDepth] measures to size the error buffer, and
-     * what the loop falls back on.
-     */
-    fun variableKernel(mode: DitherMode, value: Float): List<DiffusionTap>? = when (mode) {
-        DitherMode.OSTROMOUKHOV -> Ostromoukhov.kernelFor(value)
-        DitherMode.VARIABLE_ERROR -> VARIABLE_ERROR_KERNELS[
-            (value.coerceIn(0f, 1f) * (VARIABLE_ERROR_KERNELS.size - 1)).toInt(),
-        ]
-
-        DitherMode.ATKINSON_LINE_MOD -> ATKINSON_LINE_KERNELS[
-            (value.coerceIn(0f, 1f) * (ATKINSON_LINE_KERNELS.size - 1)).toInt(),
-        ]
-
-        else -> null
-    }
-
-    /**
-     * Floyd-Steinberg's four taps, with the share between right and down-left sliding with
-     * brightness. The total is always sixteen sixteenths — an intensity-dependent kernel that
-     * also leaks error would be two changes at once, and only one of them is the idea.
-     */
-    private fun variableErrorKernel(value: Float): List<DiffusionTap> {
-        val lean = (value.coerceIn(0f, 1f) * 3f)
-        return listOf(
-            DiffusionTap(1, 0, (4f + lean) / 16f),
-            DiffusionTap(-1, 1, (4f - lean) / 16f),
-            DiffusionTap(0, 1, 5 / 16f),
-            DiffusionTap(1, 1, 3 / 16f),
-        )
-    }
-
-    /** Pre-built so the loop never allocates; 64 steps is finer than the eye or the ramp. */
-    private val VARIABLE_ERROR_KERNELS: List<List<DiffusionTap>> =
-        (0 until 64).map { variableErrorKernel(it / 63f) }
-
-    private val ATKINSON_LINE_KERNELS: List<List<DiffusionTap>> =
-        (0 until 64).map { atkinsonLineKernel(it / 63f) }
+    /** The kernel for a cell of brightness [value] in 0..1, or null if [mode] uses a constant. */
+    fun variableKernel(mode: DitherMode, value: Float): List<DiffusionTap>? =
+        (algorithmOf(mode) as? ErrorDiffusion)?.kernelFor(value)
 
     /**
      * Whether this mode decides every cell up front instead of along the rows.
@@ -1081,12 +208,7 @@ object Dither {
      * right corner before the top left. Rather than bend the main loop around them, they
      * hand back a finished grid of glyph indices and the loop just reads it.
      */
-    fun isPrecomputed(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.RIEMERSMA, DitherMode.DOT_DIFFUSION, DitherMode.FRACTAL_DIFFUSE,
-        DitherMode.CONTRAST_AWARE_X, DitherMode.CONTRAST_AWARE_Y, DitherMode.VORTEX_DIFFUSION,
-        -> true
-        else -> isRegion(mode)
-    }
+    fun isPrecomputed(mode: DitherMode): Boolean = algorithmOf(mode) is Precomputed
 
     /**
      * Styles that flatten an area rather than threshold a cell.
@@ -1095,12 +217,6 @@ object Dither {
      * comes out is a coarser picture rather than a texture laid over the original one. See
      * [Regions].
      */
-    fun isRegion(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.MOSAIC, DitherMode.SQUARE_MOSAIC, DitherMode.CIRCLE_GRID,
-        DitherMode.DIAMOND_GRID, DitherMode.TRI_POLY, DitherMode.HEXA_POLY,
-        DitherMode.PENTA_POLY, DitherMode.LOW_POLY, DitherMode.CAMO,
-        -> true
-
-        else -> false
-    }
+    fun isRegion(mode: DitherMode): Boolean =
+        (algorithmOf(mode) as? Precomputed)?.flattensRegions == true
 }

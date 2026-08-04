@@ -38,6 +38,11 @@ data class PixelSortParams(
 
 object PixelSort {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(EffectStack::pixelSort, PixelSortParams::enabled) { pixels, params, _ ->
+        apply(pixels, params)
+    }
+
     fun apply(source: Pixels, params: PixelSortParams): Pixels {
         if (!params.enabled) return source
 

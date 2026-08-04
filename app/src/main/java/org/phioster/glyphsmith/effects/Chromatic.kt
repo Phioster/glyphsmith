@@ -28,6 +28,11 @@ import org.phioster.glyphsmith.core.image.Pixels
  */
 object Chromatic {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(EffectStack::chromatic, ChromaticParams::enabled) { pixels, params, _ ->
+        apply(pixels, params)
+    }
+
     fun apply(source: Pixels, params: ChromaticParams): Pixels {
         if (!params.enabled) return source
         if (params.maxDisplace == 0 && params.waveAmplitude == 0) return source

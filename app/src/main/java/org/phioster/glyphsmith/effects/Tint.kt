@@ -11,6 +11,11 @@ import org.phioster.glyphsmith.core.image.Pixels
 /** Colour wash. [TintMode.DUOTONE] remaps the whole tonal range between two colours. */
 object Tint {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(EffectStack::tint, TintParams::enabled) { pixels, params, _ ->
+        apply(pixels, params)
+    }
+
     fun apply(source: Pixels, params: TintParams): Pixels {
         if (!params.enabled || params.amount <= 0) return source
         val amount = (params.amount / 100f).coerceIn(0f, 1f)

@@ -12,6 +12,12 @@ import org.phioster.glyphsmith.core.image.Pixels
 /** Grading and film-y damage, all in one pass over the pixels. */
 object PostProcessing {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(
+        EffectStack::postProcessing,
+        PostProcessingParams::enabled,
+    ) { pixels, params, _ -> apply(pixels, params) }
+
     fun apply(source: Pixels, params: PostProcessingParams): Pixels {
         if (!params.enabled) return source
 

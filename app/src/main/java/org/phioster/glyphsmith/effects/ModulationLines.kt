@@ -64,6 +64,12 @@ data class ModulationLinesParams(
  */
 object ModulationLines {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(
+        EffectStack::modulationLines,
+        ModulationLinesParams::enabled,
+    ) { pixels, params, ctx -> apply(pixels, params, ctx) }
+
     fun apply(source: Pixels, params: ModulationLinesParams, ctx: RenderContext): Pixels {
         if (!params.enabled) return source
         if (params.amplitude == 0 && params.waveMix == 0) return source

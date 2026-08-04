@@ -43,6 +43,12 @@ data class ColorDepthParams(
  */
 object ColorDepth {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(
+        EffectStack::colorDepth,
+        ColorDepthParams::enabled,
+    ) { pixels, params, ctx -> apply(pixels, params, ctx) }
+
     private const val MASK_SIZE = 32
 
     fun apply(source: Pixels, params: ColorDepthParams, ctx: RenderContext): Pixels {

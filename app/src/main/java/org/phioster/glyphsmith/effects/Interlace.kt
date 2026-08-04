@@ -33,6 +33,11 @@ data class InterlaceParams(
 
 object Interlace {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(EffectStack::interlace, InterlaceParams::enabled) { pixels, params, _ ->
+        apply(pixels, params)
+    }
+
     fun apply(source: Pixels, params: InterlaceParams): Pixels {
         if (!params.enabled) return source
         if (params.shift == 0 && params.tearColor == 0 && !params.freeze) return source

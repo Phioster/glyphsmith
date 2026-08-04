@@ -27,36 +27,18 @@ private class EffectNode(
  * Turns an [EffectStack] into the node list the chain runs.
  *
  * The order comes from [EffectStack.effectiveOrder], which already handles a preset written
- * before an effect existed. This object is the only place that knows which object implements
- * which [EffectId] — the chain itself knows nothing about effects.
+ * before an effect existed. What each slot *does* is no longer stated here: this file used to
+ * carry a `when` naming all seventeen implementations, and now it asks the provider, which
+ * carries the pass. What is left is the adaptation — a pass and a stack become a node — which is
+ * the only thing this file was ever really about.
  */
 object EffectNodes {
 
     fun of(stack: EffectStack): List<ImageProcessorNode> =
-        stack.effectiveOrder().map { id -> nodeFor(id, stack) }
+        stack.effectiveOrder().map { id -> nodeFor(EffectProviders.of(id), stack) }
 
-    private fun nodeFor(id: EffectId, stack: EffectStack): ImageProcessorNode =
-        EffectNode(id.name, stack.enabledOf(id)) { pixels, ctx ->
-            when (id) {
-                EffectId.POST -> PostProcessing.apply(pixels, stack.postProcessing)
-                EffectId.BLUR -> BlurSharpen.apply(pixels, stack.blurSharpen)
-                EffectId.TINT -> Tint.apply(pixels, stack.tint)
-                EffectId.CHROMATIC -> Chromatic.apply(pixels, stack.chromatic)
-                EffectId.GLITCH -> JpegGlitch.apply(pixels, stack.jpegGlitch)
-                EffectId.SORT -> PixelSort.apply(pixels, stack.pixelSort)
-                EffectId.SLICE -> SliceShift.apply(pixels, stack.sliceShift)
-                EffectId.INTERLACE -> Interlace.apply(pixels, stack.interlace)
-                EffectId.STARS -> DiffractionStars.apply(pixels, stack.stars)
-                EffectId.SUBTEXTURE -> Subtexture.apply(pixels, stack.subtexture)
-                EffectId.CMYK -> CmykHalftone.apply(pixels, stack.cmyk)
-                EffectId.GLOW -> EpsilonGlow.apply(pixels, stack.glow)
-                // The newer effects take the context: the clock for anything that moves, and the
-                // pool through the buffer they are handed.
-                EffectId.MODULATION -> ModulationLines.apply(pixels, stack.modulationLines, ctx)
-                EffectId.PRINT -> SpotColorPrint.apply(pixels, stack.spotPrint, ctx)
-                EffectId.DEPTH -> ColorDepth.apply(pixels, stack.colorDepth, ctx)
-                EffectId.DITHER -> BlueNoiseDither.apply(pixels, stack.blueNoise, ctx)
-                EffectId.WARP -> CrtWarp.apply(pixels, stack.crtWarp, ctx)
-            }
+    private fun nodeFor(provider: EffectProvider, stack: EffectStack): ImageProcessorNode =
+        EffectNode(provider.effect.name, provider.pass.enabledIn(stack)) { pixels, ctx ->
+            provider.pass.apply(pixels, stack, ctx)
         }
 }

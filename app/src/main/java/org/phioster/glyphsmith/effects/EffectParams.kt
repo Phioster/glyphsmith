@@ -216,25 +216,16 @@ data class EffectStack(
     val crtWarp: CrtWarpParams = CrtWarpParams(),
     val order: List<EffectId> = EffectId.entries.toList(),
 ) {
-    fun enabledOf(id: EffectId): Boolean = when (id) {
-        EffectId.POST -> postProcessing.enabled
-        EffectId.BLUR -> blurSharpen.enabled
-        EffectId.TINT -> tint.enabled
-        EffectId.CHROMATIC -> chromatic.enabled
-        EffectId.GLITCH -> jpegGlitch.enabled
-        EffectId.SORT -> pixelSort.enabled
-        EffectId.SLICE -> sliceShift.enabled
-        EffectId.INTERLACE -> interlace.enabled
-        EffectId.STARS -> stars.enabled
-        EffectId.SUBTEXTURE -> subtexture.enabled
-        EffectId.CMYK -> cmyk.enabled
-        EffectId.GLOW -> glow.enabled
-        EffectId.MODULATION -> modulationLines.enabled
-        EffectId.PRINT -> spotPrint.enabled
-        EffectId.DEPTH -> colorDepth.enabled
-        EffectId.DITHER -> blueNoise.enabled
-        EffectId.WARP -> crtWarp.enabled
-    }
+    /**
+     * Whether the pass in slot [id] would do anything.
+     *
+     * This was a second `when (EffectId)` — seventeen lines pairing a slot with the flag in its
+     * params, kept by hand alongside the seventeen in [EffectNodes] that paired the same slot
+     * with the code. The two could disagree, and the symptom of their disagreeing is a toggle
+     * that switches the wrong effect on. The pass now states both in one declaration, beside the
+     * effect it belongs to, and this asks it — see [EffectPass].
+     */
+    fun enabledOf(id: EffectId): Boolean = EffectProviders.of(id).pass.enabledIn(this)
 
     /**
      * [order] with duplicates dropped and anything missing appended, so a preset written

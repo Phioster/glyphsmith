@@ -45,6 +45,11 @@ data class CmykHalftoneParams(
 
 object CmykHalftone {
 
+    /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
+    val pass = EffectPass(EffectStack::cmyk, CmykHalftoneParams::enabled) { pixels, params, _ ->
+        apply(pixels, params)
+    }
+
     /** Yellow, cyan, black, magenta — the classic separation angles, in degrees. */
     private val INK_ANGLES = floatArrayOf(0f, 15f, 45f, 75f)
 
