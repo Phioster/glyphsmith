@@ -21,6 +21,7 @@ import org.phioster.glyphsmith.render.RenderSettings
 import org.phioster.glyphsmith.export.AndroidExports
 import org.phioster.glyphsmith.state.ExportCoordinator
 import org.phioster.glyphsmith.state.HistoryController
+import org.phioster.glyphsmith.state.PlaybackPlan
 import org.phioster.glyphsmith.state.PresetController
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.Animator
@@ -628,27 +629,21 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             val animation = params.animation
             _state.value = _state.value.copy(working = true, status = "rendering ${animation.frames} frames…")
 
-            val quality = _state.value.playbackQuality
+            // Everything countable about the run — which frames, how large, how long each is
+            // held — is decided before any of them is drawn. See PlaybackPlan.
+            val plan = PlaybackPlan.of(animation, _state.value.playbackQuality)
             val frames = withContext(Dispatchers.Default) {
-                renderFrames(current, params, animation, quality.maxSide, quality.step)
+                renderFrames(current, params, animation, plan)
             }
             animFrames = frames
             _state.value = _state.value.copy(
                 working = false,
                 animPlaying = true,
                 animFrames = frames.size,
-                status = if (quality.step > 1) {
-                    // Said out loud, because a preview that quietly differs from the export
-                    // is worse than a slow one.
-                    "${frames.size} of ${animation.frames} frames · approximate preview"
-                } else {
-                    "${frames.size} frames · ${"%.1f".format(animation.durationSeconds)}s loop"
-                },
+                status = plan.status(animation.durationSeconds),
             )
 
-            // Each rendered frame stands in for `step` of them, so it has to be held that
-            // much longer or a quick preview would run at several times real speed.
-            val frameDelay = 1000L * quality.step / animation.fps.coerceAtLeast(1)
+            val frameDelay = plan.frameDelayMs
             playbackJob = viewModelScope.launch {
                 var index = 0
                 val loop = _state.value.looped
@@ -689,16 +684,12 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         source: Source,
         base: RenderSettings,
         animation: AnimationParams,
-        maxSide: Int,
-        step: Int = 1,
+        plan: PlaybackPlan,
     ): List<Bitmap> {
-        // Only the frames actually rendered count against the budget, so a stepped run gets
-        // more room per frame rather than the same room spread over frames it skips.
-        val rendered = (animation.frames + step - 1) / step
-        val budgetSide = frameBudget(rendered, maxSide)
+        val budgetSide = plan.budgetSide
         var width = 0
         var height = 0
-        return (0 until animation.frames step step).map { frame ->
+        return plan.positions.map { frame ->
             val position = frame.toFloat() / animation.frames
             // The clock is set here rather than in paramsAt, so temporal noise still moves
             // over a video whose parameter tracks are all switched off.
@@ -721,19 +712,12 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Keeps the whole frame set inside a fixed memory budget. */
-    private fun frameBudget(frames: Int, maxSide: Int): Int {
-        val perFrame = MEMORY_BUDGET_BYTES / frames.coerceAtLeast(1) / 4
-        val side = kotlin.math.sqrt(perFrame.toDouble()).toInt()
-        return side.coerceIn(120, maxSide)
-    }
-
     fun exportGif() = runExport("gif") {
         val current = source ?: return@runExport "no image"
         val params = _state.value.params
         val animation = params.animation
         val bytes = withContext(Dispatchers.Default) {
-            val frames = renderFrames(current, params, animation, ANIM_EXPORT_MAX_SIDE)
+            val frames = renderFrames(current, params, animation, PlaybackPlan.everyFrame(animation, ANIM_EXPORT_MAX_SIDE))
             val width = frames.first().width
             val height = frames.first().height
             val buffers = frames.map { bitmap ->
@@ -757,7 +741,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val animation = params.animation
         val file = java.io.File(context.cacheDir, "glyphsmith-anim.mp4")
         val failure = withContext(Dispatchers.Default) {
-            val frames = renderFrames(current, params, animation, ANIM_EXPORT_MAX_SIDE)
+            val frames = renderFrames(current, params, animation, PlaybackPlan.everyFrame(animation, ANIM_EXPORT_MAX_SIDE))
             val result = Mp4Encoder.encode(frames, animation.fps.coerceAtLeast(1), file)
             frames.forEach { it.recycle() }
             result
@@ -941,6 +925,5 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         const val SCRUB_MAX_SIDE = 480
         const val THUMB_MAX_SIDE = 160
         const val ANIM_EXPORT_MAX_SIDE = 1080
-        const val MEMORY_BUDGET_BYTES = 96L * 1024 * 1024
     }
 }
