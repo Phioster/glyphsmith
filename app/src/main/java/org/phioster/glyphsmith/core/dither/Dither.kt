@@ -96,108 +96,37 @@ object Dither {
         return (value.coerceIn(0f, 1f) * (levels - 1)).roundToInt()
     }
 
-    /** Matrix-driven modes: the threshold comes from a fixed tile. */
     /**
-     * Deliberately a plain `when` rather than `matrix(mode) != null`: the picker asks this
+     * The algorithm behind [mode].
+     *
+     * Everything below that used to switch over the enum asks this instead. The lookup is an
+     * array index and the declarations are shared, so a per-cell caller pays nothing for going
+     * through the provider — see [DitherProviders.of].
+     */
+    private fun algorithmOf(mode: DitherMode): DitherAlgorithm =
+        DitherProviders.of(mode).algorithm
+
+    /**
+     * Matrix-driven modes: the threshold comes from a fixed tile.
+     *
+     * Deliberately the declared kind rather than `matrix(mode) != null`: the picker asks this
      * for every mode as it draws, and the generated matrices are built on first use. Going
      * through [matrix] would generate every blue-noise mask just to open a dropdown.
      */
-    fun isOrdered(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.BAYER_2, DitherMode.BAYER_4, DitherMode.BAYER_8, DitherMode.BAYER_16,
-        DitherMode.CLUSTER_4, DitherMode.CLUSTER_8,
-        DitherMode.BLUE_NOISE_16, DitherMode.BLUE_NOISE_32,
-        -> true
-
-        else -> false
-    }
+    fun isOrdered(mode: DitherMode): Boolean = algorithmOf(mode) is OrderedMatrix
 
     /** Modes whose threshold is a continuous function of position rather than a tile. */
-    fun isModulation(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.MOD_LINES, DitherMode.MOD_WAVE, DitherMode.MOD_RINGS,
-        DitherMode.MOD_ORB, DitherMode.BEEHIVE, DitherMode.UNIFORM_MODULATION,
-        DitherMode.HEART_GRID, DitherMode.POP_TONE,
-        DitherMode.CHECKERS, DitherMode.DIAMOND, DitherMode.CROSSHATCH,
-        DitherMode.STIPPLING, DitherMode.BIT_TONE, DitherMode.BLOCK_TONE,
-        DitherMode.PRINT_PATTERN, DitherMode.GRIDLOCK, DitherMode.RANDOM_ORDERED,
-        DitherMode.NOISE, DitherMode.WAVE, DitherMode.RADIAL_BURST,
-        DitherMode.SINE_DISTORT,
-        DitherMode.WAVEFORM, DitherMode.WAVEFORM_ALT, DitherMode.THRESHOLDER,
-        DitherMode.SINE_WAVE_MOD, DitherMode.TOPOGRAPHY, DitherMode.VORTEX,
-        DitherMode.RADIAL_PEAKS, DitherMode.DOTTED_LINES, DitherMode.DISPLACE_CONTOUR,
-        DitherMode.ORB_MATRIX, DitherMode.ORDERED_MODULATION, DitherMode.GLITCH,
-        -> true
+    fun isModulation(mode: DitherMode): Boolean = algorithmOf(mode) is Modulation
 
-        else -> false
-    }
+    /** Styles that read the cell's brightness as well as its position. */
+    fun isContentAware(mode: DitherMode): Boolean =
+        (algorithmOf(mode) as? Modulation)?.readsContent == true
 
-    /**
-     * Styles that read the cell's brightness as well as its position.
-     *
-     * The distinction is worth naming rather than leaving implicit. A pattern that ignores
-     * the picture tiles the same way over a face and over a blank wall; one that reads it
-     * puts its ink where the image is dark, which is what a pen does. Everything else must
-     * keep ignoring it, and a test enforces exactly this split.
-     */
-    fun isContentAware(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.CROSSHATCH, DitherMode.STIPPLING,
-        DitherMode.WAVEFORM, DitherMode.WAVEFORM_ALT, DitherMode.THRESHOLDER,
-        DitherMode.SINE_WAVE_MOD, DitherMode.TOPOGRAPHY, DitherMode.RADIAL_PEAKS,
-        DitherMode.DISPLACE_CONTOUR,
-        -> true
-        else -> false
-    }
-
-    /**
-     * What the pattern-size slider is actually called for this style.
-     *
-     * The storage is one field; the meaning is not. Labelling it "period" while it sets a
-     * dot size is the kind of small dishonesty that makes a panel feel arbitrary.
-     */
-    fun periodLabel(mode: DitherMode): String = when (mode) {
-        DitherMode.CHECKERS -> "block size"
-        DitherMode.CROSSHATCH -> "line spacing"
-        DitherMode.STIPPLING -> "dot spacing"
-        DitherMode.BIT_TONE, DitherMode.BLOCK_TONE -> "dot size"
-        DitherMode.PRINT_PATTERN -> "dot scale"
-        DitherMode.GRIDLOCK -> "grid size"
-        DitherMode.RANDOM_ORDERED -> "block size"
-        DitherMode.NOISE -> "grain"
-        DitherMode.WAVE, DitherMode.SINE_DISTORT -> "frequency"
-        DitherMode.RADIAL_BURST -> "ring spacing"
-        DitherMode.MOSAIC, DitherMode.SQUARE_MOSAIC -> "tile size"
-        DitherMode.CIRCLE_GRID, DitherMode.DIAMOND_GRID -> "grid size"
-        DitherMode.TRI_POLY, DitherMode.LOW_POLY -> "triangle size"
-        DitherMode.HEXA_POLY, DitherMode.PENTA_POLY -> "hex size"
-        DitherMode.CAMO -> "cell size"
-        DitherMode.WAVEFORM, DitherMode.WAVEFORM_ALT, DitherMode.SINE_WAVE_MOD -> "wavelength"
-        DitherMode.TOPOGRAPHY, DitherMode.DISPLACE_CONTOUR -> "contour spacing"
-        DitherMode.VORTEX, DitherMode.RADIAL_PEAKS -> "ring spacing"
-        DitherMode.DOTTED_LINES -> "line spacing"
-        DitherMode.ORDERED_MODULATION -> "sequence length"
-        DitherMode.GLITCH -> "band height"
-        else -> "period"
-    }
+    /** What the pattern-size slider is actually called for this style. */
+    fun periodLabel(mode: DitherMode): String = algorithmOf(mode).periodLabel
 
     /** Styles that use the second axis, and what it means there. */
-    fun densityLabel(mode: DitherMode): String? = when (mode) {
-        DitherMode.SINE_DISTORT -> "second frequency"
-        DitherMode.RADIAL_BURST -> "spokes"
-        DitherMode.CROSSHATCH -> "line weight"
-        DitherMode.STIPPLING -> "dot size"
-        DitherMode.SQUARE_MOSAIC -> "grout"
-        DitherMode.CIRCLE_GRID, DitherMode.DIAMOND_GRID -> "fill"
-        DitherMode.LOW_POLY -> "triangle type"
-        DitherMode.PENTA_POLY -> "split direction"
-        DitherMode.WAVEFORM -> "frequency range"
-        DitherMode.WAVEFORM_ALT -> "bend"
-        DitherMode.THRESHOLDER -> "content weight"
-        DitherMode.TOPOGRAPHY -> "warp"
-        DitherMode.VORTEX -> "twist"
-        DitherMode.RADIAL_PEAKS -> "interference"
-        DitherMode.DOTTED_LINES -> "dotting"
-        DitherMode.DISPLACE_CONTOUR -> "displacement"
-        else -> null
-    }
+    fun densityLabel(mode: DitherMode): String? = algorithmOf(mode).densityLabel
 
     /**
      * Every mode that picks its glyph from a threshold at ([x], [y]) instead of by passing
@@ -1081,12 +1010,7 @@ object Dither {
      * right corner before the top left. Rather than bend the main loop around them, they
      * hand back a finished grid of glyph indices and the loop just reads it.
      */
-    fun isPrecomputed(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.RIEMERSMA, DitherMode.DOT_DIFFUSION, DitherMode.FRACTAL_DIFFUSE,
-        DitherMode.CONTRAST_AWARE_X, DitherMode.CONTRAST_AWARE_Y, DitherMode.VORTEX_DIFFUSION,
-        -> true
-        else -> isRegion(mode)
-    }
+    fun isPrecomputed(mode: DitherMode): Boolean = algorithmOf(mode) is Precomputed
 
     /**
      * Styles that flatten an area rather than threshold a cell.
@@ -1095,12 +1019,6 @@ object Dither {
      * comes out is a coarser picture rather than a texture laid over the original one. See
      * [Regions].
      */
-    fun isRegion(mode: DitherMode): Boolean = when (mode) {
-        DitherMode.MOSAIC, DitherMode.SQUARE_MOSAIC, DitherMode.CIRCLE_GRID,
-        DitherMode.DIAMOND_GRID, DitherMode.TRI_POLY, DitherMode.HEXA_POLY,
-        DitherMode.PENTA_POLY, DitherMode.LOW_POLY, DitherMode.CAMO,
-        -> true
-
-        else -> false
-    }
+    fun isRegion(mode: DitherMode): Boolean =
+        (algorithmOf(mode) as? Precomputed)?.flattensRegions == true
 }
