@@ -19,7 +19,11 @@ import android.net.Uri
  */
 interface Exports {
 
-    fun saveImage(bitmap: Bitmap, format: ImageFormat): Uri?
+    /** [name] is the file's own; null asks for the ordinary timestamped one. */
+    fun saveImage(bitmap: Bitmap, format: ImageFormat, name: String? = null): Uri?
+
+    /** Whatever an encoder produced. The only export that is not text or a bitmap. */
+    fun saveBytes(bytes: ByteArray, name: String, mimeType: String): Uri?
 
     fun saveText(text: String): Uri?
 
@@ -44,8 +48,11 @@ interface Exports {
  */
 class AndroidExports(private val context: Context) : Exports {
 
-    override fun saveImage(bitmap: Bitmap, format: ImageFormat): Uri? =
-        Exporter.saveImage(context, bitmap, format)
+    override fun saveImage(bitmap: Bitmap, format: ImageFormat, name: String?): Uri? =
+        Exporter.saveImage(context, bitmap, format, name ?: Exporter.timestampedName(format.extension))
+
+    override fun saveBytes(bytes: ByteArray, name: String, mimeType: String): Uri? =
+        Exporter.saveBytes(context, bytes, name, mimeType)
 
     override fun saveText(text: String): Uri? = Exporter.saveText(context, text)
 

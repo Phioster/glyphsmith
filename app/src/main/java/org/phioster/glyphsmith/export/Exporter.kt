@@ -16,6 +16,19 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * The two moving formats, as one value rather than an extension and a MIME type carried
+ * separately.
+ *
+ * They were spelled out at the call site — `"gif"`, `"image/gif"` and the word for the status
+ * line, three literals a few lines apart from the three for MP4. An encoder produces bytes; what
+ * those bytes are called is a property of the format.
+ */
+enum class AnimationFormat(val extension: String, val mimeType: String) {
+    GIF("gif", "image/gif"),
+    MP4("mp4", "video/mp4"),
+}
+
 /** Image formats offered next to the export button, mirroring the original's format picker. */
 enum class ImageFormat(val extension: String, val mimeType: String) {
     PNG("png", "image/png"),
