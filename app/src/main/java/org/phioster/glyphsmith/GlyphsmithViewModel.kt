@@ -330,11 +330,12 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
             }.getOrNull()
         } ?: return@runExport "could not read that file"
-        val merged = presetStore.importJson(text)
+        val imported = presetStore.importJson(text)
             ?: return@runExport "that file isn't a preset export"
-        _state.value = _state.value.copy(presets = merged)
+        _state.value = _state.value.copy(presets = imported.presets)
         renderThumbs()
-        "${merged.size} presets after import"
+        // What it could not read is reported rather than swallowed — see Import.summary().
+        imported.summary()
     }
 
     fun loadImage(uri: Uri) {

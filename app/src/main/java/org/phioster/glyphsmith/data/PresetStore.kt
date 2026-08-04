@@ -45,15 +45,26 @@ class PresetStore(context: Context) {
 
     /**
      * Merges an exported file into the stored presets, matched by name — importing an
-     * edited export updates those presets instead of producing duplicates. Returns null
-     * when the text isn't a preset export at all.
+     * edited export updates those presets instead of producing duplicates.
+     *
+     * Returns null only when the text is not a preset document at all. A document whose
+     * entries this build cannot read is *not* that case, and used to be treated as one: it
+     * came back empty and was reported as "not a preset export", which is both wrong and
+     * unhelpful to whoever exported it from a newer build. It now returns an [Import] that
+     * imported nothing and says which entries it had to leave behind.
+     *
+     * Only the entries that read are merged, so an unreadable one is never written into the
+     * stored library — it stays a problem with the file that was offered, not with the file
+     * that is kept.
      */
-    fun importJson(text: String): List<Preset>? {
-        val imported = PresetSchema.decode(text).ifEmpty { return null }
-        val names = imported.map { it.name.lowercase() }.toSet()
-        val merged = load().filterNot { it.name.lowercase() in names } + imported
-        save(merged)
-        return merged
+    fun importJson(text: String): Import? {
+        val reading = PresetSchema.read(text)
+        if (reading.presets.isEmpty() && reading.skipped.isEmpty()) return null
+
+        val names = reading.presets.map { it.name.lowercase() }.toSet()
+        val merged = load().filterNot { it.name.lowercase() in names } + reading.presets
+        if (reading.presets.isNotEmpty()) save(merged)
+        return Import(merged, reading.presets.size, reading.skipped)
     }
 
     fun upsert(name: String, params: RenderSettings, description: String = ""): List<Preset> {
