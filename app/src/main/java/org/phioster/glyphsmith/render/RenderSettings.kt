@@ -134,7 +134,7 @@ data class RenderSettings(
     val edgeOnly: Boolean = false,
     val colorMode: ColorMode = ColorMode.SINGLE,
     val inkColor: Int = DEFAULT_INK,
-    val paletteId: String = "grayscale",
+    val paletteId: String = "palette.grayscale",
     /** Edited palette stops. Non-empty means the UI has customised [paletteId]'s colours. */
     val paletteOverride: List<Int> = emptyList(),
     /** Per-stop locks; a locked stop survives a shuffle. Shorter than the palette means unlocked. */

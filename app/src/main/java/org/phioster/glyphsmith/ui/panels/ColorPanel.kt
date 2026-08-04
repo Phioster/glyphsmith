@@ -39,6 +39,7 @@ import org.phioster.glyphsmith.ui.theme.Term
 import kotlin.random.Random
 import org.phioster.glyphsmith.core.color.Palettes
 import org.phioster.glyphsmith.core.color.Palette
+import org.phioster.glyphsmith.core.color.PaletteProvider
 
 /** How many colours the extraction offers to pull out — a short ramp or a rich one. */
 private val EXTRACT_COUNTS = listOf(5, 8, 16)
@@ -109,7 +110,7 @@ fun ColorPanel(
                     category = next
                     onChange(
                         params.copy(
-                            paletteId = Palettes.inCategory(next).first().id,
+                            paletteId = PaletteProvider.wireIdOf(Palettes.inCategory(next).first().id),
                             paletteOverride = emptyList(),
                         ),
                     )
@@ -172,10 +173,14 @@ private fun PaletteSection(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
+            // Favourites are keyed on the palette's own short id, not on the wire id a
+            // preset stores. Deliberately: they live in SharedPreferences, which has no
+            // migration of any kind, so re-spelling them would silently unstar everything.
+            val starred = Palettes.byId(params.paletteId).id
             TerminalButton(
-                label = if (params.paletteId in favourites) "★" else "☆",
-                accent = if (params.paletteId in favourites) Term.Amber else Term.InkDim,
-                onClick = { onToggleFavourite(params.paletteId) },
+                label = if (starred in favourites) "★" else "☆",
+                accent = if (starred in favourites) Term.Amber else Term.InkDim,
+                onClick = { onToggleFavourite(starred) },
             )
             Text(
                 if (favourites.isEmpty()) {
@@ -195,7 +200,7 @@ private fun PaletteSection(
             onSelect = {
                 onChange(
                     params.copy(
-                        paletteId = palettes[it].id,
+                        paletteId = PaletteProvider.wireIdOf(palettes[it].id),
                         paletteOverride = emptyList(),
                         paletteLocks = emptyList(),
                     ),

@@ -13,6 +13,7 @@ import org.phioster.glyphsmith.glyph.CharacterSets
 import org.phioster.glyphsmith.render.ColorMode
 import org.phioster.glyphsmith.core.dither.DitherCategory
 import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.color.PaletteProvider
 import org.phioster.glyphsmith.core.color.Palettes
 import org.phioster.glyphsmith.core.image.Pixels
 import org.phioster.glyphsmith.effects.EffectId
@@ -151,8 +152,12 @@ class PresetLibraryTest {
      * Taken over [PresetSchema.encode] rather than over the objects, because that is the form
      * that has to stay stable: it is what a user's file is compared against and what an export
      * hands to somebody else.
+     *
+     * It has moved once, at schema 4, when a palette stopped being named by a bare id. That is
+     * what this is for: the change was checked by diffing the encoded library against the old
+     * one and confirming that nothing but `schemaVersion` and 91 `paletteId` values had moved.
      */
-    private val digest = "8259cd88f3ce2f29515306774fb6386e473ae870e4fa459f2a8ab59bddb88f81"
+    private val digest = "0d7e1e31b8a4bf76bbaeb22111783b965ab0a36beb71b3248527dfc47d7fdb47"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -162,6 +167,22 @@ class PresetLibraryTest {
                 "${it.name}|${it.category}|${it.params.renderMode.name}|${it.params.ditherMode.name}"
             },
         )
+    }
+
+    /**
+     * Schema 4 gave palettes a wire id. A preset still carrying the bare one would work —
+     * [Palettes.byId] reads either — which is exactly why it needs saying out loud: a missed
+     * write site produces a file with two spellings of one identity and no symptom at all.
+     */
+    @Test
+    fun `every shipped preset names its palette the way the format spells it`() {
+        (presets + presets.flatMap { it.params.layers }.map { Preset(it.name, it.params) })
+            .forEach { preset ->
+                assertTrue(
+                    "${preset.name} carries the bare palette id '${preset.params.paletteId}'",
+                    preset.params.paletteId.startsWith("palette."),
+                )
+            }
     }
 
     @Test
@@ -292,7 +313,7 @@ class PresetLibraryTest {
                 )
                 assertTrue(
                     "the layer '${layer.name}' in $name wants a palette that does not exist",
-                    Palettes.all.any { it.id == layer.params.paletteId },
+                    Palettes.all.any { it.id == PaletteProvider.bareIdOf(layer.params.paletteId) },
                 )
             }
     }
@@ -446,7 +467,7 @@ class PresetLibraryTest {
         presets.forEach { preset ->
             assertTrue(
                 "${preset.name} wants the palette '${preset.params.paletteId}'",
-                Palettes.all.any { it.id == preset.params.paletteId },
+                Palettes.all.any { it.id == PaletteProvider.bareIdOf(preset.params.paletteId) },
             )
             assertTrue(
                 "${preset.name} wants the set '${preset.params.charSetId}'",
@@ -636,7 +657,7 @@ class PresetLibraryTest {
         presets.filter { it.params.colorMode == ColorMode.PALETTE }.forEach { preset ->
             assertTrue(
                 "${preset.name} is in palette mode with under two stops",
-                (Palettes.all.first { it.id == preset.params.paletteId }).colors.size >= 2,
+                Palettes.byId(preset.params.paletteId).colors.size >= 2,
             )
         }
     }

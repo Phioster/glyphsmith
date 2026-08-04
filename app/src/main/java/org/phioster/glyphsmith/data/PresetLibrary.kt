@@ -190,7 +190,7 @@ object PresetLibrary {
                 ditherStrength = 100,
                 serpentine = false,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ice",
+                paletteId = "palette.ice",
                 backgroundColor = 0xFF000206.toInt(),
                 temporal = TemporalParams(
                     enabled = true,
@@ -221,7 +221,7 @@ object PresetLibrary {
                 ditherMode = DitherMode.DIFFUSE_X,
                 serpentine = false,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "amber",
+                paletteId = "palette.amber",
                 backgroundColor = 0xFF060200.toInt(),
                 effects = EffectStack(
                     glow = GlowParams(enabled = true, radius = 70, intensity = 480, aspectRatio = 320),
@@ -239,7 +239,7 @@ object PresetLibrary {
                 ditherMode = DitherMode.CRACKED_DIFFUSE,
                 serpentine = false,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "acid",
+                paletteId = "palette.acid",
             ),
         ),
         pixel(
@@ -251,7 +251,7 @@ object PresetLibrary {
                 contrast = 1.25f,
                 ditherMode = DitherMode.CONTRAST_AWARE_Y,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ice",
+                paletteId = "palette.ice",
             ),
         ),
         pixel(
@@ -277,7 +277,7 @@ object PresetLibrary {
                 depth = 8,
                 ditherMode = DitherMode.VORTEX_DIFFUSION,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ember",
+                paletteId = "palette.ember",
                 animation = animation(sweep(AnimTarget.DITHER_STRENGTH, 40, 100), frames = 34),
             ),
         ),
@@ -368,7 +368,7 @@ object PresetLibrary {
                 modScale = 10,
                 modAngle = 25,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ice",
+                paletteId = "palette.ice",
             ),
         ),
         pixel(
@@ -380,7 +380,7 @@ object PresetLibrary {
                 ditherMode = DitherMode.MOD_RINGS,
                 modScale = 7,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "amber",
+                paletteId = "palette.amber",
             ),
         ),
         pixel(
@@ -462,7 +462,7 @@ object PresetLibrary {
                 modAngle = 20,
                 patternDensity = 60,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ink",
+                paletteId = "palette.ink",
             ),
         ),
         pixel(
@@ -488,7 +488,7 @@ object PresetLibrary {
                 ditherMode = DitherMode.MOD_ORB,
                 modScale = 7,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ember",
+                paletteId = "palette.ember",
                 effects = EffectStack(
                     stars = DiffractionStarsParams(enabled = true, rays = 6, length = 80, threshold = 60),
                     glow = GlowParams(enabled = true, intensity = 600, radius = 140),
@@ -506,7 +506,7 @@ object PresetLibrary {
                 contrast = 1.3f,
                 ditherMode = DitherMode.NONE,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "neon",
+                paletteId = "palette.neon",
                 backgroundColor = 0xFF05000E.toInt(),
                 effects = EffectStack(
                     modulationLines = ModulationLinesParams(
@@ -559,7 +559,7 @@ object PresetLibrary {
             RenderSettings(
                 cellSize = 5,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "sunset",
+                paletteId = "palette.sunset",
                 backgroundColor = 0xFFF6F1E4.toInt(),
                 effects = EffectStack(
                     cmyk = CmykHalftoneParams(enabled = true, frequency = 9, blackInk = 40, angle = 20),
@@ -606,7 +606,7 @@ object PresetLibrary {
                 ditherMode = DitherMode.BIT_TONE,
                 modScale = 6,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "cga",
+                paletteId = "palette.cga",
             ),
         ),
         pixel(
@@ -648,7 +648,7 @@ object PresetLibrary {
                 depth = 4,
                 ditherMode = DitherMode.CLUSTER_4,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "riso-blue-red",
+                paletteId = "palette.riso-blue-red",
                 backgroundColor = 0xFFF7F3E8.toInt(),
                 effects = EffectStack(
                     subtexture = SubtextureParams(
@@ -681,7 +681,7 @@ object PresetLibrary {
                 modScale = 16,
                 patternDensity = 0,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ocean",
+                paletteId = "palette.ocean",
             ),
         ),
         pixel(
@@ -693,7 +693,7 @@ object PresetLibrary {
                 ditherMode = DitherMode.HEXA_POLY,
                 modScale = 8,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "sunset",
+                paletteId = "palette.sunset",
             ),
         ),
         pixel(
@@ -706,7 +706,7 @@ object PresetLibrary {
                 ditherMode = DitherMode.CAMO,
                 modScale = 7,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "saltmarsh",
+                paletteId = "palette.saltmarsh",
             ),
         ),
         pixel(
@@ -721,7 +721,7 @@ object PresetLibrary {
                 modScale = 6,
                 patternDensity = 30,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "sepia",
+                paletteId = "palette.sepia",
             ),
         ),
         pixel(
@@ -734,7 +734,7 @@ object PresetLibrary {
                 modScale = 6,
                 patternDensity = 70,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ice",
+                paletteId = "palette.ice",
             ),
         ),
 
@@ -747,7 +747,7 @@ object PresetLibrary {
             RenderSettings(
                 cellSize = 7,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "gameboy",
+                paletteId = "palette.gameboy",
                 backgroundColor = 0xFF0F380F.toInt(),
             ),
         ),
@@ -758,7 +758,7 @@ object PresetLibrary {
                 cellSize = 5,
                 ditherMode = DitherMode.BAYER_4,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "c64",
+                paletteId = "palette.c64",
             ),
         ),
         pixel(
@@ -771,7 +771,7 @@ object PresetLibrary {
                 cellSize = 3,
                 ditherMode = DitherMode.FLOYD_STEINBERG,
                 colorMode = ColorMode.SOURCE,
-                paletteId = "vapor",
+                paletteId = "palette.vapor",
                 colorDistance = ColorDistance.OKLAB,
             ),
         ),
@@ -867,7 +867,7 @@ object PresetLibrary {
             RenderSettings(
                 cellSize = 5,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "phosphor",
+                paletteId = "palette.phosphor",
                 contrast = 1.25f,
                 effects = EffectStack(
                     postProcessing = PostProcessingParams(
@@ -1007,7 +1007,7 @@ object PresetLibrary {
                 ditherMode = DitherMode.MOD_WAVE,
                 modScale = 9,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ice",
+                paletteId = "palette.ice",
                 // A sawtooth over a whole period is what makes the pattern travel rather
                 // than rock back and forth.
                 animation = animation(sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH)),
@@ -1054,7 +1054,7 @@ object PresetLibrary {
             RenderSettings(
                 cellSize = 6,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ember",
+                paletteId = "palette.ember",
                 effects = EffectStack(
                     glow = GlowParams(enabled = true, intensity = 520, radius = 120, aspectRatio = 240),
                 ),
@@ -1071,7 +1071,7 @@ object PresetLibrary {
                 modScale = 6,
                 modAngle = 90,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "phosphor",
+                paletteId = "palette.phosphor",
                 animation = animation(
                     sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
                     frames = 36,
@@ -1109,7 +1109,7 @@ object PresetLibrary {
             RenderSettings(
                 cellSize = 4,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "neon",
+                paletteId = "palette.neon",
                 backgroundColor = 0xFF05000C.toInt(),
                 temporal = TemporalParams(
                     enabled = true,
@@ -1134,7 +1134,7 @@ object PresetLibrary {
                 ditherMode = DitherMode.MOD_ORB,
                 modScale = 6,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "sunset",
+                paletteId = "palette.sunset",
                 effects = EffectStack(
                     stars = DiffractionStarsParams(
                         enabled = true,
@@ -1192,7 +1192,7 @@ object PresetLibrary {
                 modScale = 9,
                 patternDensity = 30,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "twilight",
+                paletteId = "palette.twilight",
                 animation = animation(
                     sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
                     sweep(AnimTarget.PATTERN_DENSITY, 15, 55),
@@ -1210,7 +1210,7 @@ object PresetLibrary {
                 modScale = 12,
                 patternDensity = 20,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "saltmarsh",
+                paletteId = "palette.saltmarsh",
                 animation = animation(sweep(AnimTarget.PATTERN_DENSITY, 5, 60), frames = 44),
             ),
         ),
@@ -1224,7 +1224,7 @@ object PresetLibrary {
                 modScale = 7,
                 patternDensity = 40,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ice",
+                paletteId = "palette.ice",
                 animation = animation(
                     sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
                     frames = 36,
@@ -1241,7 +1241,7 @@ object PresetLibrary {
                 modScale = 5,
                 patternDensity = 45,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "acid",
+                paletteId = "palette.acid",
                 animation = animation(sweep(AnimTarget.PATTERN_DENSITY, 30, 65), frames = 48),
             ),
         ),
@@ -1256,7 +1256,7 @@ object PresetLibrary {
                 patternDensity = 50,
                 modAngle = 90,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "phosphor",
+                paletteId = "palette.phosphor",
                 animation = animation(
                     sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
                     frames = 36,
@@ -1273,7 +1273,7 @@ object PresetLibrary {
                 modScale = 6,
                 patternDensity = 35,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "ember",
+                paletteId = "palette.ember",
                 animation = animation(
                     sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
                     frames = 32,
@@ -1328,7 +1328,7 @@ object PresetLibrary {
                 modScale = 4,
                 patternDensity = 40,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "bone",
+                paletteId = "palette.bone",
                 animation = animation(sweep(AnimTarget.PATTERN_DENSITY, 20, 75), frames = 40),
             ),
         ),
@@ -1341,7 +1341,7 @@ object PresetLibrary {
                 ditherMode = DitherMode.GRIDLOCK,
                 modScale = 7,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "neon-district",
+                paletteId = "palette.neon-district",
                 animation = animation(
                     sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
                     frames = 34,
@@ -1362,7 +1362,7 @@ object PresetLibrary {
                 ditherMode = DitherMode.LOW_POLY,
                 modScale = 10,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "arctic",
+                paletteId = "palette.arctic",
                 // A triangle rather than a sawtooth: the axis picks one of six cuts and
                 // does not wrap, so it rides up through them and back down instead of
                 // snapping from the last to the first in view.
@@ -1457,7 +1457,7 @@ object PresetLibrary {
                 charSetId = "ascii-standard-70",
                 cellSize = 5,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "phosphor",
+                paletteId = "palette.phosphor",
                 contrast = 1.3f,
             ),
         ),
@@ -1473,7 +1473,7 @@ object PresetLibrary {
                 charSetId = "lang-katakana",
                 cellSize = 8,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "phosphor",
+                paletteId = "palette.phosphor",
                 contrast = 1.5f,
             ),
         ),
@@ -1490,7 +1490,7 @@ object PresetLibrary {
                 injection = "@#&%",
                 contrast = 1.2f,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "bone",
+                paletteId = "palette.bone",
             ),
         ),
         glyph(
@@ -1545,7 +1545,7 @@ object PresetLibrary {
                 charSetId = "ascii-standard-70",
                 cellSize = 5,
                 colorMode = ColorMode.PALETTE,
-                paletteId = "phosphor",
+                paletteId = "palette.phosphor",
                 animation = animation(sweep(AnimTarget.DEPTH, 3, 40)),
             ),
         ),

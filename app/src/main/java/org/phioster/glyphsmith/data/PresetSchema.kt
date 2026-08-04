@@ -11,6 +11,8 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
+import org.phioster.glyphsmith.core.color.PaletteProvider
+import org.phioster.glyphsmith.core.color.Palettes
 import org.phioster.glyphsmith.core.dither.DitherModeIds
 import org.phioster.glyphsmith.core.serial.WireId
 import org.phioster.glyphsmith.effects.EffectIds
@@ -36,6 +38,10 @@ import org.phioster.glyphsmith.render.RenderModeIds
  *   constants. See [WireId]. Nothing else about an entry changed, and no preset changes
  *   appearance: the same things are being named, in a spelling that no longer moves when the
  *   source does.
+ * - **4** — a palette is named the same way: `palette.grayscale` rather than `grayscale`. The
+ *   last identity in the format that was still a bare string. The palette itself keeps its
+ *   short id, which is what the picker and the starred list key on; only the spelling inside a
+ *   preset changed, and both spellings are still read.
  *
  * ## Adding a version
  *
@@ -56,7 +62,7 @@ import org.phioster.glyphsmith.render.RenderModeIds
  */
 object PresetSchema {
 
-    const val CURRENT_VERSION = 3
+    const val CURRENT_VERSION = 4
 
     /** The bare array, from before anything wrote a version. */
     private const val VERSION_LEGACY = 1
@@ -70,6 +76,7 @@ object PresetSchema {
     private const val KEY_EFFECTS = "effects"
     private const val KEY_ORDER = "order"
     private const val KEY_LAYERS = "layers"
+    private const val KEY_PALETTE_ID = "paletteId"
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -235,6 +242,51 @@ object PresetSchema {
         }
     }
 
+    /**
+     * 3 → 4: a palette's bare id becomes its wire id.
+     *
+     * The one identity a preset still spelled differently from the rest. Only ids this build
+     * recognises are rewritten, on the same rule the step before it follows: a palette from a
+     * build that ships more of them is carried through untouched, and [Palettes.byId] reads
+     * either spelling in any case.
+     *
+     * Recurses into layers, because a layer carries a full set of params and so a palette of
+     * its own.
+     */
+    private object PaletteIdMigration : Migration {
+        override val from = 3
+
+        override fun apply(entry: JsonElement): JsonElement {
+            val preset = entry as? JsonObject ?: return entry
+            val params = preset[KEY_PARAMS] as? JsonObject ?: return entry
+            return JsonObject(preset + (KEY_PARAMS to params(params)))
+        }
+
+        private fun params(params: JsonObject): JsonObject {
+            val raw = (params[KEY_PALETTE_ID] as? JsonPrimitive)?.contentOrNull
+            var patched = params
+            if (raw != null && Palettes.all.any { it.id == raw }) {
+                patched = JsonObject(
+                    patched + (KEY_PALETTE_ID to JsonPrimitive(PaletteProvider.wireIdOf(raw))),
+                )
+            }
+            return layers(patched)
+        }
+
+        private fun layers(params: JsonObject): JsonObject {
+            val layers = params[KEY_LAYERS] as? JsonArray ?: return params
+            val patched = JsonArray(
+                layers.map { layer ->
+                    val entry = layer as? JsonObject ?: return@map layer
+                    val nested = entry[KEY_PARAMS] as? JsonObject ?: return@map layer
+                    JsonObject(entry + (KEY_PARAMS to params(nested)))
+                },
+            )
+            return JsonObject(params + (KEY_LAYERS to patched))
+        }
+    }
+
     /** In ascending order of [Migration.from]. */
-    private val migrations: List<Migration> = listOf(RenderModeMigration, WireIdMigration)
+    private val migrations: List<Migration> =
+        listOf(RenderModeMigration, WireIdMigration, PaletteIdMigration)
 }
