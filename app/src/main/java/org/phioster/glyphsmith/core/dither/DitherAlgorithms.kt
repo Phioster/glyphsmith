@@ -66,90 +66,39 @@ internal object DitherAlgorithms {
         DitherMode.BLUE_NOISE_32 -> OrderedScreens.BLUE_NOISE_32
 
         // --- modulation ---------------------------------------------------------------------
-        DitherMode.MOD_LINES -> Modulation()
-        DitherMode.MOD_WAVE -> Modulation()
-        DitherMode.MOD_RINGS -> Modulation()
-        DitherMode.MOD_ORB -> Modulation()
-        DitherMode.BEEHIVE -> Modulation()
-        DitherMode.UNIFORM_MODULATION -> Modulation()
-        DitherMode.HEART_GRID -> Modulation()
-        DitherMode.POP_TONE -> Modulation()
-        DitherMode.CHECKERS -> Modulation(periodLabel = "block size")
-        DitherMode.DIAMOND -> Modulation()
-        DitherMode.CROSSHATCH -> Modulation(
-            periodLabel = "line spacing",
-            densityLabel = "line weight",
-            readsContent = true,
-        )
-
-        DitherMode.STIPPLING -> Modulation(
-            periodLabel = "dot spacing",
-            densityLabel = "dot size",
-            readsContent = true,
-        )
-
-        DitherMode.BIT_TONE -> Modulation(periodLabel = "dot size")
-        DitherMode.BLOCK_TONE -> Modulation(periodLabel = "dot size")
-        DitherMode.PRINT_PATTERN -> Modulation(periodLabel = "dot scale")
-        DitherMode.GRIDLOCK -> Modulation(periodLabel = "grid size")
-        DitherMode.RANDOM_ORDERED -> Modulation(periodLabel = "block size")
-        DitherMode.NOISE -> Modulation(periodLabel = "grain")
-        DitherMode.WAVE -> Modulation(periodLabel = "frequency")
-        DitherMode.RADIAL_BURST -> Modulation(
-            periodLabel = "ring spacing",
-            densityLabel = "spokes",
-        )
-
-        DitherMode.SINE_DISTORT -> Modulation(
-            periodLabel = "frequency",
-            densityLabel = "second frequency",
-        )
-
-        DitherMode.WAVEFORM -> Modulation(
-            periodLabel = "wavelength",
-            densityLabel = "frequency range",
-            readsContent = true,
-        )
-
-        DitherMode.WAVEFORM_ALT -> Modulation(
-            periodLabel = "wavelength",
-            densityLabel = "bend",
-            readsContent = true,
-        )
-
-        DitherMode.THRESHOLDER -> Modulation(
-            densityLabel = "content weight",
-            readsContent = true,
-        )
-
-        DitherMode.SINE_WAVE_MOD -> Modulation(periodLabel = "wavelength", readsContent = true)
-        DitherMode.TOPOGRAPHY -> Modulation(
-            periodLabel = "contour spacing",
-            densityLabel = "warp",
-            readsContent = true,
-        )
-
-        DitherMode.VORTEX -> Modulation(periodLabel = "ring spacing", densityLabel = "twist")
-        DitherMode.RADIAL_PEAKS -> Modulation(
-            periodLabel = "ring spacing",
-            densityLabel = "interference",
-            readsContent = true,
-        )
-
-        DitherMode.DOTTED_LINES -> Modulation(
-            periodLabel = "line spacing",
-            densityLabel = "dotting",
-        )
-
-        DitherMode.DISPLACE_CONTOUR -> Modulation(
-            periodLabel = "contour spacing",
-            densityLabel = "displacement",
-            readsContent = true,
-        )
-
-        DitherMode.ORB_MATRIX -> Modulation()
-        DitherMode.ORDERED_MODULATION -> Modulation(periodLabel = "sequence length")
-        DitherMode.GLITCH -> Modulation(periodLabel = "band height")
+        DitherMode.MOD_LINES -> ModulationSurfaces.MOD_LINES
+        DitherMode.MOD_WAVE -> ModulationSurfaces.MOD_WAVE
+        DitherMode.MOD_RINGS -> ModulationSurfaces.MOD_RINGS
+        DitherMode.MOD_ORB -> ModulationSurfaces.MOD_ORB
+        DitherMode.BEEHIVE -> ModulationSurfaces.BEEHIVE
+        DitherMode.UNIFORM_MODULATION -> ModulationSurfaces.UNIFORM_MODULATION
+        DitherMode.HEART_GRID -> ModulationSurfaces.HEART_GRID
+        DitherMode.POP_TONE -> ModulationSurfaces.POP_TONE
+        DitherMode.CHECKERS -> ModulationSurfaces.CHECKERS
+        DitherMode.DIAMOND -> ModulationSurfaces.DIAMOND
+        DitherMode.CROSSHATCH -> ModulationSurfaces.CROSSHATCH
+        DitherMode.STIPPLING -> ModulationSurfaces.STIPPLING
+        DitherMode.BIT_TONE -> ModulationSurfaces.BIT_TONE
+        DitherMode.BLOCK_TONE -> ModulationSurfaces.BLOCK_TONE
+        DitherMode.PRINT_PATTERN -> ModulationSurfaces.PRINT_PATTERN
+        DitherMode.GRIDLOCK -> ModulationSurfaces.GRIDLOCK
+        DitherMode.RANDOM_ORDERED -> ModulationSurfaces.RANDOM_ORDERED
+        DitherMode.NOISE -> ModulationSurfaces.NOISE
+        DitherMode.WAVE -> ModulationSurfaces.WAVE
+        DitherMode.RADIAL_BURST -> ModulationSurfaces.RADIAL_BURST
+        DitherMode.SINE_DISTORT -> ModulationSurfaces.SINE_DISTORT
+        DitherMode.WAVEFORM -> ModulationSurfaces.WAVEFORM
+        DitherMode.WAVEFORM_ALT -> ModulationSurfaces.WAVEFORM_ALT
+        DitherMode.THRESHOLDER -> ModulationSurfaces.THRESHOLDER
+        DitherMode.SINE_WAVE_MOD -> ModulationSurfaces.SINE_WAVE_MOD
+        DitherMode.TOPOGRAPHY -> ModulationSurfaces.TOPOGRAPHY
+        DitherMode.VORTEX -> ModulationSurfaces.VORTEX
+        DitherMode.RADIAL_PEAKS -> ModulationSurfaces.RADIAL_PEAKS
+        DitherMode.DOTTED_LINES -> ModulationSurfaces.DOTTED_LINES
+        DitherMode.DISPLACE_CONTOUR -> ModulationSurfaces.DISPLACE_CONTOUR
+        DitherMode.ORB_MATRIX -> ModulationSurfaces.ORB_MATRIX
+        DitherMode.ORDERED_MODULATION -> ModulationSurfaces.ORDERED_MODULATION
+        DitherMode.GLITCH -> ModulationSurfaces.GLITCH
 
         /*
          * --- resolved up front, by walking an order of their own -----------------------------

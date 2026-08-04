@@ -1,5 +1,9 @@
 package org.phioster.glyphsmith.core.dither
 
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+
 /**
  * The name the pattern-size control carries unless a style renames it.
  *
@@ -69,12 +73,76 @@ class OrderedMatrix(build: () -> Array<IntArray>) : DitherAlgorithm(DEFAULT_PERI
  * tiles the same way over a face and over a blank wall; one that reads it puts its ink where the
  * image is dark, which is what a pen does. Everything else must keep ignoring it, and a test
  * enforces exactly this split.
+ *
+ * The surface is written against [ModulationCell] as its receiver, so a style reads `u`, `phase`
+ * and `density` directly and never has to unpack a parameter list it mostly ignores.
  */
 class Modulation(
     periodLabel: String = DEFAULT_PERIOD_LABEL,
     densityLabel: String? = null,
     val readsContent: Boolean = false,
-) : DitherAlgorithm(periodLabel, densityLabel)
+    private val surface: ModulationCell.() -> Float,
+) : DitherAlgorithm(periodLabel, densityLabel) {
+
+    fun thresholdAt(cell: ModulationCell): Float = cell.surface()
+}
+
+/**
+ * Everything a modulation surface is allowed to know about the cell it is thresholding.
+ *
+ * The rotation and the scaling happen once, here, rather than in each of the thirty-odd styles:
+ * they all measure position the same way and differ only in what they do with it. What a style
+ * may *not* see is the whole of [PatternOptions] — the panel's storage is not the algorithm's
+ * input, and keeping the two apart is what stops a style quietly reading a control that its
+ * declaration never claimed.
+ */
+class ModulationCell(
+    /** The cell's coordinate, already divided by the pattern scale. */
+    val x: Float,
+    val y: Float,
+    /**
+     * The cell's own brightness in 0..1.
+     *
+     * Every style that existed before the catalogue arrived ignores it, and a test holds them to
+     * that. It is here for the ones that cannot work without it: a crosshatch whose lines
+     * thicken in the shadows, a stipple whose dots crowd where the image is dark.
+     */
+    val value: Float,
+    options: PatternOptions,
+    scale: Float,
+) {
+    /** Cells per period of the pattern. */
+    val period: Float = options.period.coerceAtLeast(1).toFloat()
+
+    /** 0..1 of a period; animating this makes the pattern travel. */
+    val phase: Float = options.phase
+
+    /** The second axis in 0..100, whose meaning is the style's own — see its density label. */
+    val density: Int = options.density
+
+    val orb: OrbOptions = options.orb
+
+    /**
+     * The grid centre, scaled along with the coordinates.
+     *
+     * It is given in unscaled cells, so it has to travel with them — otherwise the rings would
+     * crawl away from the image centre as the pattern scale changed.
+     */
+    val centerX: Float = options.centerX / scale
+    val centerY: Float = options.centerY / scale
+
+    /** The position rotated into the pattern's own frame, measured in periods rather than cells. */
+    val u: Float
+    val v: Float
+
+    init {
+        val radians = options.angle * PI / 180.0
+        val c = cos(radians).toFloat()
+        val s = sin(radians).toFloat()
+        u = (x * c + y * s) / period
+        v = (-x * s + y * c) / period
+    }
+}
 
 /**
  * A cell's quantisation error, passed on to the neighbours that have not been decided yet.
