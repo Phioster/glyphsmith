@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 import org.phioster.glyphsmith.glyph.GlyphGrid
 import org.phioster.glyphsmith.render.RenderSettings
 import org.phioster.glyphsmith.state.HistoryController
+import org.phioster.glyphsmith.state.PresetController
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.Animator
 import org.phioster.glyphsmith.anim.ColorQuantizer
@@ -38,7 +39,6 @@ import org.phioster.glyphsmith.data.LiveCamera
 import org.phioster.glyphsmith.data.LiveFrame
 import org.phioster.glyphsmith.data.PaletteFile
 import org.phioster.glyphsmith.data.Preset
-import org.phioster.glyphsmith.data.PresetStore
 import org.phioster.glyphsmith.data.PlaybackQuality
 import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.data.Settings
@@ -107,12 +107,12 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     private val context: Context get() = getApplication<Application>()
 
-    private val presetStore = PresetStore(app)
+    private val presets = PresetController(app)
     private val settings = Settings(app)
 
     private val _state = MutableStateFlow(
         UiState(
-            presets = presetStore.load(),
+            presets = presets.presets,
             themeId = settings.themeId,
             previewQuality = settings.previewQuality,
             looped = settings.looped,
@@ -317,7 +317,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun exportPresets() = runExport("presets") {
-        val json = presetStore.exportJson()
+        val json = presets.exportJson()
         val uri = withContext(Dispatchers.IO) {
             Exporter.saveJson(context, json, "glyphsmith-presets.json")
         }
@@ -330,12 +330,10 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
             }.getOrNull()
         } ?: return@runExport "could not read that file"
-        val imported = presetStore.importJson(text)
-            ?: return@runExport "that file isn't a preset export"
-        _state.value = _state.value.copy(presets = imported.presets)
-        renderThumbs()
         // What it could not read is reported rather than swallowed — see Import.summary().
-        imported.summary()
+        val status = presets.import(text)
+        publishPresets(status)
+        status
     }
 
     fun loadImage(uri: Uri) {
@@ -791,37 +789,34 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         if (uri != null) "mp4 saved to Download/Glyphsmith" else "save failed"
     }
 
-    fun savePreset(name: String, description: String = "") {
-        val presets = presetStore.upsert(name, _state.value.params, description)
-        _state.value = _state.value.copy(presets = presets, status = "preset saved")
-        renderThumbs()
-    }
+    fun savePreset(name: String, description: String = "") =
+        publishPresets(presets.save(name, _state.value.params, description))
 
-    fun renamePreset(from: String, to: String, description: String) {
-        _state.value = _state.value.copy(
-            presets = presetStore.rename(from, to, description),
-            status = "preset renamed",
-        )
-        renderThumbs()
-    }
+    fun renamePreset(from: String, to: String, description: String) =
+        publishPresets(presets.rename(from, to, description))
 
-    fun deletePreset(name: String) {
-        _state.value = _state.value.copy(presets = presetStore.delete(name), status = "preset deleted")
-        renderThumbs()
-    }
+    fun deletePreset(name: String) = publishPresets(presets.delete(name))
 
     fun toggleFavourite(name: String) {
-        _state.value = _state.value.copy(presets = presetStore.toggleFavourite(name))
+        presets.toggleFavourite(name)
+        // No status line: the star that just changed is the feedback, and no thumbnail moved.
+        _state.value = _state.value.copy(presets = presets.presets)
+    }
+
+    /**
+     * One place where an operation on the library becomes something the interface shows.
+     *
+     * Five call sites used to spell this out for themselves — copy the list in, set a line,
+     * rebuild the thumbnails — which is three steps repeated five times and one of them
+     * eventually going missing.
+     */
+    private fun publishPresets(status: String) {
+        _state.value = _state.value.copy(presets = presets.presets, status = status)
+        renderThumbs()
     }
 
     /** Puts the shipped library back, discarding anything saved on top of it. */
-    fun resetPresets() {
-        _state.value = _state.value.copy(
-            presets = presetStore.reset(),
-            status = "presets reset to the built-in library",
-        )
-        renderThumbs()
-    }
+    fun resetPresets() = publishPresets(presets.reset())
 
     /**
      * Rolls a look at random.
