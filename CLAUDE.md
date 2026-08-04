@@ -1,5 +1,17 @@
 # Glyphsmith Development Guide
 
+## The documents, and what each is for
+
+| File | Read it for |
+| --- | --- |
+| `CLAUDE.md` | this file — the rules that bind new work |
+| `PROJECT_STATE.md` | where the project stands: verified counts, the package table, the compatibility invariants. The first read of a new session |
+| `ARCHITECTURE.md` | how the application is built, and why each seam is where it is |
+| `ROADMAP_V2.md` | which phases are done and which are open |
+| `CLAUDE_TASKS.md` | the task queue, with what each finished task found |
+| `MIGRATION_PLAN.md` | project history: the completed migration, and what was deliberately not built |
+| `README.md` | what the app does, for someone who is not going to read the source |
+
 ## Product identity
 
 Glyphsmith is a native Android image and video dithering studio.
@@ -117,6 +129,13 @@ algorithms, image effects and palettes. `Registry` checks id uniqueness and
 format at construction, and `pipeline/Providers` gathers all four so the
 rules can be stated once over everything.
 
+They do not all carry the same thing, and the difference is deliberate:
+`DitherProvider` carries its `algorithm` and `EffectProvider` its `pass`, so
+the execution sits with the description instead of in a `when` far away from
+it. `PaletteProvider` carries data — the palette and the shelf it is filed
+under. `RenderModuleProvider` carries capabilities, `producesGlyphs` and
+`ditherFirst`, because those are what the UI branches on.
+
 **Export providers are the fifth category and do not exist yet, by
 decision.** An exporter is chosen from a menu rather than named in a preset,
 so it has nothing to be identified by. Adding one means adding stable ids to
@@ -124,6 +143,13 @@ the stored format, which is its own task.
 
 A new provider goes in the registry that lives with its own code. Do not add
 a `when` over its enum somewhere else instead.
+
+The one `when` that is not a violation of that is `AppRenderModules`, which
+binds a `RenderMode` to the module that renders it. It is at the composition
+root on purpose and is not a leftover: a map throws at the first frame in
+whichever mode nobody tried, and a startup registration list is missing in
+every test, quietly. The `when` refuses to compile until a fourth mode says
+what renders it. Leave it where it is.
 
 Presets are not executable plugins. A preset is a saved configuration of
 available modules and effects.
