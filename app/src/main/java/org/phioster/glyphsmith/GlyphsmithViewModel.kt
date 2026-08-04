@@ -23,6 +23,7 @@ import org.phioster.glyphsmith.state.ExportCoordinator
 import org.phioster.glyphsmith.state.HistoryController
 import org.phioster.glyphsmith.state.PlaybackPlan
 import org.phioster.glyphsmith.state.PresetController
+import org.phioster.glyphsmith.state.SourceController
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.Animator
 import org.phioster.glyphsmith.anim.ColorQuantizer
@@ -135,7 +136,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     // undo step rather than dozens — see HistoryController, which owns the rule.
     private val history = HistoryController(RenderSettings.newSession())
 
-    private var source: Source? = null
+    private val sources = SourceController()
     private var art: GlyphGrid? = null
 
     /**
@@ -234,7 +235,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun extractPalette(count: Int, method: QuantizeMethod = QuantizeMethod.MEDIAN_CUT) =
         runExport("palette") {
-        val pixels = currentPixels() ?: return@runExport "no image"
+        val pixels = sources.frame()?.pixels ?: return@runExport "no image"
         val colors = withContext(Dispatchers.Default) {
             Palettes.fromColors(ColorQuantizer.extract(pixels, count, method).toList())
         }
@@ -353,11 +354,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             val width = loaded.width
             val height = loaded.height
             loaded.recycle()
-            adopt(StillSource(pixels, width, height))
+            sources.adopt(StillSource(pixels, width, height))
             _state.value = _state.value.copy(
                 hasImage = true,
                 isVideo = false,
-                previewPosition = 0f,
+                previewPosition = sources.position,
                 status = "loaded ${width}×$height",
             )
             rebuild(_state.value.params)
@@ -391,11 +392,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 )
                 return@launch
             }
-            adopt(opened)
+            sources.adopt(opened)
             _state.value = _state.value.copy(
                 hasImage = true,
                 isVideo = true,
-                previewPosition = 0f,
+                previewPosition = sources.position,
                 status = "video ${opened.width}×${opened.height}",
             )
             rebuild(_state.value.params)
@@ -414,40 +415,29 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * not necessarily the last one asked for.
      */
     fun setPreviewPosition(position: Float) {
-        if (source?.isMoving != true) return
-        _state.value = _state.value.copy(previewPosition = position.coerceIn(0f, 1f))
+        if (!sources.seek(position)) return
+        _state.value = _state.value.copy(previewPosition = sources.position)
         positionJob?.cancel()
         positionJob = viewModelScope.launch { rebuild(_state.value.params) }
     }
 
     private var positionJob: Job? = null
 
-    /** Swaps in a new source and releases whatever the old one was holding. */
-    private fun adopt(next: Source) {
-        source?.close()
-        source = next
-    }
-
-    private fun currentPixels(): IntArray? =
-        source?.pixelsAt(_state.value.previewPosition)
-
     override fun onCleared() {
         live?.release()
         live = null
-        source?.close()
-        source = null
+        sources.release()
         super.onCleared()
     }
 
     private suspend fun rebuild(params: RenderSettings) {
-        val current = source ?: return
-        val pixels = current.pixelsAt(_state.value.previewPosition)
+        val frame = sources.frame() ?: return
         _state.value = _state.value.copy(working = true)
         val scrub = scrubbing
         val budget = if (scrub) SCRUB_MAX_SIDE else _state.value.previewQuality.maxSide
         val result = withContext(Dispatchers.Default) {
             RenderPipeline.run(
-                pixels, current.width, current.height, params, budget, AppRenderModules,
+                frame.pixels, frame.width, frame.height, params, budget, AppRenderModules,
                 isScrubbing = scrub,
             )
         }
@@ -481,12 +471,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private suspend fun renderFullSize(): Bitmap? {
-        val current = source ?: return null
-        val pixels = current.pixelsAt(_state.value.previewPosition)
+        val frame = sources.frame() ?: return null
         val params = _state.value.params
         return withContext(Dispatchers.Default) {
             RenderPipeline.run(
-                pixels, current.width, current.height, params, RenderBudget.MAX_OUTPUT_SIDE,
+                frame.pixels, frame.width, frame.height, params, RenderBudget.MAX_OUTPUT_SIDE,
                 AppRenderModules,
             ).bitmap
         }
@@ -538,15 +527,16 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * works on its own copies, so running several at once is the quickest way to meet the
      * heap limit — and the phone has nothing to gain from it anyway.
      *
-     * The source is put back afterwards. A batch is something you launch *from* a look you
-     * have already dialled in, and losing that look as a side effect would be hostile.
+     * The loaded source is not touched: a batch is something you launch *from* a look you have
+     * already dialled in, and each picked image is rendered straight through the pipeline
+     * without ever becoming the session's source. It used to save and restore the source
+     * around the loop, from when it did adopt each one; both halves of that had long since
+     * become assignments of a value to itself.
      */
     fun runBatch(uris: List<Uri>) {
         if (uris.isEmpty()) return
         viewModelScope.launch {
             val params = _state.value.params
-            val restore = source
-            val restorePosition = _state.value.previewPosition
             var saved = 0
             var failed = 0
 
@@ -588,12 +578,10 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 )
             }
 
-            source = restore
             _state.value = _state.value.copy(
                 working = false,
                 batchDone = 0,
                 batchTotal = 0,
-                previewPosition = restorePosition,
                 status = if (failed == 0) {
                     "batch done — $saved saved to Pictures/Glyphsmith"
                 } else {
@@ -634,7 +622,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * would never hold the frame rate — a single frame is the whole pipeline.
      */
     fun playAnimation() {
-        val current = source ?: return
+        val current = sources.source ?: return
         viewModelScope.launch {
             cancelPlayback()
             val params = _state.value.params
@@ -727,7 +715,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun exportGif() = runExport("gif") {
-        val current = source ?: return@runExport "no image"
+        val current = sources.source ?: return@runExport "no image"
         val params = _state.value.params
         val animation = params.animation
         val bytes = withContext(Dispatchers.Default) {
@@ -750,7 +738,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun exportMp4() = runExport("mp4") {
-        val current = source ?: return@runExport "no image"
+        val current = sources.source ?: return@runExport "no image"
         val params = _state.value.params
         val animation = params.animation
         val file = java.io.File(context.cacheDir, "glyphsmith-anim.mp4")
@@ -879,11 +867,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     fun freezeLive() {
         val frame = lastLive ?: return
         stopLive()
-        adopt(StillSource(frame.pixels, frame.width, frame.height))
+        sources.adopt(StillSource(frame.pixels, frame.width, frame.height))
         _state.value = _state.value.copy(
             hasImage = true,
             isVideo = false,
-            previewPosition = 0f,
+            previewPosition = sources.position,
             status = "frozen ${frame.width}×${frame.height}",
         )
         viewModelScope.launch {
@@ -906,17 +894,16 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * neither readable nor affordable.
      */
     private fun renderThumbs() {
-        val current = source ?: return
+        val frame = sources.frame() ?: return
         thumbJob?.cancel()
         thumbJob = viewModelScope.launch {
             val presets = _state.value.presets
-            val pixels = current.pixelsAt(_state.value.previewPosition)
             val thumbs = withContext(Dispatchers.Default) {
                 presets.associate { preset ->
                     preset.name to RenderPipeline.run(
-                        pixels,
-                        current.width,
-                        current.height,
+                        frame.pixels,
+                        frame.width,
+                        frame.height,
                         preset.params,
                         THUMB_MAX_SIDE,
                         AppRenderModules,
