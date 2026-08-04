@@ -78,7 +78,7 @@ fun RenderPanel(
     val sets = if (filtered.any { it.id == params.charSetId }) filtered else CharacterSets.all
     val setIndex = sets.indexOfFirst { it.id == params.charSetId }.coerceAtLeast(0)
 
-    val glyphMode = params.renderMode.isGlyph
+    val glyphMode = RenderModules.of(params.renderMode).producesGlyphs
 
     Column(modifier.fillMaxWidth()) {
         SectionHeader("render module")

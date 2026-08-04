@@ -24,6 +24,7 @@ import org.phioster.glyphsmith.ui.TerminalButton
 import org.phioster.glyphsmith.ui.TerminalSlider
 import org.phioster.glyphsmith.ui.TerminalToggle
 import org.phioster.glyphsmith.ui.theme.Term
+import org.phioster.glyphsmith.render.RenderModules
 
 /**
  * Output size and the two exports that matter: the rendered PNG, and the character grid as
@@ -138,7 +139,7 @@ fun OutputPanel(
         // Seven of the exports read the character grid, which the pixel mode does not produce.
         // They are disabled rather than hidden: a control that vanishes reads as a bug, and the
         // note below says which switch brings them back.
-        val glyphMode = state.params.renderMode.isGlyph
+        val glyphMode = RenderModules.of(state.params.renderMode).producesGlyphs
         val textEnabled = enabled && glyphMode
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -48,11 +48,25 @@ enum class RenderMode {
     /**
      * True when the render produces a character grid — which is what decides whether the text
      * exports are available and whether the mapping controls are worth showing.
+     *
+     * Stated as an exhaustive `when` rather than as `this != PurePixel`, which is what it used
+     * to be. A negation answers for modes that do not exist yet: a fourth one would have been
+     * glyph art the moment it was declared, without anybody deciding that, and the first sign
+     * would have been text exports offered for a render that has no characters in it. The
+     * compiler now refuses to build until the new module says what it produces.
      */
-    val isGlyph: Boolean get() = this != PurePixel
+    val isGlyph: Boolean
+        get() = when (this) {
+            GlyphMatrix, PixelThenGlyph -> true
+            PurePixel -> false
+        }
 
     /** True when a palette dither runs before anything else looks at the image. */
-    val ditherFirst: Boolean get() = this != GlyphMatrix
+    val ditherFirst: Boolean
+        get() = when (this) {
+            PurePixel, PixelThenGlyph -> true
+            GlyphMatrix -> false
+        }
 
     companion object {
         /**

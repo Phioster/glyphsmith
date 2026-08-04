@@ -43,5 +43,8 @@ object RenderModules : Registry<RenderModuleProvider>(
         RenderModuleProvider(RenderMode.PixelThenGlyph, "pixel dither → glyphs"),
     ),
 ) {
-    fun of(mode: RenderMode): RenderModuleProvider = all.first { it.mode == mode }
+    private val byMode = all.associateBy { it.mode }
+
+    /** The provider describing [mode]. A map rather than a scan: the UI asks on every frame. */
+    fun of(mode: RenderMode): RenderModuleProvider = byMode.getValue(mode)
 }
