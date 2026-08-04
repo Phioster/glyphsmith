@@ -16,8 +16,14 @@ import org.phioster.glyphsmith.core.image.Pixels
  * given, which is why the rest of the app can treat them the same: the preview asks for one
  * position, an export walks the loop asking for each in turn, and neither has to know what
  * it is looking at.
+ *
+ * Not `sealed`, and that is a decision rather than an omission. Nothing branches on which
+ * implementation it has — there is no exhaustive `when` over this type anywhere — so sealing
+ * bought no compiler check; what it did cost was the one test worth having about a source,
+ * because [close] can only be observed by an implementation that records it, and a sealed type
+ * admits none from the test source set. See `SourceControllerTest`.
  */
-sealed interface Source {
+interface Source {
     val width: Int
     val height: Int
 
