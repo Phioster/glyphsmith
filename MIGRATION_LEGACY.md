@@ -1,3 +1,13 @@
+# Status
+
+✅ Completed
+
+The migration described in this document has been completed successfully.
+
+This document is preserved for historical reference only.
+
+Current development starts from PROJECT_STATE.md and ROADMAP_V2.md.
+
 # Glyphsmith Migration Plan — completed
 
 **Status: complete.** All ten steps are merged into `main`. This file is kept as the record of
