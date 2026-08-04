@@ -18,6 +18,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.phioster.glyphsmith.glyph.GlyphGrid
 import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.export.AndroidExports
+import org.phioster.glyphsmith.state.ExportCoordinator
 import org.phioster.glyphsmith.state.HistoryController
 import org.phioster.glyphsmith.state.PresetController
 import org.phioster.glyphsmith.anim.AnimationParams
@@ -109,6 +111,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     private val presets = PresetController(app)
     private val settings = Settings(app)
+    private val exports = ExportCoordinator(AndroidExports(app))
 
     private val _state = MutableStateFlow(
         UiState(
@@ -318,10 +321,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     fun exportPresets() = runExport("presets") {
         val json = presets.exportJson()
-        val uri = withContext(Dispatchers.IO) {
-            Exporter.saveJson(context, json, "glyphsmith-presets.json")
-        }
-        if (uri != null) "presets saved to Download/Glyphsmith" else "export failed"
+        withContext(Dispatchers.IO) { exports.presets(json) }
     }
 
     fun importPresets(uri: Uri) = runExport("import") {
@@ -488,16 +488,13 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     fun exportImage() = runExport("image") {
         val format = _state.value.exportFormat
-        val bitmap = renderFullSize() ?: return@runExport "nothing to export"
-        val uri = withContext(Dispatchers.IO) { Exporter.saveImage(context, bitmap, format) }
-        bitmap.recycle()
-        if (uri != null) "saved ${format.extension} to Pictures/Glyphsmith" else "save failed"
+        val bitmap = renderFullSize()
+        withContext(Dispatchers.IO) { exports.image(bitmap, format) }
     }
 
     fun exportText() = runExport("txt") {
-        val text = art?.toText() ?: return@runExport "nothing to export"
-        val uri = withContext(Dispatchers.IO) { Exporter.saveText(context, text) }
-        if (uri != null) "saved to Download/Glyphsmith" else "save failed"
+        val text = art?.toText()
+        withContext(Dispatchers.IO) { exports.text(text) }
     }
 
     /**
@@ -506,31 +503,22 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * the grid itself doesn't change with preview scale, only the glyph size does.
      */
     fun exportSvg(mode: SvgMode) = runExport("svg") {
-        val grid = art ?: return@runExport "nothing to export"
+        val grid = art
         val params = _state.value.params
-        val svg = withContext(Dispatchers.Default) {
-            SvgExporter.build(grid, params, params.fontSizePx, mode)
+        val svg = grid?.let {
+            withContext(Dispatchers.Default) { SvgExporter.build(it, params, params.fontSizePx, mode) }
         }
-        val uri = withContext(Dispatchers.IO) { Exporter.saveSvg(context, svg) }
-        if (uri != null) {
-            "saved ${mode.label} svg (${svg.length / 1024} KB) to Download/Glyphsmith"
-        } else {
-            "save failed"
-        }
+        withContext(Dispatchers.IO) { exports.svg(svg, mode) }
     }
 
     fun exportHtml() = runExport("html") {
-        val grid = art ?: return@runExport "nothing to export"
-        val text = TextExporters.html(grid, _state.value.params)
-        val uri = withContext(Dispatchers.IO) { Exporter.saveHtml(context, text) }
-        if (uri != null) "html saved to Download/Glyphsmith" else "save failed"
+        val text = art?.let { TextExporters.html(it, _state.value.params) }
+        withContext(Dispatchers.IO) { exports.html(text) }
     }
 
     fun exportAnsi() = runExport("ansi") {
-        val grid = art ?: return@runExport "nothing to export"
-        val text = TextExporters.ansi(grid, _state.value.params)
-        val uri = withContext(Dispatchers.IO) { Exporter.saveAnsi(context, text) }
-        if (uri != null) "ansi saved to Download/Glyphsmith" else "save failed"
+        val text = art?.let { TextExporters.ansi(it, _state.value.params) }
+        withContext(Dispatchers.IO) { exports.ansi(text) }
     }
 
     /**
@@ -603,23 +591,16 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun copyText() = runExport("copy") {
-        val text = art?.toText() ?: return@runExport "nothing to copy"
-        Exporter.copyToClipboard(context, text)
-        "${text.length} chars copied"
-    }
+    fun copyText() = runExport("copy") { exports.copy(art?.toText()) }
 
     fun shareImage() = runExport("share") {
-        val bitmap = renderFullSize() ?: return@runExport "nothing to share"
-        withContext(Dispatchers.IO) { Exporter.shareImage(context, bitmap, _state.value.exportFormat) }
-        bitmap.recycle()
-        "shared"
+        val bitmap = renderFullSize()
+        withContext(Dispatchers.IO) { exports.shareImage(bitmap, _state.value.exportFormat) }
     }
 
     fun shareText() = runExport("share") {
-        val text = art?.toText() ?: return@runExport "nothing to share"
-        withContext(Dispatchers.IO) { Exporter.shareText(context, text) }
-        "shared"
+        val text = art?.toText()
+        withContext(Dispatchers.IO) { exports.shareText(text) }
     }
 
     private fun runExport(label: String, block: suspend () -> String) {
