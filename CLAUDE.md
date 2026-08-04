@@ -46,19 +46,25 @@ General-purpose presets must not enable Glyph Art.
 
 ## Render modes
 
-Glyphsmith currently has two output modes:
+Glyphsmith currently has three output modes:
 
-1. Pixel Dither
-2. Glyph Art
-
-Pixel Dither is the default, general-purpose mode.
+1. Pixel Dither (`render.pixel-dither`) — the default, general-purpose mode
+2. Glyph Art (`render.glyph-art`)
+3. Pixel Dither → Glyphs (`render.pixel-then-glyph`) — the chained mode: a
+   palette dither runs first, and the glyph stage reads its result
 
 Glyph Art maps quantised levels onto character ramps. It is a specialized
 render module and must not own shared concepts such as palettes, dithering,
 effects, animation, layers, sources, or export.
 
 Code used by both modes must use neutral names and live outside the glyph
-or ASCII package.
+package. There is no ASCII package any more, and `LayeringTest` keeps it
+that way.
+
+Do not ask whether a mode is glyph-based by negating `PurePixel`. Ask
+`RenderMode.isGlyph` or the mode's `RenderModuleProvider`, both of which are
+exhaustive over the enum, so a fourth mode has to state what it produces
+before it compiles.
 
 ## Product architecture
 
@@ -79,6 +85,11 @@ Glyph-specific code may depend on shared render infrastructure.
 
 Shared render infrastructure must not depend on glyph-specific classes.
 
+This is not advice — `LayeringTest` reads the `import` lines of `core`,
+`render`, `glyph`, `pipeline` and `export` and fails on a dependency
+pointing the wrong way. The table of prohibitions is in `ARCHITECTURE.md`.
+A new *allowed* dependency is ordinary work and needs no change to the test.
+
 ## Internal plugin direction
 
 Glyphsmith should use internal plugin-style modules.
@@ -96,18 +107,23 @@ A plugin-style module has:
 - optional UI controls
 - compatibility information
 
-Initially, plugins are compiled into the application.
+Plugins are compiled into the application.
 
 Do not implement downloadable executable third-party code unless a
 separate task explicitly requests it.
 
-The initial plugin-style categories are:
+Four provider categories are registered today — render modules, dither
+algorithms, image effects and palettes. `Registry` checks id uniqueness and
+format at construction, and `pipeline/Providers` gathers all four so the
+rules can be stated once over everything.
 
-- render modules
-- dither algorithms
-- image effects
-- palette providers
-- export providers
+**Export providers are the fifth category and do not exist yet, by
+decision.** An exporter is chosen from a menu rather than named in a preset,
+so it has nothing to be identified by. Adding one means adding stable ids to
+the stored format, which is its own task.
+
+A new provider goes in the registry that lives with its own code. Do not add
+a `when` over its enum somewhere else instead.
 
 Presets are not executable plugins. A preset is a saved configuration of
 available modules and effects.
@@ -146,8 +162,13 @@ The target distribution for built-in presets is approximately:
 - 80 to 90 percent Pixel Dither
 - 10 to 20 percent Glyph Art
 
-LAB or algorithm-comparison presets may exist separately from the curated
-main preset library.
+The curated library currently holds 83 presets, 74 Pixel Dither to 9 Glyph
+Art, which is 89 percent. Adding glyph presets is the direction with room in
+it; adding pixel ones narrows that margin.
+
+Algorithm-comparison presets live in the Algorithm Lab, which is counted
+separately from the curated library — 6 presets, one per kernel at otherwise
+identical settings.
 
 ## Compatibility
 
@@ -159,26 +180,36 @@ because they were created before Pixel Dither became the default.
 
 New presets use Pixel Dither unless another mode is explicitly selected.
 
-Before changing defaults, the preset format must gain:
+The preset format has all four of the things a default change required: an
+explicit schema version (`PresetSchema.CURRENT_VERSION`, currently 4),
+per-entry migrations that run in order, stable serialized identifiers
+(`core/serial/WireId`), and tests for legacy loading. Any future default
+change must keep them working, and raising the version means adding a
+migration *and* a test that decodes a literal document of the old version.
 
-- an explicit schema version
-- migration logic
-- stable serialized identifiers
-- tests for legacy preset loading
+`RenderSettings.renderMode` defaults to `GlyphMatrix` and
+`RenderMode.DEFAULT` is `PurePixel`. These are two different questions —
+what a preset naming no mode is read as, and what new work starts in — and
+collapsing them turns the saved library into pixel dithers on first open.
 
-Do not rename serialized enum entries without a migration or alias.
+Do not rename serialized enum entries without a migration or alias. Renaming
+the enum constants themselves is safe: nothing writes them, the `WireId`
+serialisers write the ids.
 
 ## Naming direction
 
 Shared classes must use neutral product-level names.
 
-Preferred future names:
+The renames this section used to ask for are done:
 
-- RenderSettings instead of AsciiParams
-- RenderPipeline instead of ascii.Pipeline
-- Glyph Art instead of ASCII in user-facing text
-- Pixel Dither instead of Pure Pixel in user-facing text
-- GlyphRenderer instead of names implying the entire app is ASCII-based
+- `AsciiParams` is `RenderSettings`
+- `ascii.Pipeline` is `pipeline.RenderPipeline`
+- the `ascii` package no longer exists
+- the UI says *glyph art* and *pixel dither*, from the display names in
+  `RenderModules` rather than a table each panel keeps
+
+The enum constants `GlyphMatrix` and `PurePixel` keep their original
+spelling deliberately. They are not user-facing and not stored.
 
 Do not perform broad renames and behavioral changes in the same task.
 

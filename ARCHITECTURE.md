@@ -1,5 +1,8 @@
 # Glyphsmith Architecture
 
+Describes the application as it is built today. The migration that produced this shape is
+recorded in `MIGRATION_PLAN.md`; the rules that still bind new work are in `CLAUDE.md`.
+
 ## Product Direction
 
 Glyphsmith is a native Android host application for:
@@ -14,8 +17,9 @@ Glyphsmith is a native Android host application for:
 
 Pixel Dither is the primary workflow.
 
-Glyph Art is an integrated render module. Shared rendering, palettes, effects,
-animation, layers, and image export must not depend on Glyph Art.
+Glyph Art is an integrated render module. Shared rendering, palettes, effects, animation,
+layers, and image export do not depend on Glyph Art, and a test enforces it — see
+*Layering Rules*.
 
 ## Processing Pipeline
 
@@ -28,19 +32,33 @@ Media Source
 -> Layers  
 -> Preview or Export
 
-Preview, image export, video export, animation, and preset thumbnails should
-use the same pipeline with different quality limits.
+`pipeline/RenderPipeline.run` is the single entry point. The live preview, the still export,
+every animation frame and every preset thumbnail go through it and differ only in `maxSide`
+and in the `isScrubbing` flag, so a frame can never be produced by a slightly different code
+path than the preview that sold it to the user.
+
+The effect chain and the layer compositor run *in* the pipeline, once, on whatever the render
+module produced. A module does not apply effects itself — three modules applying them
+identically was three chances to drift on the order.
 
 ## Render Modules
 
-The initial render modules are:
+Three modules ship, one per `RenderMode`:
 
-- Pixel Dither
-- Glyph Art
+| Mode constant | Stable id | Display name | Produces glyphs | Dithers first |
+| --- | --- | --- | --- | --- |
+| `GlyphMatrix` | `render.glyph-art` | glyph art | yes | no |
+| `PurePixel` | `render.pixel-dither` | pixel dither | no | yes |
+| `PixelThenGlyph` | `render.pixel-then-glyph` | pixel dither → glyphs | yes | yes |
 
-Pixel Dither is the default for new sessions.
+`PurePixel` is the default for new sessions. `PixelThenGlyph` is the chained mode: the image
+is dithered to a palette first and the glyph stage then reads the result as an ordinary
+image, which is the only way to get a paletted dither *and* a `.txt` out of one render.
 
-Glyph Art may additionally produce:
+`RenderMode.isGlyph` and `RenderMode.ditherFirst` are exhaustive `when` expressions rather
+than negations, so a fourth mode does not compile until somebody has said what it produces.
+
+The glyph modes may additionally produce:
 
 - a glyph grid
 - plain text
@@ -49,241 +67,355 @@ Glyph Art may additionally produce:
 - text SVG
 - outline SVG
 
-Shared code must not assume that every render module provides glyph output.
+Shared code does not assume that every render module provides glyph output — see
+*RenderModule System*.
 
-## Dependency Direction
+### RenderModule System
 
-Allowed dependencies:
+The seam has four parts, and they are deliberately separate:
 
-- Glyph Art depends on Shared Render Core
-- Effects depend on the Effect API
-- Dither algorithms depend on the Dither API
+- **`render/RenderModule`** — the execution half. `render(pixels, sourceWidth, sourceHeight,
+  params, maxSide): ModuleRender`. Nothing else.
+- **`render/ModuleRender`** — a render before effects and layers: the bitmap, the grid the
+  module worked on (`cols`, `rows`), the size the same settings would produce at full export
+  scale (`outputWidth`, `outputHeight`), and an optional `RenderModuleOutput`.
+- **`render/RenderModuleOutput`** — an empty marker interface. The pipeline carries this value
+  from the module that made it to the caller that asked for the render and cannot know what is
+  inside it. Glyph Art's implementation is `glyph/GlyphRenderOutput`, which holds the character
+  grid and the typeface it was drawn with. A caller that wants the glyph half asks for it by
+  type; the pipeline never mentions either.
+- **`render/RenderModuleSet`** — a `fun interface` mapping a mode to a module. The pipeline
+  takes one as an argument.
 
-Forbidden dependencies:
+The binding itself is `AppRenderModules`, at the top level of the package beside the view
+model and the activity, because it is the one place that names Glyph Art and the pixel module
+in the same breath. It is a `when` over the enum, not a map and not a registration list filled
+in at startup: a map throws at the first frame in whichever mode nobody tried, and a startup
+registration is missing in every test, quietly.
 
-- Shared Render Core must not depend on Glyph Art
-- Effect API must not depend on individual effects
-- Dither API must not depend on individual algorithms
+`RenderModuleProvider` is the declarative half — id, display name, `producesGlyphs`,
+`ditherFirst` — and is read by the UI and by tests that run without an Android runtime.
 
-Code shared by Pixel Dither and Glyph Art must use neutral names and live
-outside Glyph-specific packages.
+## Package Layout
+
+```
+core/       Knows no render module at all.
+  color/    Palettes, PaletteProviders, ColorDistance, PaletteQuantizer
+  dither/   DitherMode, DitherAlgorithm(s), DitherProviders, the kernels, matrices,
+            screens, modulation surfaces, region and polygon methods
+  image/    Pixels, Adjustments
+  pipeline/ ImageProcessorNode, NodePipeline, BufferPool, RowParallel, RenderContext
+  provider/ Provider, ProviderCategory, Registry
+  serial/   WireId, WireIdSerializer
+render/     Shared render infrastructure: RenderSettings, RenderMode(+Ids), CellGrid,
+            CellSampler, QuantisePass, EdgeDetect, Layers, RenderBudget,
+            PixelDitherRenderer, ColorDiffusionPass, PixelDitherModule,
+            RenderModule/ModuleRender/RenderModuleSet, RenderModuleProviders
+glyph/      The Glyph Art module: CharacterSets, GlyphEngine (pure Kotlin), GlyphRenderer
+            (Canvas), Fonts, GlyphCoverage, GlyphRamp, EdgeGlyphs, GlyphFromBitmap,
+            GlyphRenderModules, and Glyph Art's own outputs — TextExporters, SvgExporter
+effects/    EffectId/EffectIds, EffectParams, EffectStack, EffectPass, EffectPasses,
+            EffectNodes, EffectProviders, EffectPipeline, PixelOps and the passes
+pipeline/   RenderPipeline, LayerCompositor, Providers
+anim/       Animation tracks and segments, Temporal, GifEncoder, Mp4Encoder, ColorQuantizer
+data/       Source (still/video), ImageLoader, LiveCamera, CameraCapture, PresetLibrary,
+            PresetStore, PresetSchema, PaletteFile, Import, Settings
+state/      SourceController, HistoryController, PresetController, ExportCoordinator,
+            PlaybackPlan, RandomLook
+export/     Exports (the sink interface) and Exporter (MediaStore/FileProvider)
+ui/         Terminal-styled Compose panels and the theme
+```
+
+The composition root — `AppRenderModules`, `GlyphsmithViewModel`, `MainActivity`,
+`GlyphsmithApp` — sits at the top level.
+
+## Layering Rules
+
+Stated as prohibitions, and checked by `LayeringTest` reading the actual `import` lines. A new
+*allowed* dependency is ordinary work; a dependency pointing the wrong way fails the build.
+
+| Layer | May not depend on |
+| --- | --- |
+| `core` | `render`, `glyph`, `pipeline`, `state`, `ui`, `data`, `export`, `anim`, `effects` |
+| `render` | `glyph`, `pipeline`, `state`, `ui`, `data`, `export` |
+| `glyph` | `pipeline`, `state`, `ui`, `data`, `export` |
+| `pipeline` | `glyph`, `state`, `ui`, `data`, `export` |
+| `export` | `glyph`, `pipeline`, `state`, `ui` |
+
+Two consequences worth naming:
+
+- The pipeline runs Glyph Art without knowing that Glyph Art exists. The mode→module binding
+  is the application's and arrives as an argument.
+- `export/` is a byte sink. The text, ANSI, HTML and SVG writers are Glyph Art's own output
+  and live in `glyph/`.
+
+The same test asserts that no `org.phioster.glyphsmith.ascii` package exists and that no
+source names it. Its shared half became `render`, its glyph half `glyph`, and the part that
+picks between them `pipeline`.
 
 ## Internal Plugin Model
 
-Plugins are initially internal and compiled into the APK.
+Plugins are internal and compiled into the APK. No arbitrary executable third-party code is
+loaded.
 
-Do not load arbitrary executable third-party code during the first migration.
+`core/provider/Provider` is metadata and nothing else: a stable `id`, a `displayName`, and a
+`ProviderCategory`. The enums stay where they are and keep doing the work; a provider says
+what a thing is *called* and what it *can do*, so the picker, the tests and the UI ask one
+uniform question instead of each switching over a different enum.
 
-Plugin categories are:
+`Registry<P : Provider>` checks its rules at construction rather than in a test that has to
+remember to look — the registry is non-empty, no two providers share an id, every id is
+well-formed, every id carries its own category prefix. A broken build therefore fails on its
+first launch, not on the first preset somebody saves with it. `find` returns null for an
+unknown id; `require` throws `UnknownWireIdException` rather than substituting a default, for
+the same reason the serialisers do: an unknown dither is not "no dither".
 
-- Render Modules
-- Dither Providers
-- Effect Providers
-- Palette Providers
-- Export Providers
+### Provider Registries
 
-Each provider should eventually expose:
+Four categories are registered. Each registry lives with the code it describes, so `core` need
+not know what a render module is and `render` need not know what a glyph is:
 
-- stable ID
-- display name
-- category
-- description
-- default parameters
-- capabilities
-- implementation
+| Category | Prefix | Registry | Contents |
+| --- | --- | --- | --- |
+| `RENDER` | `render` | `render/RenderModules` | 3 render modules, in enum order |
+| `DITHER` | `dither` | `core/dither/DitherProviders` | 80 `DitherMode` entries (79 algorithms + `NONE`) |
+| `EFFECT` | `effect` | `effects/EffectProviders` | 17 passes, in the chain's default order |
+| `PALETTE` | `palette` | `core/color/PaletteProviders` | 44 built-in palettes |
 
-Example stable IDs:
+`pipeline/Providers` gathers all four — the only place allowed to see them at once — so the
+rules about ids can be stated once over everything rather than over a list somebody has to
+remember to extend. A category that is not registered fails `ProviderRegistryTest` rather than
+going quietly uncovered.
 
-- render.pixel-dither
-- render.glyph-art
-- dither.floyd-steinberg
-- dither.bayer-8
-- effect.epsilon-glow
-- effect.pixel-sort
-- export.png
-- export.svg-outline
+**Export providers are named in the plugin model and are still absent, by decision.** An
+exporter is chosen from a menu rather than named in a preset, so it has nothing to be
+identified *by* yet. `ProviderCategory` has four entries, not five.
 
-Stable IDs must not depend on enum names, class names, package names, or
-translated display labels.
+Stable ids do not depend on enum names, class names, package names or translated labels.
+Actual examples from the build:
 
-## Dither Providers
+- `render.pixel-dither`, `render.glyph-art`, `render.pixel-then-glyph`
+- `dither.floyd-steinberg`, `dither.bayer-8`
+- `effect.glow`, `effect.pixel-sort`
+- `palette.grayscale`
 
-A Dither Provider converts sampled values into levels, palette indexes, or
-colors.
+`WireIdTest` holds them to their format, asserts they are not merely the enum names in lower
+case, and checks that every legacy enum name still resolves to the same value.
 
-The architecture must support:
+### Dither Providers
 
-- direct quantisation
-- error diffusion
-- ordered matrices
-- modulation patterns
-- precomputed traversal
-- region-based methods
-- color diffusion
+A `DitherProvider` carries the mode, its `family` (`DitherCategory` — the shelf a picker
+groups it under) and its `algorithm`. The provider carries the *implementation*; it began as
+description only, while a dozen `when (mode)` dispatches did the work.
 
-Existing algorithms must initially be adapted, not rewritten.
+`DitherAlgorithm` is a sealed class describing how a style decides a cell — a mechanism, not a
+look. Two styles that draw nothing alike are the same kind if they resolve a cell the same
+way, which is the distinction the render loop actually needs. The kinds are:
 
-## Effect Providers
+- `NoDither` — the level is whatever brightness rounds to
+- `OrderedMatrix` — a threshold read off a fixed repeating tile (Bayer, clustered dot,
+  blue noise; the matrices are generated from their construction rules)
+- `Modulation` and `ModulationCell` — a threshold that is a continuous function of position
+- `ErrorDiffusion` — error passed to neighbours, optionally serpentine
+- `Precomputed` — the algorithm resolves the whole grid itself (Riemersma's Hilbert walk, dot
+  diffusion, the region and polygon methods)
 
-Effects operate on the bitmap produced by a Render Module.
+This axis is deliberately *not* `DitherCategory`. A glitch and a halftone can share a
+mechanism, and two ordered matrices can sit on different shelves.
 
-Effects:
+The families and their sizes:
 
-- are order-dependent
-- have serializable parameters
-- are deterministic for the same input, seed, and time
-- preserve existing output during migration
-- do not modify the logical Glyph Art text grid
+| `DitherCategory` | Count |
+| --- | --- |
+| Basic (`NONE` only) | 1 |
+| Error Diffusion | 21 |
+| Ordered | 8 |
+| Patterned | 18 |
+| Polygon | 4 |
+| Glitch | 12 |
+| Special | 16 |
 
-Existing effects must initially be adapted, not rewritten.
+`DitherMode.category` is an exhaustive `when` rather than a constructor argument, so the
+compiler refuses to build once a style is added without saying where it belongs.
+
+Lookup is by ordinal, not by hash: asking a style for its threshold means asking the provider
+for its algorithm first, and that is on the per-cell path.
+
+### Effect Providers
+
+Effects operate on the bitmap a render module produced. They are order-dependent, have
+serializable parameters, are deterministic for the same input, seed and time, and do not
+touch the logical glyph grid — so `.txt`, `.ansi`, `.html` and `.svg` are unaffected by them.
+
+`EffectPass<P>` declares the three things a pass needs as one declaration inside the effect's
+own object: the slice of `EffectStack` it is configured by, the flag in that slice that
+switches it on, and the code. Previously those were two separate `when (EffectId)` blocks a
+long way from the effect, so a slot could run one effect and read another's toggle and still
+compile. `P` is erased at the interface, because the chain runs seventeen passes with
+seventeen unrelated params types and must not know one of them.
+
+Execution is a data pipeline, not a call sequence:
+
+`EffectPipeline.apply` converts the bitmap to `Pixels` → `EffectNodes.of(stack)` builds the
+ordered node list from `EffectStack.order` → `NodePipeline.run` walks it, skipping disabled
+nodes → the result is converted back. Each node either mutates its buffer and returns it or
+returns a new one; the loop reassigns either way and returns the old buffer to the
+`BufferPool` when identity says a new one was produced. Keeping the Android conversion at the
+edges is what leaves every effect unit-testable.
+
+The seventeen passes, in the chain's default order: post processing, blur/sharpen, tint,
+chromatic aberration, JPEG databending, pixel sort, slice shift, interlace, modulation lines,
+diffraction stars, subtexture, spot-colour print, CMYK halftone, colour depth, blue-noise
+dither, glow, CRT warp.
+
+### Palette Providers
+
+A `Palette` keeps its own short id — `grayscale` — which the picker, the favourites and the
+category listings key on. The *wire id* is `palette.grayscale`, and that is what a saved
+preset carries. Both spellings resolve, because files written by older builds contain the bare
+one. Imported palettes are not registered: they live in a file.
 
 ## Presets
 
-A preset is a saved configuration of available providers.
+A preset is a saved configuration of available providers — not executable code, not a plugin
+implementation. It always stores the *complete* `RenderSettings`, effects, animation, temporal
+and layers included, so applying one is a single action.
 
-A preset is not executable code and is not a plugin implementation.
+The shipped library is **89 presets**:
 
-A preset may contain:
+- **83 curated**, filed by mechanism across 11 categories — Classic Dither (5), Error
+  Diffusion (6), Ordered Dither (5), Pattern (11), Print (7), Geometry (5), Color (5), Glitch
+  (8), Motion (20), Layered (2), Glyph Art (9).
+- **6 Algorithm Lab**, kept off the curated shelves and counted separately: one preset per
+  kernel at otherwise identical settings.
 
-- Render Module ID
-- Dither Provider ID
-- palette configuration
-- effect order and parameters
-- animation
-- layers
-- output preferences
-
-The curated preset library should contain approximately:
-
-- 80 to 90 percent Pixel Dither presets
-- 10 to 20 percent Glyph Art presets
-
-Algorithm-comparison presets should remain in a separate LAB section.
+The curated split is **74 Pixel Dither to 9 Glyph Art** — 89 % to 11 %, inside the 80–90 / 10–20
+target. Built-in presets name their mode explicitly via the `pixel()` and `glyph()` helpers,
+so they depend on neither of the two defaults below.
 
 ## Compatibility
 
-Existing presets must retain their appearance.
+The stored schema is at **version 4**. `data/PresetSchema` reads any known version; migrations
+run per entry and in order, so a version 1 file is carried through every step in turn.
 
-Legacy presets without a stored render mode must load as Glyph Art.
+- **1** — a bare JSON array, no version anywhere. Predates `RenderMode`.
+- **2** — `{"schemaVersion": 2, "presets": [...]}`, so the version has somewhere to live.
+- **3** — render modes, dither styles and effects named by stable ids rather than by Kotlin
+  enum constants.
+- **4** — a palette named the same way: `palette.grayscale` rather than `grayscale`, inside
+  layers too. Both spellings are still read.
 
-New sessions and new general presets must eventually default to Pixel Dither.
+No migration changes a preset's appearance; the same things are being named, in a spelling
+that no longer moves when the source does.
 
-Before changing the default, implement:
+A version 1 preset without a stored render mode loads as Glyph Art, because it was created
+before Pixel Dither became the default. A file claiming a *newer* version is still read entry
+by entry, and an entry that will not read costs only itself.
 
-- preset schema versions
-- migration logic
-- stable serialized IDs
-- compatibility tests
+An unknown dither, render mode or effect id is **refused**, not remapped — the preset holding
+it is dropped and the rest of the library survives.
 
-Changing only a Kotlin constructor default is not sufficient.
+**Two defaults that must stay different values.** `RenderSettings.renderMode` defaults to
+`GlyphMatrix`: that is what a preset naming no mode is read as, and every preset written
+before the field existed is that case. `RenderMode.DEFAULT` is `PurePixel` and is what new
+sessions and `RandomLook` start from. Collapsing them turns the saved library into pixel
+dithers on first open.
 
-## Naming Direction
+## Naming
 
-Preferred future names:
+The renames the migration called for are done. `AsciiParams` is `RenderSettings`,
+`ascii.Pipeline` is `pipeline.RenderPipeline`, the `ascii` package no longer exists, and the
+UI says *glyph art* and *pixel dither* — the display names live in `RenderModules` rather than
+in a table each panel keeps.
 
-- AsciiParams becomes RenderSettings
-- ascii.Pipeline becomes RenderPipeline
-- ASCII becomes Glyph Art in the UI
-- Pure Pixel becomes Pixel Dither in the UI
+The enum constants `GlyphMatrix` and `PurePixel` deliberately still carry their original
+spelling. Renaming them changes no stored byte, because `RenderModeIds` writes the id.
 
-Naming refactors and behavior changes must be separate tasks.
+Naming refactors and behaviour changes stay separate tasks.
 
-Do not combine package moves, serialization changes, and default changes in
-one large commit.
+## UI
 
-## UI Direction
+The tab row is eight entries:
 
-The intended navigation is:
+`SET` · `MAP` · `COLOUR` · `FX` · `LYR` · `ANIM` · `OUT` · `PRE`
 
-- Source
-- Style
-- Dither
-- Color
-- Effects
-- Layers
-- Motion
-- Glyph Art
-- Output
-- Presets
+`MAP` — the glyph mapping panel — is filtered out of the row entirely when the active mode
+does not produce glyphs, and the selection falls back to `SET` if it was showing. Whether a
+mode produces glyphs is asked of `RenderModules`, not derived from the enum at the call site.
 
-When Pixel Dither is active:
-
-- Glyph controls are hidden or inactive
-- text exports are unavailable
-- no glyph ramp is required
-
-When Glyph Art is active:
-
-- Glyph controls and text exports are available
-- shared Dither, Color, Effects, Layers, and Motion controls remain available
+When Pixel Dither is active, glyph controls are hidden, text exports are unavailable and no
+glyph ramp is required. When a glyph mode is active, glyph controls and text exports are
+available and the shared dither, colour, effects, layers and motion controls remain so.
 
 ## State Ownership
 
-The central ViewModel may remain temporarily.
+`GlyphsmithViewModel` is a ~915-line coordinator, and that is the intended end state rather
+than a leftover. What was extracted from it is what had an invariant worth testing:
 
-The future direction is to separate responsibilities into components such as:
+| Component | Owns |
+| --- | --- |
+| `state/SourceController` | the loaded source, the preview position, `frame()`, closing the old source |
+| `state/HistoryController` | undo/redo |
+| `state/PresetController` | applying, saving and deleting presets |
+| `state/ExportCoordinator` | what happens to a finished render and what is said about it |
+| `state/PlaybackPlan` | the testable half of animation playback — frame counts and budgets |
+| `state/RandomLook` | Surprise Me, within ranges that produce something |
 
-- SourceController
-- RenderCoordinator
-- HistoryController
-- PresetController
-- AnimationController
-- ExportCoordinator
+Two components named in the original plan were **deliberately not built**, and should not be:
 
-Image-processing algorithms must not live in the ViewModel.
+- **`RenderCoordinator`** — after the render-module split, `rebuild` is one call to
+  `RenderPipeline.run` wrapped in `_state.value.copy`. The class would either take `_state`
+  with it, and then it is the view model renamed, or need a callback for every field it sets.
+- **`AnimationController`** — `PlaybackPlan` already took the testable half and says so in its
+  own KDoc.
 
-## Testing Rules
+A `previewBudget()` helper was considered and struck for the same reason: there is exactly one
+budget *decision* in the app, and the other constants belong to different owners —
+`RenderBudget.MAX_OUTPUT_SIDE` is a platform ceiling, `LiveCamera.MAX_SIDE` is a callback-rate
+limit, `PlaybackPlan.budgetSide` comes from a memory budget.
 
-Architectural changes must preserve existing tests and add tests for:
+The criterion throughout: **extract what has an invariant worth testing, not what is long.**
 
-- stable ID uniqueness
-- provider registration
-- legacy preset migration
-- current-schema round trips
-- unknown providers
-- deterministic rendering
-- effect order
-- render-module capabilities
-- export compatibility
+Image-processing algorithms do not live in the ViewModel.
 
-Tests must not be removed or weakened to make a migration pass.
+## Testing
 
-## Migration Order
+60 JVM test classes, ~589 test methods, run by `gradle testDebugUnitTest`. The engine is free
+of Android types, so sampling, the tone curve, the dither path and ramp mapping are all
+testable on the JVM; three classes need Robolectric.
 
-1. Add documentation
-2. Add preset schema version and migrations
-3. Add stable serialized provider IDs
-4. Change new-session default to Pixel Dither
-5. Replace the main preset library with Pixel-first presets
-6. Introduce neutral names
-7. Add internal provider registries
-8. Adapt existing algorithms and effects
-9. Move shared code out of Glyph-specific packages
-10. Split the central ViewModel
+The architectural rules each have a test that states them:
+
+| Rule | Test |
+| --- | --- |
+| dependency direction, read off the imports | `LayeringTest` |
+| every mode has a module, and only the glyph modules produce glyphs | `AppRenderModulesTest` |
+| every provider category is registered; no two providers anywhere share an id | `pipeline/ProviderRegistryTest` |
+| id format, uniqueness, legacy-name resolution, refusal of unknown ids | `core/serial/WireIdTest` |
+| legacy preset migration, current-schema round trips, unknown providers | `data/PresetSchemaTest` |
+| new sessions start in pixel dither; the field default stays glyph art | `render/SessionDefaultTest`, `UiStateDefaultTest` |
+| presets render non-blank, reproducibly and mutually distinct | `data/PresetLibraryTest` |
+| a pass runs its own effect with its own settings, in the stored order | `effects/EffectPassTest`, `effects/EffectNodeContractTest` |
+| the chained mode | `render/ChainedModeTest` |
+| kernels against the published literature | `core/dither/LiteratureTest`, `DitherRegressionTest` |
+
+Note what a JVM test cannot reach: several effect passes go through
+`android.graphics.Bitmap`/`Matrix` and can only be compared as settings. The dither path
+(`CellSampler` → `QuantisePass` → `PixelDitherRenderer`) is pure Kotlin and *is* rendered in
+tests.
+
+CI additionally runs `gradle detekt` (config in `config/detekt/detekt.yml`) and
+`gradle lintDebug`.
+
+Tests are not removed or weakened to make an implementation pass.
 
 ## Non-Goals
 
-The initial migration does not include:
+Still out of scope:
 
 - deleting Glyph Art
 - deleting existing algorithms or effects
-- copying proprietary Dither Boy behavior
+- copying proprietary Dither Boy behaviour
 - loading arbitrary downloaded code
-- rewriting all algorithms
 - dynamically generating the entire UI
-- moving every package in one commit
 - breaking old presets
-
-## Definition of Success
-
-The migration is successful when:
-
-- new sessions start in Pixel Dither
-- old Glyph Art presets retain their appearance
-- Pixel Dither works without constructing Glyph-specific state
-- Glyph Art remains fully functional
-- shared render code has no dependency on Glyph Art
-- algorithms and effects use stable provider IDs
-- presets have schema versions and migrations
-- the UI uses provider capabilities
-- existing rendering tests continue to pass
