@@ -29,6 +29,7 @@ import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.glyph.CharacterSets
 import org.phioster.glyphsmith.render.ColorMode
 import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.core.color.PaletteProvider
 
 /**
  * Surprise Me: a look rolled at random.
@@ -183,7 +184,7 @@ object RandomLook {
             modScale = random.nextInt(4, 16),
             modAngle = random.nextInt(0, 360),
             colorMode = ColorMode.entries.random(random),
-            paletteId = palette.id,
+            paletteId = PaletteProvider.wireIdOf(palette.id),
             paletteOverride = emptyList(),
             paletteLocks = emptyList(),
             rampOverride = "",

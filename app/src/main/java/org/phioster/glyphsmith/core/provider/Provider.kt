@@ -9,14 +9,14 @@ import org.phioster.glyphsmith.core.serial.WireId
  * [prefix] is the first half of every id in the category, which is what ties a registry to the
  * ids already being written into presets — see [WireId].
  *
- * Palette and export providers are named in ARCHITECTURE.md and are deliberately absent: neither
- * has a stable id yet, palettes are identified in saved presets by a bare `paletteId` string,
- * and minting ids for them is a change to the stored format rather than a registry.
+ * Export providers are named in ARCHITECTURE.md and are still absent: an exporter is chosen by
+ * a menu rather than named in a preset, so it has nothing to be identified *by* yet.
  */
 enum class ProviderCategory(val prefix: String) {
     RENDER("render"),
     DITHER("dither"),
     EFFECT("effect"),
+    PALETTE("palette"),
 }
 
 /**

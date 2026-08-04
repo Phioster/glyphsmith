@@ -18,6 +18,9 @@ import org.phioster.glyphsmith.effects.EffectProviders
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.render.RenderModeIds
 import org.phioster.glyphsmith.render.RenderModules
+import org.phioster.glyphsmith.core.color.PaletteProvider
+import org.phioster.glyphsmith.core.color.PaletteProviders
+import org.phioster.glyphsmith.core.color.Palettes
 
 class ProviderRegistryTest {
 
@@ -131,11 +134,36 @@ class ProviderRegistryTest {
     // --- coverage and metadata ----------------------------------------------------------
 
     /** A provider missing from its registry is a thing the picker cannot offer at all. */
+    /**
+     * Palettes were the last identity in a preset spelled as a bare string. The provider and the
+     * palette keep two names on purpose — `palette.grayscale` on disk, `grayscale` for the
+     * picker and the starred list — which is the same arrangement the enums have, and the reason
+     * the mapping lives in exactly one place.
+     */
+    @Test
+    fun `a palette wire id and the palette's own id map to each other`() {
+        Palettes.all.forEach { palette ->
+            val provider = PaletteProviders.of(palette)
+            assertEquals("palette.${palette.id}", provider.id)
+            assertEquals(palette.id, PaletteProvider.bareIdOf(provider.id))
+            assertEquals(provider, PaletteProviders.find(provider.id))
+            assertEquals("resolving the wire id must land on the palette", palette, Palettes.byId(provider.id))
+        }
+    }
+
+    /** Applied twice it would produce `palette.palette.grayscale`. */
+    @Test
+    fun `spelling a wire id is safe to repeat`() {
+        assertEquals("palette.ice", PaletteProvider.wireIdOf("ice"))
+        assertEquals("palette.ice", PaletteProvider.wireIdOf("palette.ice"))
+    }
+
     @Test
     fun `every algorithm, effect and module has a provider`() {
         assertEquals(RenderMode.entries.size, RenderModules.all.size)
         assertEquals(DitherMode.entries.size, DitherProviders.all.size)
         assertEquals(EffectId.entries.size, EffectProviders.all.size)
+        assertEquals(Palettes.all.size, PaletteProviders.all.size)
     }
 
     @Test

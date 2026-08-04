@@ -1,5 +1,6 @@
 package org.phioster.glyphsmith.pipeline
 
+import org.phioster.glyphsmith.core.color.PaletteProviders
 import org.phioster.glyphsmith.core.dither.DitherProviders
 import org.phioster.glyphsmith.core.provider.Provider
 import org.phioster.glyphsmith.core.provider.ProviderCategory
@@ -21,7 +22,7 @@ import org.phioster.glyphsmith.render.RenderModules
  */
 object Providers {
 
-    val all: List<Registry<out Provider>> = listOf(RenderModules, DitherProviders, EffectProviders)
+    val all: List<Registry<out Provider>> = listOf(RenderModules, DitherProviders, EffectProviders, PaletteProviders)
 
     /** Every provider this build ships, whatever kind it is. */
     val everything: List<Provider> get() = all.flatMap { it.all }

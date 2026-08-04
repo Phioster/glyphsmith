@@ -16,6 +16,7 @@ import org.phioster.glyphsmith.effects.ChromaticParams
 import org.phioster.glyphsmith.effects.EffectId
 import org.phioster.glyphsmith.effects.EffectStack
 import org.phioster.glyphsmith.render.RenderMode
+import org.phioster.glyphsmith.core.color.Palettes
 
 /**
  * The preset file format: what it writes, and what it can still read.
@@ -109,7 +110,79 @@ class PresetSchemaTest {
         assertEquals("from before", preset.description)
         assertEquals(6, preset.params.cellSize)
         assertEquals(7, preset.params.depth)
-        assertEquals("ice", preset.params.paletteId)
+        // Carried through every migration in turn, so a version 1 document arrives spelled
+        // the way version 4 spells a palette.
+        assertEquals("palette.ice", preset.params.paletteId)
+    }
+
+    // --- version 3: palettes named by a bare id ------------------------------------------
+
+    /**
+     * The spelling change schema 4 makes, on a document that predates it.
+     *
+     * The danger here is not that it fails — [Palettes.byId] reads either spelling, so a preset
+     * whose palette was never migrated renders correctly and says nothing. The danger is that a
+     * library ends up holding both spellings of one identity, with no symptom to notice.
+     */
+    @Test
+    fun `a version 3 palette id is respelled`() {
+        val document = """
+            {"schemaVersion":3,"presets":[{"name":"kept","params":{
+              "renderMode":"render.pixel-dither","ditherMode":"dither.atkinson","paletteId":"ice"}}]}
+        """.trimIndent()
+
+        val preset = PresetSchema.decode(document).single()
+
+        assertEquals("palette.ice", preset.params.paletteId)
+        assertEquals("the palette itself must not have changed", Palettes.byId("ice"), preset.params.activePalette())
+    }
+
+    /** A layer carries a palette of its own, and it is the one a rewrite forgets. */
+    @Test
+    fun `a palette inside a layer is respelled too`() {
+        val document = """
+            {"schemaVersion":3,"presets":[{"name":"stacked","params":{
+              "renderMode":"render.pixel-dither","paletteId":"ice",
+              "layers":[{"name":"over","params":{"renderMode":"render.pixel-dither","paletteId":"bone"}}]}}]}
+        """.trimIndent()
+
+        val preset = PresetSchema.decode(document).single()
+
+        assertEquals("palette.ice", preset.params.paletteId)
+        assertEquals("palette.bone", preset.params.layers.single().params.paletteId)
+    }
+
+    /**
+     * A palette this build has never heard of is left exactly as it was, on the same rule the
+     * id migration follows: a migration that guessed would be the thing all of this exists to
+     * prevent.
+     */
+    @Test
+    fun `a palette this build does not know is carried through untouched`() {
+        val document = """
+            {"schemaVersion":3,"presets":[{"name":"newer","params":{
+              "renderMode":"render.pixel-dither","paletteId":"invented-tomorrow"}}]}
+        """.trimIndent()
+
+        val preset = PresetSchema.decode(document).single()
+
+        assertEquals("invented-tomorrow", preset.params.paletteId)
+    }
+
+    /** Respelling twice would produce `palette.palette.ice`. */
+    @Test
+    fun `a palette already spelled the new way is left alone`() {
+        val document = """
+            {"schemaVersion":3,"presets":[{"name":"early","params":{
+              "renderMode":"render.pixel-dither","paletteId":"palette.ice"}}]}
+        """.trimIndent()
+
+        assertEquals("palette.ice", PresetSchema.decode(document).single().params.paletteId)
+    }
+
+    @Test
+    fun `both spellings name the same palette`() {
+        assertEquals(Palettes.byId("ice"), Palettes.byId("palette.ice"))
     }
 
     // --- version 2: enum constants, before the stable ids ----------------------------

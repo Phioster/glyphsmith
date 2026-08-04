@@ -116,7 +116,18 @@ object Palettes {
 
     val default: Palette = byId.getValue("phosphor")
 
-    fun byId(id: String): Palette = byId[id] ?: default
+    /**
+     * The palette [id] names, whichever spelling it is in.
+     *
+     * A preset written by this build carries the wire id, `palette.grayscale`; one written
+     * before they existed carries the bare `grayscale`, and files older than the migration are
+     * read directly rather than migrated in place. Both have to land on the same palette.
+     *
+     * Still falls back rather than throwing: an unknown palette is a picture that renders in
+     * the wrong colours, where an unknown *dither* would be a picture that is not the one that
+     * was saved. The two are not the same kind of loss.
+     */
+    fun byId(id: String): Palette = byId[id] ?: byId[id.removePrefix("palette.")] ?: default
 
     fun inCategory(category: String): List<Palette> = all.filter { it.category == category }
 
