@@ -44,8 +44,22 @@ object NoDither : DitherAlgorithm(DEFAULT_PERIOD_LABEL, null)
  * A threshold read off a fixed tile, repeating across the grid.
  *
  * Bayer, the clustered-dot screens and the blue-noise masks differ only in what is in the tile.
+ *
+ * The tile is built on first use rather than at declaration: a 32×32 blue-noise mask costs real
+ * time to generate, and a style is asked what kind of thing it is far more often than it is
+ * asked to draw — every time the picker lists it, for one.
  */
-class OrderedMatrix : DitherAlgorithm(DEFAULT_PERIOD_LABEL, null)
+class OrderedMatrix(build: () -> Array<IntArray>) : DitherAlgorithm(DEFAULT_PERIOD_LABEL, null) {
+
+    val matrix: Array<IntArray> by lazy(build)
+
+    /** Normalised threshold in 0..1 for the cell at ([x], [y]), tiling in both directions. */
+    fun thresholdAt(x: Int, y: Int): Float {
+        val n = matrix.size
+        val value = matrix[Math.floorMod(y, n)][Math.floorMod(x, n)]
+        return (value + 0.5f) / (n * n)
+    }
+}
 
 /**
  * A threshold that is a continuous function of position rather than a tile.

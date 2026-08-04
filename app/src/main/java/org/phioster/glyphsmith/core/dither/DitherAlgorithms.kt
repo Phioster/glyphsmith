@@ -56,10 +56,14 @@ internal object DitherAlgorithms {
         DitherMode.STUCKI_LINES -> DiffusionKernels.STUCKI_LINES
 
         // --- ordered matrices ---------------------------------------------------------------
-        DitherMode.BAYER_2, DitherMode.BAYER_4, DitherMode.BAYER_8, DitherMode.BAYER_16,
-        DitherMode.CLUSTER_4, DitherMode.CLUSTER_8,
-        DitherMode.BLUE_NOISE_16, DitherMode.BLUE_NOISE_32,
-        -> OrderedMatrix()
+        DitherMode.BAYER_2 -> OrderedScreens.BAYER_2
+        DitherMode.BAYER_4 -> OrderedScreens.BAYER_4
+        DitherMode.BAYER_8 -> OrderedScreens.BAYER_8
+        DitherMode.BAYER_16 -> OrderedScreens.BAYER_16
+        DitherMode.CLUSTER_4 -> OrderedScreens.CLUSTER_4
+        DitherMode.CLUSTER_8 -> OrderedScreens.CLUSTER_8
+        DitherMode.BLUE_NOISE_16 -> OrderedScreens.BLUE_NOISE_16
+        DitherMode.BLUE_NOISE_32 -> OrderedScreens.BLUE_NOISE_32
 
         // --- modulation ---------------------------------------------------------------------
         DitherMode.MOD_LINES -> Modulation()

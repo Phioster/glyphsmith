@@ -135,50 +135,12 @@ object Dither {
      */
     fun isThresholdBased(mode: DitherMode): Boolean = isOrdered(mode) || isModulation(mode)
 
-    private val BAYER_2X2 = arrayOf(
-        intArrayOf(0, 2),
-        intArrayOf(3, 1),
-    )
-
-    /** `M₂ₙ = [[4M+0, 4M+2], [4M+3, 4M+1]]` — the standard recursive construction. */
-    private fun grow(base: Array<IntArray>): Array<IntArray> {
-        val n = base.size
-        val out = Array(n * 2) { IntArray(n * 2) }
-        for (y in 0 until n) {
-            for (x in 0 until n) {
-                val v = base[y][x] * 4
-                out[y][x] = v
-                out[y][x + n] = v + 2
-                out[y + n][x] = v + 3
-                out[y + n][x + n] = v + 1
-            }
-        }
-        return out
-    }
-
-    private val BAYER_4X4 = grow(BAYER_2X2)
-    private val BAYER_8X8 = grow(BAYER_4X4)
-    private val BAYER_16X16 = grow(BAYER_8X8)
-
-    fun matrix(mode: DitherMode): Array<IntArray>? = when (mode) {
-        DitherMode.BAYER_2 -> BAYER_2X2
-        DitherMode.BAYER_4 -> BAYER_4X4
-        DitherMode.BAYER_8 -> BAYER_8X8
-        DitherMode.BAYER_16 -> BAYER_16X16
-        DitherMode.CLUSTER_4 -> DitherMatrices.clusteredDot(4)
-        DitherMode.CLUSTER_8 -> DitherMatrices.clusteredDot(8)
-        DitherMode.BLUE_NOISE_16 -> DitherMatrices.blueNoise(16)
-        DitherMode.BLUE_NOISE_32 -> DitherMatrices.blueNoise(32)
-        else -> null
-    }
+    /** The tile [mode] reads its threshold off, or null when it is not a matrix style at all. */
+    fun matrix(mode: DitherMode): Array<IntArray>? = (algorithmOf(mode) as? OrderedMatrix)?.matrix
 
     /** Normalised threshold in 0..1 for the cell at ([x], [y]). */
-    fun orderedThreshold(mode: DitherMode, x: Int, y: Int): Float {
-        val m = matrix(mode) ?: return 0.5f
-        val n = m.size
-        val value = m[Math.floorMod(y, n)][Math.floorMod(x, n)]
-        return (value + 0.5f) / (n * n)
-    }
+    fun orderedThreshold(mode: DitherMode, x: Int, y: Int): Float =
+        (algorithmOf(mode) as? OrderedMatrix)?.thresholdAt(x, y) ?: 0.5f
 
     private const val TAU = 2.0 * PI
 
