@@ -153,11 +153,21 @@ class PresetLibraryTest {
      * that has to stay stable: it is what a user's file is compared against and what an export
      * hands to somebody else.
      *
-     * It has moved once, at schema 4, when a palette stopped being named by a bare id. That is
-     * what this is for: the change was checked by diffing the encoded library against the old
-     * one and confirming that nothing but `schemaVersion` and 91 `paletteId` values had moved.
+     * It has moved twice, and each move was checked rather than pasted in:
+     *
+     * - **schema 4**, when a palette stopped being named by a bare id. Diffing the encoded
+     *   library against the old one showed nothing but `schemaVersion` and 91 `paletteId` values.
+     * - **animation target ids** (2026-08-05), when a track stopped naming its target with the
+     *   Kotlin constant. The same diff showed **2002 changed lines, all of them `"target"`** —
+     *   979 track targets and 22 segment targets, rewritten from `GLOW_DIRECTION` to
+     *   `anim.glow-direction`. No `schemaVersion`, and nothing the renderer reads. That is what
+     *   makes the new digest a spelling change rather than a change to the shipped library.
+     *
+     * If this fails, do the diff. A hash pasted in from the failure message is a test that has
+     * been switched off, and the thing it was switched off for is a preset that quietly renders
+     * differently.
      */
-    private val digest = "0d7e1e31b8a4bf76bbaeb22111783b965ab0a36beb71b3248527dfc47d7fdb47"
+    private val digest = "9598623b7cacc7f019270c157d703aa4d6369d48fa2b3e82809140e757e9e526"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {

@@ -8,35 +8,50 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import org.phioster.glyphsmith.core.dither.Dither
 
-/** A parameter an animation track can drive. */
 /**
+ * A parameter an animation track can drive.
+ *
+ * [wireId] is what a saved animation contains. Until it existed a track stored the Kotlin
+ * constant — `GLOW_DIRECTION` — which made renaming a constant a silent change to what somebody
+ * else's saved animation drives. It was the last identity in the preset format spelled that way.
+ *
  * [cyclic] marks the targets whose range joins up at the ends: 359° is the same direction as
  * 0°, and a full sweep of a modulation phase lands exactly back on the pattern it started
  * from. Those are the only ones a non-closing curve may drive without leaving a visible jump
  * at the loop seam — everywhere else a sawtooth snaps back in plain sight.
  */
+@Serializable(with = AnimTargetIds::class)
 enum class AnimTarget(
+    val wireId: String,
     val label: String,
     val min: Int,
     val max: Int,
     val cyclic: Boolean = false,
 ) {
-    DEPTH("Depth", 1, RenderSettings.MAX_DEPTH),
-    CHARACTER_OFFSET("Character Offset", 0, 64),
-    DITHER_STRENGTH("Dither Strength", 0, 100),
-    /** A full sweep of a modulation period, so a sawtooth over 0..100 travels seamlessly. */
-    MOD_PHASE("Modulation Phase", 0, 100, cyclic = true),
+    DEPTH("anim.depth", "Depth", 1, RenderSettings.MAX_DEPTH),
+    CHARACTER_OFFSET("anim.character-offset", "Character Offset", 0, 64),
+    DITHER_STRENGTH("anim.dither-strength", "Dither Strength", 0, 100),
+
+    /**
+     * A full sweep of a modulation period, so a sawtooth over 0..100 travels seamlessly.
+     *
+     * Stored as `anim.pattern-phase` rather than anything with "modulation" in it, because this
+     * is the *dither pattern's* phase and [MODULATION_PHASE] is the modulation-lines effect's.
+     * The two labels have always read almost alike; the ids are where they stop.
+     */
+    MOD_PHASE("anim.pattern-phase", "Modulation Phase", 0, 100, cyclic = true),
+
     /**
      * The pattern's second axis — a vortex's twist, a topography's warp, a wave's frequency
      * range. Worth animating precisely because its meaning changes with the style: one track
      * makes a spiral wind up, a contour map breathe, or a moiré drift through its beat.
      */
-    PATTERN_DENSITY("Pattern Density", 0, 100),
-    EDGE_THRESHOLD("Edge Threshold", 0, 100),
-    GLITCH_SEED("Glitch Seed", 1, 9999),
-    CHROMATIC_OFFSET("Chromatic Offset", 0, 50),
-    GLOW_DIRECTION("Glow Direction", 0, 359, cyclic = true),
-    STARS_ANGLE("Stars Angle", 0, 359, cyclic = true),
+    PATTERN_DENSITY("anim.pattern-density", "Pattern Density", 0, 100),
+    EDGE_THRESHOLD("anim.edge-threshold", "Edge Threshold", 0, 100),
+    GLITCH_SEED("anim.glitch-seed", "Glitch Seed", 1, 9999),
+    CHROMATIC_OFFSET("anim.chromatic-offset", "Chromatic Offset", 0, 50),
+    GLOW_DIRECTION("anim.glow-direction", "Glow Direction", 0, 359, cyclic = true),
+    STARS_ANGLE("anim.stars-angle", "Stars Angle", 0, 359, cyclic = true),
 
     /**
      * The travelling phase of the modulation-lines pass, one full cycle over 0..100.
@@ -45,7 +60,7 @@ enum class AnimTarget(
      * A track exists so the motion can be *shaped* — eased, held, reversed, or run at a
      * different rate from the rest of the animation — like every other animated parameter.
      */
-    MODULATION_PHASE("Modulation Phase (lines)", 0, 100, cyclic = true),
+    MODULATION_PHASE("anim.modulation-lines-phase", "Modulation Phase (lines)", 0, 100, cyclic = true),
 }
 
 /**

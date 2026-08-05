@@ -186,6 +186,15 @@ gh pr create --title "Record that the palette category needs no plugin work" --b
 
 ### Task 2: Stable wire ids for animation targets
 
+> **Executed 2026-08-05 with one deviation, found by the tests.** Steps 6–8 below plan a schema
+> version 5 and an `AnimTargetMigration`. Both were **dropped**: with the serialiser in place the
+> migration provably rewrites nothing, because `WireIdSerializer` already accepts a legacy
+> constant name as an alias and encoding always writes the id. The literal-version-4 tests from
+> step 6 were written first and passed without any migration at all, which is the evidence. A
+> version bump whose migration is empty is ceremony, and the brief forbids artificial changes —
+> so the version stays 4 and `PresetSchema`'s KDoc records when the spelling changed and why the
+> number did not move. Everything else in this task was executed as written.
+
 **Files:**
 - Create: `app/src/main/java/org/phioster/glyphsmith/anim/AnimTargetIds.kt`
 - Modify: `app/src/main/java/org/phioster/glyphsmith/anim/Animation.kt:18-49` (the `AnimTarget`
