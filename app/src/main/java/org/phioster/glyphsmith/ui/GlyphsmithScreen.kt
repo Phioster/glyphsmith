@@ -60,7 +60,6 @@ import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.data.PresetStore
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.text.BasicTextField
-import org.phioster.glyphsmith.render.RenderModules
 
 private enum class Tab(val label: String) {
     ASCII("SET"),
@@ -244,14 +243,7 @@ fun GlyphsmithScreen(
             onImport = onImportPresets,
         )
 
-        // Switching to pixel mode while sitting on a glyph-only tab would leave the user on a
-        // panel that is no longer offered, so the selection follows the mode back to the top.
-        // Asked of the module rather than of the mode: what a render can do is the module's
-        // to declare, and the panels below only need the answer.
-        val glyphMode = RenderModules.of(state.params.renderMode).producesGlyphs
-        if (!glyphMode && tab == Tab.MAPPING) tab = Tab.ASCII
-
-        TabRow(tab, glyphMode) { tab = it }
+        TabRow(tab) { tab = it }
 
         Column(
             Modifier
@@ -463,11 +455,12 @@ private fun StatusLine(state: UiState) {
 }
 
 @Composable
-private fun TabRow(selected: Tab, glyphMode: Boolean, onSelect: (Tab) -> Unit) {
-    // The mapping panel is twenty-two sliders about how luminance becomes a *character*. In
-    // pixel mode there is no character, so the tab is not offered rather than being shown full
-    // of controls that do nothing.
-    val tabs = Tab.entries.filter { glyphMode || it != Tab.MAPPING }
+private fun TabRow(selected: Tab, onSelect: (Tab) -> Unit) {
+    // Every tab is offered in every mode. MAP used to be hidden outside glyph art, on the
+    // reading that the whole panel was about how luminance becomes a *character* — but most of
+    // it is about how luminance becomes a *level*, which is the pixel mode's own question. The
+    // panel hides its glyph half instead; see MappingSections.
+    val tabs = Tab.entries
 
     Row(
         Modifier
