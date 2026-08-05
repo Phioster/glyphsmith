@@ -118,6 +118,14 @@ panel, presets, exports and Surprise Me on its own. The four couplings that are 
 and why, are in `ARCHITECTURE.md`, *Adding an effect*. `effects/EffectCatalogTest` is what holds
 the "appears on its own" claim to the lists it is a claim about.
 
+**The palette category needs no such work, and was audited rather than rebuilt** (2026-08-05).
+A palette is data: adding one is a single line in `Palettes.all`, and the registry, the wire id,
+the picker's categories, presets, the migration and Surprise Me are all derived from it. There
+is no execution to scatter, so there was no `when` to remove. `PaletteProviders` is not on the
+read path and is deliberately left that way, and imported palettes stay out of the registry
+because they already travel inside the preset as `paletteOverride`. `ARCHITECTURE.md`, *Palette
+Providers*, has the full finding. Do not re-open it.
+
 **Export providers are the fifth category named in the plugin model and do not exist, by
 decision.** An exporter is chosen from a menu rather than named in a preset, so it has nothing
 to be identified by yet. `export/Exports` is the seam in the shape one would take, minus the
