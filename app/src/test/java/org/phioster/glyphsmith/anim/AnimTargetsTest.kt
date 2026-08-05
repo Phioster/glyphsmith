@@ -50,6 +50,7 @@ class AnimTargetsTest {
             AnimTarget.SLICE_OFFSET to 14,
             AnimTarget.WARP_CURVATURE to 15,
             AnimTarget.HALFTONE_ANGLE to 16,
+            AnimTarget.SOURCE_BRIGHTNESS to 17,
         )
 
         expected.forEach { (target, salt) ->
@@ -145,6 +146,36 @@ class AnimTargetsTest {
             .map { group -> group.map { it.key.target.name } }
 
         assertTrue("these targets write the same field: $shared", shared.isEmpty())
+    }
+
+    /**
+     * The first target that drives something the dither *reads* rather than something it draws.
+     *
+     * Everything else moves a setting the renderer or an effect consumes. This one moves the
+     * source's own brightness, before the algorithm sees it — which is what makes a transition
+     * possible where the picture dissolves into pure dither and re-forms, instead of simply
+     * fading to black.
+     *
+     * The mapping is stated here because a target carries `Int` bounds and the field is a
+     * `Float` on -1..1: hundredths, the same percentage convention the rest of the app uses.
+     */
+    @Test
+    fun `source brightness maps hundredths onto the field's own range`() {
+        val target = AnimTargets.of(AnimTarget.SOURCE_BRIGHTNESS)
+
+        assertEquals(-1f, target.write(base, -100).brightness, 1e-6f)
+        assertEquals(0f, target.write(base, 0).brightness, 1e-6f)
+        assertEquals(1f, target.write(base, 100).brightness, 1e-6f)
+        assertEquals(0.35f, target.write(base, 35).brightness, 1e-6f)
+    }
+
+    /** Past the ends it holds at the ends: the field has no meaning outside -1..1. */
+    @Test
+    fun `source brightness clamps at the ends of its field`() {
+        val target = AnimTargets.of(AnimTarget.SOURCE_BRIGHTNESS)
+
+        assertEquals(-1f, target.write(base, -400).brightness, 1e-6f)
+        assertEquals(1f, target.write(base, 400).brightness, 1e-6f)
     }
 
     /** The clamps come across with the branches; two targets deliberately have none. */

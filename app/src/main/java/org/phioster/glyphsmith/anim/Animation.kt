@@ -89,6 +89,19 @@ enum class AnimTarget(
      * 0..359, so a sawtooth across this range snaps rather than travels.
      */
     HALFTONE_ANGLE("anim.halftone-angle", "Halftone Angle", 0, 90),
+
+    /**
+     * The source's own brightness, before the dither reads it.
+     *
+     * Every other target moves something the renderer or an effect *draws*. This one moves what
+     * the algorithm *sees*, which is a different thing entirely: swept down, the picture stops
+     * feeding the dither and the image dissolves into whatever the algorithm makes of a flat
+     * field, then re-forms on the way back. Fading the render instead would just go to black.
+     *
+     * Hundredths, because the field is a `Float` on -1..1 and a target carries `Int` bounds —
+     * the same percentage convention the rest of the app uses.
+     */
+    SOURCE_BRIGHTNESS("anim.source-brightness", "Source Brightness", -100, 100),
 }
 
 /**

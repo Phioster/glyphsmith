@@ -124,6 +124,7 @@ class PresetLibraryTest {
         shifting facets|MOTION|PurePixel|LOW_POLY
         warming tube|MOTION|PurePixel|BAYER_4
         signal bloom|MOTION|PurePixel|MOD_WAVE
+        forming|MOTION|PurePixel|FLOYD_STEINBERG
         two pass screen|LAYERED|PurePixel|CLUSTER_8
         offset plates|LAYERED|PurePixel|FLOYD_STEINBERG
         terminal|GLYPH|GlyphMatrix|NONE
@@ -170,16 +171,20 @@ class PresetLibraryTest {
      *   `"enabled": false`, which is what makes five new targets across eighty-nine presets a
      *   longer file rather than five effects switching themselves on.
      *
-     * - **two new presets** (2026-08-05), `warming tube` and then `signal bloom`. 395 added
-     *   lines each, **zero deletions** each, exactly one `"name"` in each diff. Adding a preset
-     *   is the one change that is meant to move this hash, and the check is that it moved by
-     *   exactly one entry.
+     * - **three new presets** (2026-08-05): `warming tube`, `signal bloom`, `forming`. Zero
+     *   deletions each, exactly one `"name"` in each diff. Adding a preset is the one change
+     *   that is meant to move this hash, and the check is that it moved by exactly one entry.
+     * - **a seventeenth animation target** (2026-08-05), in the same step as `forming`. Every
+     *   preset carries an entry per target, so that added 94 `anim.source-brightness` tracks
+     *   across 92 presets and 2 layers — and exactly **two** `"enabled": true` in the whole
+     *   diff, both of them the new preset's own. A target that arrived switched on anywhere
+     *   else would have shown up as a third.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "fef10271b391a3e5ab471174f033771362610fe2e4cc6d933400a841209a257f"
+    private val digest = "229a3e237691cb1c168e4deddf430aee7f4ac33a5264200b77eb996a1d2ae8ec"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -219,8 +224,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 91, presets.size)
-        assertEquals("curated presets", 85, curated.size)
+        assertEquals("built-in presets", 92, presets.size)
+        assertEquals("curated presets", 86, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 

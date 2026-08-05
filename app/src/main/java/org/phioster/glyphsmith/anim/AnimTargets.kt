@@ -105,6 +105,11 @@ object AnimTargets {
         AnimTargetProvider(AnimTarget.HALFTONE_ANGLE, 16) { p, v ->
             p.copy(effects = p.effects.copy(cmyk = p.effects.cmyk.copy(angle = v.coerceIn(0, 90))))
         },
+        // The only target that writes a *pre-dither* value. Hundredths onto -1..1, clamped
+        // there because the field has no meaning outside it.
+        AnimTargetProvider(AnimTarget.SOURCE_BRIGHTNESS, 17) { p, v ->
+            p.copy(brightness = (v / 100f).coerceIn(-1f, 1f))
+        },
     )
 
     /**

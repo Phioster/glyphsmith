@@ -1471,6 +1471,40 @@ object PresetLibrary {
             ),
         ),
 
+        /*
+         * The one that animates what the algorithm *sees*.
+         *
+         * Every other motion preset moves something the renderer draws — a phase, a density, a
+         * curvature. This drives the source's own brightness, before the dither reads it, and
+         * the difference is the whole point: the picture does not fade, it stops feeding the
+         * algorithm. The first frame is empty, the figure assembles out of nothing, and on the
+         * way back it collapses into the field it came from.
+         *
+         * It sweeps to +20 rather than to 0 so the peak lifts the background over the first
+         * threshold too — at the top of the loop the empty field itself comes alive with grain,
+         * which is what makes the collapse read as the dither switching off rather than as a
+         * light being dimmed.
+         *
+         * Error diffusion on purpose. A flat field gives it no error to pass on, so "nothing"
+         * really is nothing; an ordered matrix would keep drawing its own texture into the dark.
+         */
+        pixel(
+            "forming",
+            PresetStore.CATEGORY_MOTION,
+            RenderSettings(
+                cellSize = 3,
+                depth = 4,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SINGLE,
+                inkColor = 0xFF33FF66.toInt(),
+                backgroundColor = 0xFF04140A.toInt(),
+                animation = animation(
+                    sweep(AnimTarget.SOURCE_BRIGHTNESS, -100, 20),
+                    frames = 36,
+                ),
+            ),
+        ),
+
         // --- layered -------------------------------------------------------------
         // One image, two treatments, blended. A layer is a complete second set of
         // settings rendered at the same size, so what these demonstrate is the thing you
