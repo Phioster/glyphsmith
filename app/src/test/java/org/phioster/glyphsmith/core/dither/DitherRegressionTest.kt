@@ -146,6 +146,12 @@ class DitherRegressionTest {
         DitherMode.CONTRAST_AWARE_X to "60e683c0cdb0e692",
         DitherMode.CONTRAST_AWARE_Y to "0569d1820cc45314",
         DitherMode.VORTEX_DIFFUSION to "2fb8a78bdf09d84a",
+
+        // Added with the modulated-diffusion kind. Their pins were taken on the first build that
+        // had them; the other eighty were confirmed unchanged in the same run, which is the
+        // whole reason this table exists.
+        DitherMode.WAVE_DIFFUSE to "f92721283ea89bd0",
+        DitherMode.ORB_DIFFUSE to "8eb16b35408f32fd",
     )
 
     @Test
