@@ -1,5 +1,6 @@
 package org.phioster.glyphsmith.ui.panels
 
+import org.phioster.glyphsmith.ui.SectionHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -73,17 +74,51 @@ fun EffectsPanel(
             modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
         )
 
-        order.forEachIndexed { index, id ->
+        val running = EffectChain.running(fx)
+        val idle = EffectChain.idle(fx)
+
+        running.forEach { id ->
             EffectControls(
                 id = id,
                 fx = fx,
                 move = MoveHandler(
-                    canMoveUp = index > 0,
-                    canMoveDown = index < order.lastIndex,
-                    onMove = { delta -> update { reorder(id, delta) } },
+                    canMoveUp = EffectChain.canMoveUp(fx, id),
+                    canMoveDown = EffectChain.canMoveDown(fx, id),
+                    onMove = { delta -> onChange(params.copy(effects = EffectChain.reorder(fx, id, delta))) },
                 ),
                 onChange = { changed -> onChange(params.copy(effects = changed)) },
             )
+        }
+
+        if (running.isEmpty()) {
+            Text(
+                "nothing is running. Switch one on below and it takes its place in the chain.",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(vertical = 8.dp),
+            )
+        }
+
+        if (idle.isNotEmpty()) {
+            SectionHeader("not in use")
+            Text(
+                "in the order they would run, so an effect switched on appears where it is " +
+                    "listed here rather than at the end.",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 4.dp),
+            )
+            // The same per-effect section, which already draws just its toggle while the
+            // effect is off — and now without arrows, because there is nowhere for something
+            // that is not running to move to.
+            idle.forEach { id ->
+                EffectControls(
+                    id = id,
+                    fx = fx,
+                    move = MoveHandler(canMoveUp = false, canMoveDown = false, onMove = {}),
+                    onChange = { changed -> onChange(params.copy(effects = changed)) },
+                )
+            }
         }
 
         Row(
@@ -128,18 +163,23 @@ internal fun EffectSection(
                 onCheckedChange = onEnabledChange,
                 modifier = Modifier.weight(1f),
             )
-            TerminalButton(
-                label = "▲",
-                enabled = move.canMoveUp,
-                onClick = { move.onMove(-1) },
-                modifier = Modifier.padding(start = 6.dp),
-            )
-            TerminalButton(
-                label = "▼",
-                enabled = move.canMoveDown,
-                onClick = { move.onMove(1) },
-                modifier = Modifier.padding(start = 4.dp),
-            )
+            // Drawn only when there is somewhere to go. An effect that is not running has
+            // nowhere, and so does the only one that is — a pair of dead buttons on every row
+            // was most of what made seventeen blocks read as clutter.
+            if (move.canMoveUp || move.canMoveDown) {
+                TerminalButton(
+                    label = "▲",
+                    enabled = move.canMoveUp,
+                    onClick = { move.onMove(-1) },
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+                TerminalButton(
+                    label = "▼",
+                    enabled = move.canMoveDown,
+                    onClick = { move.onMove(1) },
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+            }
         }
         if (enabled) content()
     }

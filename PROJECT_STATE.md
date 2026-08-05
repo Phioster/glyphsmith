@@ -37,7 +37,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
   are light.
 - **Built-in presets: 96** — 90 curated (81 Pixel Dither to 9 Glyph Art) plus 6 Algorithm Lab
   presets, which are counted separately.
-- **Tests: 662 test methods across 67 JVM test classes**, three of which need Robolectric. Run
+- **Tests: 672 test methods across 68 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and
   `assembleDebug`.
 - **Animation targets: 17** — six write a plain render setting, ten reach into the effect stack,
@@ -143,6 +143,10 @@ governs. Three places do it, and each hides a *section*, never a whole page:
 | `ui/panels/RenderPanel` | the glyph settings — depth, character set, ramp, font |
 | `ui/panels/MappingPanel` | the edge mapping only, via `ui/panels/MappingSections` |
 | `ui/panels/OutputPanel` | the text and glyph-grid exports |
+
+The effects panel splits the same way, by `ui/panels/EffectChain`: what is running, then what
+could run. Its arrows step past the next *running* effect rather than by one position in the
+stored order, which are the same thing only while nothing is disabled.
 
 The preset picker has a shelf filter beside that, and its rule is `ui/panels/PresetFilters` —
 Compose-free and tested, on the same pattern as `MappingSections`. The chips are derived from the
