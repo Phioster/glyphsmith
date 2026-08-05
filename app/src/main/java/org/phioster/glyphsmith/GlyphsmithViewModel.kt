@@ -1,5 +1,9 @@
 package org.phioster.glyphsmith
 
+import org.phioster.glyphsmith.render.PixelDitherRenderer
+import org.phioster.glyphsmith.render.QuantisePass
+import org.phioster.glyphsmith.render.CellSampler
+import org.phioster.glyphsmith.render.PixelVector
 import org.phioster.glyphsmith.effects.PixelOps
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.dither.ScreenImport
@@ -539,6 +543,30 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             withContext(Dispatchers.Default) { SvgExporter.build(it, params, params.fontSizePx, mode) }
         }
         withContext(Dispatchers.IO) { exports.svg(svg, mode) }
+    }
+
+    /**
+     * The dithered grid as vectors, for anything that cuts, plots or stitches rather than prints.
+     *
+     * Renders the grid again rather than reading the preview: the preview is budgeted down to
+     * whatever keeps a slider responsive, and an export that inherited that would quietly halve
+     * the resolution of the thing being cut.
+     */
+    fun exportPixelSvg() = runExport("svg") {
+        val current = sources.source ?: return@runExport "no image"
+        val params = _state.value.params
+        val pair = withContext(Dispatchers.Default) {
+            val pixels = current.pixelsAt(0f)
+            val cell = params.cellSize.coerceAtLeast(1)
+            val grid = CellSampler.sample(
+                pixels, current.width, current.height, params, cell, cell,
+            )
+            val indexed = QuantisePass.run(params, grid, PixelDitherRenderer.levelsFor(params))
+            val colours = PixelDitherRenderer.colorsFor(indexed, params)
+            val blocks = PixelVector.merge(colours, indexed.cols, indexed.rows)
+            PixelVector.svg(blocks, indexed.cols, indexed.rows, cell) to blocks.size
+        }
+        withContext(Dispatchers.IO) { exports.pixelSvg(pair.first, pair.second) }
     }
 
     fun exportHtml() = runExport("html") {
