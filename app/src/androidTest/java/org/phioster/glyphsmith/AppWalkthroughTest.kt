@@ -2,7 +2,7 @@ package org.phioster.glyphsmith
 
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -70,28 +70,36 @@ class AppWalkthroughTest {
         rule.waitForIdle()
     }
 
+    /**
+     * Opens each tab in turn and checks the app is still there.
+     *
+     * `performScrollTo` before every tap, and that is not ceremony: the tab row scrolls
+     * sideways, so the later tabs are off screen and Compose refuses both to call them displayed
+     * and to inject a touch into them. The first run of this test failed on exactly that — which
+     * is the sort of thing only running it teaches.
+     *
+     * The assertion afterwards is deliberately weak, because the strong one is implicit: if the
+     * panel threw while composing, the test does not reach the assertion at all.
+     */
+    private fun walkTheTabs() {
+        tabs.forEach { label ->
+            rule.onNodeWithText(label).performScrollTo().performClick()
+            rule.waitForIdle()
+            rule.onNodeWithText(label).assertExists()
+        }
+    }
+
     @Test
     fun everyTabOpensWithAnImageLoaded() {
         loadAnImage()
-
-        tabs.forEach { label ->
-            rule.onNodeWithText(label).performClick()
-            rule.waitForIdle()
-            // Still there after the panel composed: the tab row is the thing that would be gone
-            // if the panel had thrown.
-            rule.onNodeWithText(label).assertIsDisplayed()
-        }
+        walkTheTabs()
     }
 
     @Test
     fun everyTabOpensWithNoImageAtAll() {
         // The state the app starts in, and the one hand testing skips because the first thing
         // anybody does is load a picture.
-        tabs.forEach { label ->
-            rule.onNodeWithText(label).performClick()
-            rule.waitForIdle()
-            rule.onNodeWithText(label).assertIsDisplayed()
-        }
+        walkTheTabs()
     }
 
     /**
@@ -102,12 +110,12 @@ class AppWalkthroughTest {
     fun applyingAPresetRendersWithoutFalling() {
         loadAnImage()
 
-        rule.onNodeWithText("PRE").performClick()
+        rule.onNodeWithText("PRE").performScrollTo().performClick()
         rule.waitForIdle()
-        rule.onNodeWithText("one bit").performClick()
+        rule.onNodeWithText("one bit").performScrollTo().performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithText("PRE").assertIsDisplayed()
+        rule.onNodeWithText("PRE").assertExists()
         rule.activityRule.scenario.onActivity { activity ->
             val state = ViewModelProvider(activity)[GlyphsmithViewModel::class.java].state.value
             assertTrue("the render produced nothing", state.preview != null)
