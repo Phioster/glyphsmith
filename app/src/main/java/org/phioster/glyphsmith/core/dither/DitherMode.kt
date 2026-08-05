@@ -221,7 +221,6 @@ enum class DitherMode {
             VARIABLE_ERROR, FRACTAL_DIFFUSE, CRACKED_DIFFUSE, VORTEX_DIFFUSION,
             -> DitherCategory.ERROR_DIFFUSION
 
-            CUSTOM_SCREEN,
             BAYER_2, BAYER_4, BAYER_8, BAYER_16, CLUSTER_4, CLUSTER_8,
             BLUE_NOISE_16, BLUE_NOISE_32,
             -> DitherCategory.ORDERED
@@ -247,7 +246,7 @@ enum class DitherMode {
             -> DitherCategory.GLITCH
 
             MOD_WAVE, MOD_RINGS, MOD_ORB, BEEHIVE,
-            WAVE_DIFFUSE, ORB_DIFFUSE,
+            WAVE_DIFFUSE, ORB_DIFFUSE, CUSTOM_SCREEN,
             NOISE, WAVE, RADIAL_BURST, SINE_DISTORT,
             THRESHOLDER, SINE_WAVE_MOD, TOPOGRAPHY, VORTEX, RADIAL_PEAKS, DOTTED_LINES,
             DISPLACE_CONTOUR, ORB_MATRIX,

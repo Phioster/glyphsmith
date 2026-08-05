@@ -243,8 +243,8 @@ The families and their sizes:
 | --- | --- |
 | Basic (`NONE` only) | 1 |
 | Error Diffusion | 21 |
-| Ordered | 9 |
-| Patterned | 20 |
+| Ordered | 8 |
+| Patterned | 21 |
 | Polygon | 4 |
 | Glitch | 12 |
 | Special | 16 |

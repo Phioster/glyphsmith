@@ -45,7 +45,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
 - **Preset schema version: 4.**
 
 The dither families, which are the shelves a picker groups styles under, are: error diffusion
-21, patterned 20, special 16, glitch 12, ordered 9, polygon 4, basic 1 (`NONE`).
+21, patterned 21, special 16, glitch 12, ordered 8, polygon 4, basic 1 (`NONE`).
 
 ## Current architectural shape
 
