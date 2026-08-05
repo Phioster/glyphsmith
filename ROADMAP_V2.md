@@ -25,10 +25,10 @@ Never "done"; checked whenever something lands.
 Closed by PR #48, *Make the documentation describe the application that exists*, and by the
 consolidation that followed it. What changed:
 
-- `ARCHITECTURE.md` describes the architecture that was built rather than the migration that
-  was planned — three render modes, four provider categories, the real package layout
-- `README.md`, `CLAUDE.md` and `MIGRATION_PLAN.md` follow the same state
-- `MIGRATION_PLAN.md` is marked complete and kept as the record of what each step became
+- `ARCHITECTURE_LEGACY.md` describes the architecture that was built rather than the migration
+  that was planned — three render modes, four provider categories, the real package layout
+- `README.md`, `CLAUDE.md` and `MIGRATION_LEGACY.md` follow the same state
+- `MIGRATION_LEGACY.md` is marked complete and kept as the record of what each step became
 - `PROJECT_STATE.md` carries the verified headline numbers, the package table and the
   compatibility invariants
 
@@ -36,7 +36,7 @@ Standing part, which stays open:
 
 - keep `CLAUDE.md` aligned with the actual project state
 - keep `PROJECT_STATE.md` as the first read for any future Claude session
-- keep `ARCHITECTURE.md` aligned with the real package and provider layout
+- keep `ARCHITECTURE_LEGACY.md` aligned with the real package and provider layout
 - add or update product-facing documentation only when it reduces confusion
 
 ## Phase 2 — feature matrix and comparison work (open)
@@ -46,11 +46,18 @@ Standing part, which stays open:
 - classify features as present, partial, missing, or intentionally different
 - identify candidate signature features for Glyphsmith
 
-## Phase 3 — decide the first feature slices (open)
+## Phase 3 — feature slices (open, first one shipped)
 
-Good candidates for the first post-migration slices are:
+Shipped:
 
-- capability-driven UI cleanup
+- **capability-driven UI cleanup, first pass** (PR #50, product audit item 4.1). The mapping
+  panel is split into a render-neutral dither half and a glyph-only edge half, and the tab row
+  no longer hides a whole page for a capability that governs one section of it. Pixel dither —
+  the default mode — can reach the dither controls. Recorded in `CLAUDE_TASKS.md`, task 4.
+
+Still good candidates:
+
+- the rest of the capability-driven UI cleanup: every panel should hide sections, not pages
 - effect catalog organization
 - export workflow polish
 - preset browsing and discovery improvements

@@ -23,7 +23,7 @@ For each task, keep:
 Goal: verify the current codebase state before new work starts.
 
 Prompt:
-> Read CLAUDE.md, PROJECT_STATE.md, ARCHITECTURE.md, and ROADMAP_V2.md. Inspect the current codebase and summarize the true current state. Do not change code.
+> Read CLAUDE.md, PROJECT_STATE.md, ARCHITECTURE_LEGACY.md, and ROADMAP_V2.md. Inspect the current codebase and summarize the true current state. Do not change code.
 
 Result: the review was run against the tree and found the documentation, not the code, to be
 the thing out of date. The code matched every structural claim — three render modes, four
@@ -71,21 +71,37 @@ Acceptance criteria:
 - no product decisions hidden inside code changes
 - public sources only, per `CLAUDE.md`, *Reference products*
 
-## Task 4: first product slice — **open**
+## Task 4: first product slice — **done** (2026-08-05, PR #50)
 
 Goal: implement the smallest high-value post-migration improvement.
 
 Prompt:
 > Pick one small product-phase improvement that fits the current architecture and implement it in one PR. Keep provider contracts stable and add tests.
 
-Acceptance criteria:
+The slice taken was the product audit's item 4.1: make the default mode usable. `TabRow` hid
+the whole MAP tab unless the module produced glyphs, and no other panel offers the dither
+picker — so in pixel dither, the app's primary workflow, there was no way to choose a dither
+algorithm, nor to reach the tone curve, the pre-dither adjustments or any algorithm setting.
 
-- one narrow change
-- tests added or updated
-- CI green
-- no unrelated refactors
+What it became:
 
-Candidates are listed in `ROADMAP_V2.md`, phase 3.
+- `ui/panels/MappingPanel` is two halves. `DitherMappingSection` is render-neutral — tone,
+  pre-dither adjustments, dither style, strength, serpentine, pattern scale, the modulation
+  and orb settings — and shows in every mode. `EdgeMappingSection` is glyph-only.
+- Edge detection turned out to be the *only* glyph-specific thing on the page: the edge grid is
+  computed in the shared `QuantisePass`, but `glyph/GlyphEngine` is the only thing that reads
+  it.
+- `ui/panels/MappingSections` holds the rule outside the composable and free of Compose, so it
+  is testable without a UI host, and asks the module for `producesGlyphs` rather than comparing
+  against a mode.
+- `reset mapping` now writes only what the panel is showing, so the edge settings survive a
+  reset done from a mode that hides them.
+
+Two things left deliberately: `patternDensity` and `edgeSetId` are still not cleared by
+`reset mapping` — they never were, and changing what the button writes is a behaviour change of
+its own. Worth doing as its own small task.
+
+Follow-on slices are listed in `ROADMAP_V2.md`, phase 3.
 
 ## Task 5: maintenance guardrails — **open, partly already in place**
 
@@ -104,6 +120,7 @@ Already enforced, and not to be rebuilt:
 | id format, uniqueness, legacy-name resolution, refusal of unknown ids | `core/serial/WireIdTest` |
 | legacy preset migration and current-schema round trips | `data/PresetSchemaTest` |
 | new sessions start in pixel dither; the field default stays glyph art | `render/SessionDefaultTest`, `UiStateDefaultTest` |
+| which half of the mapping panel a mode shows, and what its reset writes | `ui/panels/MappingSectionsTest` |
 
 Acceptance criteria:
 

@@ -6,10 +6,10 @@
 | --- | --- |
 | `CLAUDE.md` | this file — the rules that bind new work |
 | `PROJECT_STATE.md` | where the project stands: verified counts, the package table, the compatibility invariants. The first read of a new session |
-| `ARCHITECTURE.md` | how the application is built, and why each seam is where it is |
+| `ARCHITECTURE_LEGACY.md` | how the application is built, and why each seam is where it is. Current despite the file name — only `MIGRATION_LEGACY.md` is history |
 | `ROADMAP_V2.md` | which phases are done and which are open |
 | `CLAUDE_TASKS.md` | the task queue, with what each finished task found |
-| `MIGRATION_PLAN.md` | project history: the completed migration, and what was deliberately not built |
+| `MIGRATION_LEGACY.md` | project history: the completed migration, and what was deliberately not built |
 | `README.md` | what the app does, for someone who is not going to read the source |
 
 ## Product identity
@@ -99,7 +99,7 @@ Shared render infrastructure must not depend on glyph-specific classes.
 
 This is not advice — `LayeringTest` reads the `import` lines of `core`,
 `render`, `glyph`, `pipeline` and `export` and fails on a dependency
-pointing the wrong way. The table of prohibitions is in `ARCHITECTURE.md`.
+pointing the wrong way. The table of prohibitions is in `ARCHITECTURE_LEGACY.md`.
 A new *allowed* dependency is ordinary work and needs no change to the test.
 
 ## Internal plugin direction
@@ -164,7 +164,10 @@ available modules and effects.
 - New shared features must not assume that a glyph ramp exists.
 - Image effects operate on rendered pixels.
 - Text and glyph-grid exports are available only when Glyph Art is active.
-- UI panels must hide or disable controls that do not apply to the active mode.
+- UI panels must hide or disable controls that do not apply to the active mode — the
+  *controls*, not the page they sit on. Hiding a whole panel for a capability that governs one
+  section of it is what once left the default mode with no way to choose a dither algorithm.
+  Ask the module for the capability, and hide the narrowest thing that answers to it.
 
 ## Preset direction
 

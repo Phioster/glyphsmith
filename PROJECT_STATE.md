@@ -1,11 +1,16 @@
 # PROJECT_STATE.md
 
-Where the project stands. `ARCHITECTURE.md` describes how it is built, `CLAUDE.md` states the
-rules that bind new work, `MIGRATION_PLAN.md` records the migration that produced this shape.
-This file is the snapshot, and every number in it was read off the code rather than carried
-forward from the last time somebody wrote one down.
+Where the project stands. `ARCHITECTURE_LEGACY.md` describes how it is built, `CLAUDE.md` states
+the rules that bind new work, `MIGRATION_LEGACY.md` records the migration that produced this
+shape. This file is the snapshot, and every number in it was read off the code rather than
+carried forward from the last time somebody wrote one down.
 
-Verified against the tree on 2026-08-04.
+Verified against the tree on 2026-08-05.
+
+Both architecture documents carry a `_LEGACY` suffix, which describes how they were filed
+rather than what is in them: `MIGRATION_LEGACY.md` really is history, but
+`ARCHITECTURE_LEGACY.md` describes the architecture the app has today and is still the place
+the layering rules are written down.
 
 ## Current status
 
@@ -33,7 +38,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
   are light.
 - **Built-in presets: 89** — 83 curated (74 Pixel Dither to 9 Glyph Art) plus 6 Algorithm Lab
   presets, which are counted separately.
-- **Tests: 589 test methods across 60 JVM test classes**, three of which need Robolectric. Run
+- **Tests: 595 test methods across 61 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and
   `assembleDebug`.
 - **Preset schema version: 4.**
@@ -79,7 +84,7 @@ Two boundaries are easy to state wrongly and worth stating twice:
 
 The dependency direction is enforced by `LayeringTest`, which reads the actual `import` lines
 and fails the build on a dependency pointing the wrong way. The prohibition table is in
-`ARCHITECTURE.md`.
+`ARCHITECTURE_LEGACY.md`.
 
 ### Execution model
 
@@ -109,6 +114,23 @@ name and the capabilities the UI branches on, and is readable without an Android
 decision.** An exporter is chosen from a menu rather than named in a preset, so it has nothing
 to be identified by yet. `export/Exports` is the seam in the shape one would take, minus the
 ids and the registry.
+
+### What the UI branches on
+
+Panels ask `RenderModules.of(mode)` for a capability and hide the controls that capability
+governs. Three places do it, and each hides a *section*, never a whole page:
+
+| Place | Hidden when the module produces no glyphs |
+| --- | --- |
+| `ui/panels/RenderPanel` | the glyph settings — depth, character set, ramp, font |
+| `ui/panels/MappingPanel` | the edge mapping only, via `ui/panels/MappingSections` |
+| `ui/panels/OutputPanel` | the text and glyph-grid exports |
+
+The tab row itself branches on nothing: every tab is offered in every mode. It used to hide the
+whole MAP tab outside glyph art, which took the dither picker, the tone curve and the
+pre-dither adjustments with it — in the default mode there was then no way to choose a dither
+algorithm at all. That was fixed by splitting the panel rather than by relaxing the tab rule,
+and `ui/panels/MappingSectionsTest` states which half is which.
 
 ## Compatibility invariants
 
@@ -140,7 +162,7 @@ The rest:
 ## What the migration finished
 
 Kept as project history. The full record, including what each step became, is in
-`MIGRATION_PLAN.md`.
+`MIGRATION_LEGACY.md`.
 
 - preset schema versioning
 - migration tests for legacy presets
@@ -165,7 +187,11 @@ The migration is not the active work and should not be reopened.
 Documentation synchronisation is also done: the documents now describe the application that
 exists rather than the one the migration set out to build.
 
-The remaining work is product-phase work:
+The remaining work is product-phase work, and the first slice of it has shipped: the mapping
+panel now offers its render-neutral half in every mode (PR #50), so pixel dither can reach the
+dither controls.
+
+What is still open:
 
 - feature matrix creation
 - public Dither Boy comparison
@@ -177,7 +203,9 @@ The remaining work is product-phase work:
 - docs can drift away from code again — the headline numbers above are the part that rots
   first
 - shared code can accidentally regain Glyph Art assumptions
-- UI can drift back to ID-based branching instead of capability-based branching
+- UI can drift back to ID-based branching instead of capability-based branching, or hide a
+  whole page where only a section is mode-specific — that is what made the default mode
+  unusable once already
 - new effects can become messy if they bypass the provider model
 - the two render-mode defaults can be "tidied" into one value by somebody who reads only one
   of them
