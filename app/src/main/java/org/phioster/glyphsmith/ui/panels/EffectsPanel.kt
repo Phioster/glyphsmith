@@ -38,6 +38,11 @@ internal data class MoveHandler(
  *
  * The order is movable because it matters more than most of the sliders do: damage applied
  * before the glow blooms through it, damage applied after cuts the bloom apart.
+ *
+ * Which controls a slot shows is [EffectControls], so this file stays about the chain — which
+ * effects run, in what order, and how many of them are on. It iterates whatever
+ * `effectiveOrder()` hands it, so an effect added to the enum appears here without this file
+ * being touched at all.
  */
 @Composable
 fun EffectsPanel(
@@ -69,61 +74,16 @@ fun EffectsPanel(
         )
 
         order.forEachIndexed { index, id ->
-            val move = MoveHandler(
-                canMoveUp = index > 0,
-                canMoveDown = index < order.lastIndex,
-                onMove = { delta -> update { reorder(id, delta) } },
+            EffectControls(
+                id = id,
+                fx = fx,
+                move = MoveHandler(
+                    canMoveUp = index > 0,
+                    canMoveDown = index < order.lastIndex,
+                    onMove = { delta -> update { reorder(id, delta) } },
+                ),
+                onChange = { changed -> onChange(params.copy(effects = changed)) },
             )
-            when (id) {
-                EffectId.POST ->
-                    PostProcessingSection(fx.postProcessing, move) { p ->
-                        update { copy(postProcessing = p) }
-                    }
-
-                EffectId.BLUR ->
-                    BlurSharpenSection(fx.blurSharpen, move) { p -> update { copy(blurSharpen = p) } }
-
-                EffectId.TINT -> TintSection(fx.tint, move) { p -> update { copy(tint = p) } }
-                EffectId.CHROMATIC ->
-                    ChromaticSection(fx.chromatic, move) { p -> update { copy(chromatic = p) } }
-
-                EffectId.GLITCH ->
-                    GlitchSection(fx.jpegGlitch, move) { p -> update { copy(jpegGlitch = p) } }
-
-                EffectId.SORT ->
-                    PixelSortSection(fx.pixelSort, move) { p -> update { copy(pixelSort = p) } }
-
-                EffectId.SLICE ->
-                    SliceShiftSection(fx.sliceShift, move) { p -> update { copy(sliceShift = p) } }
-
-                EffectId.INTERLACE ->
-                    InterlaceSection(fx.interlace, move) { p -> update { copy(interlace = p) } }
-
-                EffectId.STARS -> StarsSection(fx.stars, move) { p -> update { copy(stars = p) } }
-                EffectId.SUBTEXTURE ->
-                    SubtextureSection(fx.subtexture, move) { p -> update { copy(subtexture = p) } }
-
-                EffectId.CMYK -> CmykSection(fx.cmyk, move) { p -> update { copy(cmyk = p) } }
-
-                EffectId.GLOW -> GlowSection(fx.glow, move) { p -> update { copy(glow = p) } }
-
-                EffectId.MODULATION ->
-                    ModulationLinesSection(fx.modulationLines, move) { p ->
-                        update { copy(modulationLines = p) }
-                    }
-
-                EffectId.PRINT ->
-                    SpotPrintSection(fx.spotPrint, move) { p -> update { copy(spotPrint = p) } }
-
-                EffectId.DEPTH ->
-                    ColorDepthSection(fx.colorDepth, move) { p -> update { copy(colorDepth = p) } }
-
-                EffectId.DITHER ->
-                    BlueNoiseSection(fx.blueNoise, move) { p -> update { copy(blueNoise = p) } }
-
-                EffectId.WARP ->
-                    CrtWarpSection(fx.crtWarp, move) { p -> update { copy(crtWarp = p) } }
-            }
         }
 
         Row(

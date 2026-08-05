@@ -12,9 +12,14 @@ import org.phioster.glyphsmith.core.image.Pixels
 object Tint {
 
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
-    val pass = EffectPass(EffectStack::tint, TintParams::enabled) { pixels, params, _ ->
-        apply(pixels, params)
-    }
+    val pass = EffectPass(
+        EffectStack::tint,
+        { copy(tint = it) },
+        TintParams::enabled,
+        // The wash takes its colour from the palette the rest of the look was rolled with. A
+        // tint in an unrelated hue is what makes a rolled look read as a mistake.
+        randomise = { roll -> copy(enabled = true, color = roll.palette.colors.last()) },
+    ) { pixels, params, _ -> apply(pixels, params) }
 
     fun apply(source: Pixels, params: TintParams): Pixels {
         if (!params.enabled || params.amount <= 0) return source

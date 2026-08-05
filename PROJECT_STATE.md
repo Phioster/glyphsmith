@@ -37,7 +37,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
   are light.
 - **Built-in presets: 89** — 83 curated (74 Pixel Dither to 9 Glyph Art) plus 6 Algorithm Lab
   presets, which are counted separately.
-- **Tests: 595 test methods across 61 JVM test classes**, three of which need Robolectric. Run
+- **Tests: 608 test methods across 62 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and
   `assembleDebug`.
 - **Preset schema version: 4.**
@@ -93,7 +93,7 @@ Four provider categories are registered — `ProviderCategory` has four entries,
 | --- | --- | --- |
 | `RENDER` | `render/RenderModules` | metadata and **capabilities** (`producesGlyphs`, `ditherFirst`) |
 | `DITHER` | `core/dither/DitherProviders` | metadata and **execution** (`algorithm`) |
-| `EFFECT` | `effects/EffectProviders` | metadata and **execution** (`pass`) |
+| `EFFECT` | `effects/EffectProviders` | metadata, **execution** (`pass`) and everything else an effect is |
 | `PALETTE` | `core/color/PaletteProviders` | metadata and **data** (the `Palette` and its family) |
 
 `pipeline/Providers` gathers all four — the only place allowed to see them at once — so the
@@ -108,6 +108,15 @@ over from before the provider model, and it should not be "moved into the regist
 
 `RenderModuleProvider` is the declarative half of the same seam: it carries the id, the display
 name and the capabilities the UI branches on, and is readable without an Android runtime.
+
+**The effect category is the one that is fully plugin-shaped.** An `EffectPass` carries its
+params slice, how that slice is written back, its toggle, its random roll and its code, all
+declared inside the effect's own object; the id and the label sit on the `EffectId` constant.
+Adding an effect therefore touches its own file plus two binding lines — `effects/EffectPasses`
+(what runs) and `ui/panels/EffectPanels` (what it looks like) — and it appears in the chain, the
+panel, presets, exports and Surprise Me on its own. The four couplings that are kept on purpose,
+and why, are in `ARCHITECTURE.md`, *Adding an effect*. `effects/EffectCatalogTest` is what holds
+the "appears on its own" claim to the lists it is a claim about.
 
 **Export providers are the fifth category named in the plugin model and do not exist, by
 decision.** An exporter is chosen from a menu rather than named in a preset, so it has nothing
@@ -186,9 +195,10 @@ The migration is not the active work and should not be reopened.
 Documentation synchronisation is also done: the documents now describe the application that
 exists rather than the one the migration set out to build.
 
-The remaining work is product-phase work, and the first slice of it has shipped: the mapping
-panel now offers its render-neutral half in every mode (PR #50), so pixel dither can reach the
-dither controls.
+The remaining work is product-phase work, and two slices of it have shipped: the mapping panel
+now offers its render-neutral half in every mode (PR #50), so pixel dither can reach the dither
+controls, and the effect category has been closed into a plugin shape (task 6) so that adding an
+effect no longer means editing files outside it.
 
 What is still open:
 

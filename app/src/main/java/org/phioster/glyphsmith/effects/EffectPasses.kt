@@ -13,6 +13,12 @@ package org.phioster.glyphsmith.effects
  * the code it runs, and that is what makes the wiring checkable: the lambda calls the enclosing
  * object's own `apply`, which pins the params type, and no two effects share one. A slot wired to
  * another effect's controls does not compile.
+ *
+ * This table and [org.phioster.glyphsmith.ui.panels.EffectControls] are the only two places a new
+ * effect has to be named outside its own file. Everything a pass *is* travels with it: the stable
+ * id and the label on the [EffectId] constant, the params slice, the toggle, the random roll and
+ * the code on its `EffectPass`. Both remaining tables are exhaustive `when`s, so neither can be
+ * forgotten — the build stops rather than the effect quietly never running.
  */
 internal object EffectPasses {
 

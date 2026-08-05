@@ -57,9 +57,18 @@ data class SubtextureParams(
 object Subtexture {
 
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
-    val pass = EffectPass(EffectStack::subtexture, SubtextureParams::enabled) { pixels, params, _ ->
-        apply(pixels, params)
-    }
+    val pass = EffectPass(
+        EffectStack::subtexture,
+        { copy(subtexture = it) },
+        SubtextureParams::enabled,
+        randomise = { roll ->
+            copy(
+                enabled = true,
+                kind = TextureKind.entries.random(roll.random),
+                intensity = roll.random.nextInt(20, 60),
+            )
+        },
+    ) { pixels, params, _ -> apply(pixels, params) }
 
     private const val TAU = 2.0 * PI
 

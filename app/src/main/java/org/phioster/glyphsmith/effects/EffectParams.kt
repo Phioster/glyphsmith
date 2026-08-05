@@ -160,27 +160,32 @@ data class BlurSharpenParams(
 /**
  * One slot in the effect chain. The enum order is the default order of the chain.
  *
- * On disk a slot is a stable id — see [EffectIds] — never the constant's own name.
+ * A slot states its own two names. [wireId] is what a saved preset contains and is never
+ * derived from the constant — see [EffectIds] for why that matters more here than anywhere
+ * else — and [label] is what the interface shows, which is free to be reworded. Both are
+ * constructor arguments rather than tables elsewhere, so a slot cannot be added without
+ * stating them: the compiler refuses the entry, which is the same guarantee an exhaustive
+ * `when` gave and one fewer file to remember.
  */
 @Serializable(with = EffectIds::class)
-enum class EffectId(val label: String) {
-    POST("post"),
-    BLUR("blur / sharpen"),
-    TINT("tint"),
-    CHROMATIC("chromatic"),
-    GLITCH("jpeg glitch"),
-    SORT("pixel sort"),
-    SLICE("slice shift"),
-    INTERLACE("interlace"),
-    MODULATION("modulation lines"),
-    STARS("stars"),
-    SUBTEXTURE("subtexture"),
-    PRINT("spot print"),
-    CMYK("cmyk halftone"),
-    DEPTH("colour depth"),
-    DITHER("blue noise"),
-    GLOW("glow"),
-    WARP("crt warp"),
+enum class EffectId(val wireId: String, val label: String) {
+    POST("effect.post-processing", "post"),
+    BLUR("effect.blur-sharpen", "blur / sharpen"),
+    TINT("effect.tint", "tint"),
+    CHROMATIC("effect.chromatic-aberration", "chromatic"),
+    GLITCH("effect.jpeg-glitch", "jpeg glitch"),
+    SORT("effect.pixel-sort", "pixel sort"),
+    SLICE("effect.slice-shift", "slice shift"),
+    INTERLACE("effect.interlace", "interlace"),
+    MODULATION("effect.modulation-lines", "modulation lines"),
+    STARS("effect.diffraction-stars", "stars"),
+    SUBTEXTURE("effect.subtexture", "subtexture"),
+    PRINT("effect.spot-color-print", "spot print"),
+    CMYK("effect.cmyk-halftone", "cmyk halftone"),
+    DEPTH("effect.color-depth", "colour depth"),
+    DITHER("effect.blue-noise-dither", "blue noise"),
+    GLOW("effect.glow", "glow"),
+    WARP("effect.crt-warp", "crt warp"),
 }
 
 /**

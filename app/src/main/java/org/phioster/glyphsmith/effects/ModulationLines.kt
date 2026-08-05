@@ -67,7 +67,16 @@ object ModulationLines {
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
     val pass = EffectPass(
         EffectStack::modulationLines,
+        { copy(modulationLines = it) },
         ModulationLinesParams::enabled,
+        randomise = { roll ->
+            copy(
+                enabled = true,
+                lineSpacing = roll.random.nextInt(4, 16),
+                amplitude = roll.random.nextInt(3, 20),
+                colorMode = ModulationColorMode.entries.random(roll.random),
+            )
+        },
     ) { pixels, params, ctx -> apply(pixels, params, ctx) }
 
     fun apply(source: Pixels, params: ModulationLinesParams, ctx: RenderContext): Pixels {

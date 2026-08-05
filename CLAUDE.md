@@ -144,6 +144,26 @@ the stored format, which is its own task.
 A new provider goes in the registry that lives with its own code. Do not add
 a `when` over its enum somewhere else instead.
 
+**Effects are the worked example of that rule.** A new effect is one file plus
+two lines — the slot→pass line in `effects/EffectPasses` and the slot→controls
+line in `ui/panels/EffectPanels` — and it then appears in the FX chain, in the
+panel, in presets, in saved and exported work and in Surprise Me without any
+of those being edited. What a pass *is* travels with it: the stable id and the
+label on the `EffectId` constant, the params slice it reads, how that slice is
+written back, its toggle, its random roll and its code on its `EffectPass`.
+
+Four couplings are kept on purpose, and `ARCHITECTURE.md`, *Adding an effect*,
+says why each: the `EffectId` constant and its wire id (a stable identity must
+not be generated), the `EffectStack` field (typed, serializable params), and
+the two binding tables (exhaustive `when`s, for the `AppRenderModules`
+reason — and the panel one cannot move into `effects/` without putting Compose
+on the render path). Do not "tidy" any of the four into a map or a registry.
+
+Do not add a `when (EffectId)` anywhere else. There were four; two of them are
+gone, and the one that mattered most was in `state/RandomLook` — a file
+outside the effect category, which meant a new effect was either an edit there
+or an effect Surprise Me could never reach.
+
 The one `when` that is not a violation of that is `AppRenderModules`, which
 binds a `RenderMode` to the module that renders it. It is at the composition
 root on purpose and is not a leftover: a map throws at the first frame in

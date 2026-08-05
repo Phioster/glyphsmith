@@ -15,7 +15,16 @@ object PostProcessing {
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
     val pass = EffectPass(
         EffectStack::postProcessing,
+        { copy(postProcessing = it) },
         PostProcessingParams::enabled,
+        randomise = { roll ->
+            copy(
+                enabled = true,
+                grain = roll.random.nextInt(0, 40),
+                vignette = roll.random.nextInt(0, 60),
+                scanlines = roll.random.nextInt(0, 60),
+            )
+        },
     ) { pixels, params, _ -> apply(pixels, params) }
 
     fun apply(source: Pixels, params: PostProcessingParams): Pixels {

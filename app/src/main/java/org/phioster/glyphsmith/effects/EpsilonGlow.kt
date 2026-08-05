@@ -15,9 +15,12 @@ import org.phioster.glyphsmith.core.image.Pixels
 object EpsilonGlow {
 
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
-    val pass = EffectPass(EffectStack::glow, GlowParams::enabled) { pixels, params, _ ->
-        apply(pixels, params)
-    }
+    val pass = EffectPass(
+        EffectStack::glow,
+        { copy(glow = it) },
+        GlowParams::enabled,
+        randomise = { roll -> copy(enabled = true, intensity = roll.random.nextInt(200, 600)) },
+    ) { pixels, params, _ -> apply(pixels, params) }
 
     /** Longest edge of the buffer the blur actually runs on. */
     private const val WORK_MAX_SIDE = 360

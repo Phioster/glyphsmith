@@ -36,6 +36,13 @@ class LayeringTest {
         // module is the application's, and arrives as an argument. This is the rule the render
         // pipeline used to break by having the branch for all three modes inside it.
         "pipeline" to setOf("glyph", "state", "ui", "data", "export"),
+        // The effect category. An effect is the thing this codebase adds most often, and the
+        // point of its plugin shape is that adding one stays inside `effects/` — so the category
+        // must not acquire a reason to be edited from outside. It reads pixels and knows the
+        // engine; it does not know what rendered them, where they are going, or what the
+        // controls look like. Compose in particular: a pass that carried its own panel would
+        // need a UI toolkit to be unit-tested, which is why the panel binding lives in `ui`.
+        "effects" to setOf("render", "glyph", "pipeline", "state", "ui", "data", "export", "anim"),
         // The export sink: bytes to a file. What produced them is not its business, and a
         // glyph grid is certainly not — the text, ANSI, HTML and SVG writers are Glyph Art's
         // own output and live with it.

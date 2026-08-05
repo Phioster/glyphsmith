@@ -17,7 +17,11 @@ object DiffractionStars {
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
     val pass = EffectPass(
         EffectStack::stars,
+        { copy(stars = it) },
         DiffractionStarsParams::enabled,
+        // Rolled on rather than rolled: the defaults are already the anamorphic four-ray look,
+        // and a random ray count and length together mostly produce a smear.
+        randomise = { copy(enabled = true) },
     ) { pixels, params, _ -> apply(pixels, params) }
 
     private const val WORK_MAX_SIDE = 320

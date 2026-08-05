@@ -39,9 +39,18 @@ data class PixelSortParams(
 object PixelSort {
 
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
-    val pass = EffectPass(EffectStack::pixelSort, PixelSortParams::enabled) { pixels, params, _ ->
-        apply(pixels, params)
-    }
+    val pass = EffectPass(
+        EffectStack::pixelSort,
+        { copy(pixelSort = it) },
+        PixelSortParams::enabled,
+        randomise = { roll ->
+            copy(
+                enabled = true,
+                thresholdLow = roll.random.nextInt(10, 40),
+                thresholdHigh = roll.random.nextInt(55, 90),
+            )
+        },
+    ) { pixels, params, _ -> apply(pixels, params) }
 
     fun apply(source: Pixels, params: PixelSortParams): Pixels {
         if (!params.enabled) return source
