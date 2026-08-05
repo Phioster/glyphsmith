@@ -77,23 +77,32 @@ Also shipped, 2026-08-05:
 
 The palette category was audited and needs no work at all (task 8).
 
-Still good candidates, in the order they look worth doing:
+Also shipped, 2026-08-05, and each one found by looking rather than by guessing what the
+heading meant:
 
-- **preset browsing and discovery.** The library is 96 presets across 11 categories and the
-  picker is one sorted list with headings — favourites first, then category, then name. There is
-  no search and no filter. The recurring lesson of the audit was that the gap is discoverability
-  rather than capability; at this size that now applies to the library itself.
-- **effect catalog organization.** Seventeen effects in one chain list, same shape of problem.
-- somewhere for an imported palette to live (task 12) — convenience, not a defect
-- export workflow polish
-- signature effect additions
-- ~~the rest of the capability-driven UI cleanup~~ — done: the three places that branch on
-  `producesGlyphs` each hide a section, and the tab row branches on nothing
-- effect catalog organization
-- export workflow polish
-- preset browsing and discovery improvements
-- signature effect additions
-- small workflow improvements that make the app faster to use
+- **preset browsing** (PR #68). 96 presets across 11 shelves in one sorted list; now a row of
+  chips, derived from the library so a shelf is offered exactly when it holds something. The
+  rule is `ui/panels/PresetFilters`, Compose-free and tested.
+- **effect catalog organization** (PR #69). The panel splits into what is running and what
+  could. The arrows on a *disabled* effect used to change the stored order and change nothing
+  visible; they are now drawn only where there is somewhere to go. Rule in
+  `ui/panels/EffectChain`.
+- **export workflow polish** (PR #70). The animation export said its label once and then nothing
+  for as long as it worked, and the GIF path held every frame twice — as a bitmap and as a
+  buffer — against a budget `PlaybackPlan` had sized for one.
+
+Still open:
+
+- **somewhere for an imported palette to live** (task 12). The last audit gap, and convenience
+  rather than a defect: importing works and the palette survives inside the preset. The shape to
+  build is the small one — a picker-level library with no stable ids, so no preset ever holds a
+  reference that can go missing.
+- **signature effect additions.** Open in a different sense from the rest: there is no defect
+  behind it and no evidence saying what to build. It needs a product decision first.
+- **no example images anywhere.** The repository has zero image files and the README has no
+  picture. For a dithering application that is a real gap in how it presents itself, and it is
+  the cheapest one left — but it is binary content in a source repository, which is a decision
+  rather than a task.
 
 ## Phase 4 — ship small PRs only (standing)
 
