@@ -48,6 +48,10 @@ class MappingSectionsTest {
         edgeThreshold = 70,
         edgeSetId = "box",
         edgeOnly = true,
+        // An imported screen counts: the panel offers a load button and a clear button for it,
+        // so it is one of the controls the panel shows. A field left out of here is a field the
+        // whole-object comparison below cannot see — which is how this one was missed.
+        screenOverride = List(256) { 255 - it },
     )
 
     @Test

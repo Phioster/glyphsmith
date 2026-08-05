@@ -31,8 +31,13 @@ internal object MappingSections {
      *
      * The rule is *every* control the panel shows, which is why the list has to be read against
      * the panel rather than extended by habit — `patternDensity` and `edgeSetId` sat under
-     * visible sliders for a long time without being in it. `orbSeed` is the one stored value the
-     * panel does not show, and it is not reset.
+     * visible sliders for a long time without being in it, and `screenOverride` arrived with a
+     * load button and a clear button and was missed on the same day. `orbSeed` is the one stored
+     * value the panel does not show, and it is not reset.
+     *
+     * The test that guards this compares the *whole* settings object, which is the only shape of
+     * assertion a forgotten field cannot slip past — but only for fields its fixture actually
+     * sets. A new control belongs in `mangled()` before it belongs here.
      *
      * The values come from a default [RenderSettings] rather than from literals repeated here,
      * so "reset" cannot drift away from what a new session starts with.
@@ -63,6 +68,7 @@ internal object MappingSections {
             orbRandom = d.orbRandom,
             orbOffset = d.orbOffset,
             orbDirection = d.orbDirection,
+            screenOverride = d.screenOverride,
         )
         return if (showsGlyphMapping(params.renderMode)) {
             dither.copy(
