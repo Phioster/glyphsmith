@@ -1,6 +1,5 @@
 package org.phioster.glyphsmith.ui.panels
 
-import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.render.RenderModules
 import org.phioster.glyphsmith.render.RenderSettings
@@ -30,40 +29,47 @@ internal object MappingSections {
      * there, and silently rewriting a setting the user cannot see would turn a saved glyph look
      * into a different one the moment somebody reset the dither from pixel mode.
      *
-     * The field list is the one the button has always written. `patternDensity`, `edgeSetId` and
-     * `orbSeed` were never in it and are left out here too — splitting the panel is not the place
-     * to change what the button does.
+     * The rule is *every* control the panel shows, which is why the list has to be read against
+     * the panel rather than extended by habit — `patternDensity` and `edgeSetId` sat under
+     * visible sliders for a long time without being in it. `orbSeed` is the one stored value the
+     * panel does not show, and it is not reset.
+     *
+     * The values come from a default [RenderSettings] rather than from literals repeated here,
+     * so "reset" cannot drift away from what a new session starts with.
      */
     fun reset(params: RenderSettings): RenderSettings {
+        val d = RenderSettings()
         val dither = params.copy(
-            brightness = 0f,
-            contrast = 1f,
-            gamma = 1f,
-            saturation = 100,
-            midtones = 50,
-            highlights = 50,
-            hue = 0,
-            preBlur = 0,
-            denoise = 0,
-            ditherMode = DitherMode.NONE,
-            ditherStrength = 100,
-            serpentine = true,
-            ditherScale = 100,
-            modScale = 8,
-            modAngle = 0,
-            modPhase = 0,
-            orbCount = 1,
-            orbSize = 100,
-            orbIntensity = 0,
-            orbRandom = 0,
-            orbOffset = 0,
-            orbDirection = 0,
+            brightness = d.brightness,
+            contrast = d.contrast,
+            gamma = d.gamma,
+            saturation = d.saturation,
+            midtones = d.midtones,
+            highlights = d.highlights,
+            hue = d.hue,
+            preBlur = d.preBlur,
+            denoise = d.denoise,
+            ditherMode = d.ditherMode,
+            ditherStrength = d.ditherStrength,
+            serpentine = d.serpentine,
+            ditherScale = d.ditherScale,
+            modScale = d.modScale,
+            modAngle = d.modAngle,
+            modPhase = d.modPhase,
+            patternDensity = d.patternDensity,
+            orbCount = d.orbCount,
+            orbSize = d.orbSize,
+            orbIntensity = d.orbIntensity,
+            orbRandom = d.orbRandom,
+            orbOffset = d.orbOffset,
+            orbDirection = d.orbDirection,
         )
         return if (showsGlyphMapping(params.renderMode)) {
             dither.copy(
-                edgeEnabled = false,
-                edgeThreshold = 25,
-                edgeOnly = false,
+                edgeEnabled = d.edgeEnabled,
+                edgeThreshold = d.edgeThreshold,
+                edgeSetId = d.edgeSetId,
+                edgeOnly = d.edgeOnly,
             )
         } else {
             dither

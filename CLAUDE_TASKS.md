@@ -97,11 +97,24 @@ What it became:
 - `reset mapping` now writes only what the panel is showing, so the edge settings survive a
   reset done from a mode that hides them.
 
-Two things left deliberately: `patternDensity` and `edgeSetId` are still not cleared by
-`reset mapping` — they never were, and changing what the button writes is a behaviour change of
-its own. Worth doing as its own small task.
-
 Follow-on slices are listed in `ROADMAP_V2.md`, phase 3.
+
+## Task 4a: finish `reset mapping` — **done** (2026-08-05, PR #52)
+
+Left over from task 4: `patternDensity` and `edgeSetId` were never cleared by `reset mapping`,
+although both sit under a control the panel shows — the density slider a modulation style names
+itself, and the edge glyph set. Reset a mapping and the pattern's second axis stayed where it
+was, which reads as the button being broken rather than selective.
+
+Both are cleared now, the glyph one still only where the glyph half is shown. The values are
+taken from a default `RenderSettings` instead of literals repeated in the reset, so the button
+cannot drift away from what a new session starts with. `orbSeed` stays untouched — it is the one
+stored mapping value with no control on the page.
+
+The test that states it is `after a reset in glyph art no mapping setting is left off its
+default`, which compares the whole settings object rather than a list of fields: a forgotten
+field is exactly what a hand-written list of assertions cannot catch, because the same hand
+wrote the implementation.
 
 ## Task 5: maintenance guardrails — **open, partly already in place**
 
