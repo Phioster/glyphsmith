@@ -43,7 +43,63 @@ What did not match:
 Those are corrected in `PROJECT_STATE.md`. Remaining risks are listed there under *Risks to
 keep in mind*.
 
-## Task 2: feature matrix — **open**
+## Tasks 2 and 3: feature matrix and Dither Boy comparison — **done** (2026-08-05)
+
+Both are answered by one audit, because the only honest way to build a feature matrix for a
+comparison is to build it *against* the thing being compared.
+
+**Method, so it can be repeated rather than re-derived.** Studio AAA's public material was
+surveyed end to end: the free-downloads hub (19 entries), the development blog, ten individual
+posts, and **thumbnails for all 118 videos on their channel**, harvested with
+`yt-dlp --skip-download --write-thumbnail` and read as contact sheets. Videos 1–83 are Dither
+Boy; 84–118 are Photoshop, Glitch Machine and Flareware and were excluded. Every claim below
+was then checked against this repository rather than against memory.
+
+**Nothing of theirs was copied.** Preset files were deliberately *not* downloaded or inspected:
+a preset is their authored configuration in their format, and `CLAUDE.md` rules out commercial
+presets and private implementation details. Where a parameter value mattered, it was read off a
+control panel visible in a public tutorial — which is how the Epsilon Glow parity was
+established. Their names are not used for Glyphsmith features.
+
+### Present, and not to be rebuilt
+
+Halftone family (CMYK, block, bit, print pattern, spot colour) · CRT curvature and scanlines ·
+waveform glitch · video as a source · live camera · SVG and vector export · GIF and MP4 ·
+retro handheld palettes and theme · Epsilon Glow (field for field, ranges included) · chromatic
+aberration with three channel positions · JPEG databending · temporal variation · texture
+derived from the input image · segmented animation timeline · pre-dither adjustments ·
+**batch export** · **preset packs** · **palette favourites**.
+
+The last three were listed as gaps in an earlier study and are wrong: `ExportCoordinator`
+has `batchImage`/`batchStatus`, `PresetSchema.decode` returns a list so `importPresets` already
+reads a pack, and `Settings.favouritePalettes` exists.
+
+### Missing, in the order they are worth doing
+
+| # | Gap | Evidence | Where |
+| --- | --- | --- | --- |
+| 1 | **No pre-dither value is animatable**, so the "dither in / dither out" transition — the source fading while the dither keeps running, the image dissolving into pure noise and re-forming — cannot be expressed at all. None of the 16 animation targets touches brightness, contrast or gamma. | videos 026, 076, 077; blog *Dither In/Out Animation Trick* | `anim/` |
+| 2 | **Modulation and diffusion cannot be combined.** A modulation surface is a threshold and a diffusion kernel spreads error; theirs computes one style that is both. Ours are separate families, so the look is unreachable. | video 073, *Editable Modulation Style Diffusion* | `core/dither/` |
+| 3 | **Modulation lines draw horizontally only.** Their demos show vertical. One direction parameter. | blog *Modulation Lines Demo*; videos 072, 073 | `effects/` |
+| 4 | **A palette file holds one palette.** `PaletteFile.decode` reads a single entry, so an eighty-palette pack is eighty files. Presets already import as a pack; palettes do not. | their monthly palette packs | `data/` |
+| 5 | **No importable threshold screen.** An image used as an ordered-dither matrix — non-executable, so it is not a runtime plugin. | video 060, *Custom Retro Shaders* | `core/dither/` |
+| 6 | **Palette extraction is median-cut, not k-means.** Minor and cosmetic; k-means gives more perceptually even palettes at the cost of iterating. | earlier transcript study | `core/color/` |
+
+### The finding that is not a gap
+
+Their signature look — a glowing dot matrix on black, appearing across a dozen tutorials — is
+reachable today and now ships as the `signal bloom` preset. The gap was never the capability.
+It was that the look was a discovery here and a documented workflow there.
+
+**"Force the ordered dither to fail"** (blog *Glitched Bitmap Effect Guide*) is classified as
+**intentionally different**. The technique shrinks the cell below the pattern scale until their
+beehive cells stop rendering and leave dotted lines. Glyphsmith's beehive was rendered at cell
+1–6 against scale 6–26 and does not break: it stays a clean halftone whose dots merely grow.
+Theirs draws a cell-sized shape and fails in the sub-pixel case; ours is a threshold surface.
+Reproducing that look means implementing the failure deliberately, which is a product decision
+and not a preset.
+
+## Task 2: feature matrix — **superseded by the audit above**
 
 Goal: document the current product feature set.
 
@@ -57,7 +113,7 @@ Acceptance criteria:
 - no code changes unless a generated source of truth is required
 - counts agree with `PROJECT_STATE.md`, or `PROJECT_STATE.md` is corrected in the same PR
 
-## Task 3: Dither Boy comparison — **open**
+## Task 3: Dither Boy comparison — **superseded by the audit above**
 
 Goal: compare Glyphsmith with the public Dither Boy feature set.
 
@@ -266,6 +322,34 @@ Result: **it is already there, by a different route, and nothing was written.**
 
 The next category is task 7, and the plan for it is
 `docs/superpowers/plans/2026-08-05-animation-target-plugins.md`.
+
+## Tasks 9 to 14: the audit's gaps, one PR each — **open**
+
+Numbered in the order of the table in tasks 2/3, which is the order they are worth doing. Each
+is small enough for one PR and stays inside one category.
+
+**Task 9 — a pre-dither value that can be animated.** Add an animation target for the source
+brightness so a dither-in/out transition is expressible. `brightness` is a `Float` and a target
+carries `Int` bounds, so the target has to state its mapping; pick one and write it down.
+Acceptance: an animation drives it, nothing else changes, and a preset demonstrates it.
+
+**Task 10 — a style that modulates *and* diffuses.** `DitherAlgorithm` is a sealed class whose
+kinds are the mechanisms; this needs a kind that uses a modulation surface as the threshold and
+still passes error to neighbours. New ids, no renames. Acceptance: existing styles render
+identically, and the new one is in the registry with a test.
+
+**Task 11 — modulation lines with a direction.** One parameter on `ModulationLinesParams`,
+defaulting to what it draws today so no preset changes.
+
+**Task 12 — a palette file that can hold a pack.** `PaletteFile.decode` reads one entry; accept
+a document of many while still reading a single one. Acceptance: a legacy single-palette file
+still imports, and a test decodes a literal of each.
+
+**Task 13 — an importable threshold screen.** An image read as an ordered matrix. Not
+executable, so it is not a runtime plugin — but it *is* a new identity in the preset format, so
+it needs a stable id and a decision about what happens when the screen is missing.
+
+**Task 14 — k-means palette extraction beside median-cut.** The smallest and least urgent.
 
 ## Working rules
 
