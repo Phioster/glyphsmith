@@ -43,6 +43,25 @@ import org.phioster.glyphsmith.render.RenderModeIds
  *   short id, which is what the picker and the starred list key on; only the spelling inside a
  *   preset changed, and both spellings are still read.
  *
+ * ## Animation targets, and why they did not raise the version
+ *
+ * An `AnimTrack` stored the Kotlin constant — `GLOW_DIRECTION` — until
+ * [org.phioster.glyphsmith.anim.AnimTargetIds] gave targets stable ids. That is the same kind of
+ * change as versions 3 and 4, and it deliberately did **not** raise this number.
+ *
+ * A migration would have been a no-op, which is checkable rather than a matter of opinion:
+ * [org.phioster.glyphsmith.core.serial.WireIdSerializer] accepts a legacy constant name as an
+ * alias, so a version 4 document decodes to exactly the same targets it always did, and encoding
+ * always writes the id — so the old spelling does not survive a round trip either way.
+ * `PresetSchemaTest` asserts both, against a literal version 4 document. Raising the version for
+ * a step that rewrites nothing would put a permanent empty branch in this file and a version
+ * number that marks no change.
+ *
+ * What that costs: a document declaring version 4 may contain either spelling. Both read, so it
+ * costs nothing to a reader, and this note is what tells a future migration author when the
+ * spelling changed. Versions 3 and 4 chose the other way round for identities whose serialisers
+ * were being introduced *in the same step*; here the reader could already do the work.
+ *
  * ## Adding a version
  *
  * 1. Raise [CURRENT_VERSION].

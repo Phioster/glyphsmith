@@ -37,7 +37,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
   are light.
 - **Built-in presets: 89** — 83 curated (74 Pixel Dither to 9 Glyph Art) plus 6 Algorithm Lab
   presets, which are counted separately.
-- **Tests: 608 test methods across 62 JVM test classes**, three of which need Robolectric. Run
+- **Tests: 612 test methods across 62 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and
   `assembleDebug`.
 - **Preset schema version: 4.**
@@ -168,7 +168,10 @@ The rest:
 
 - Stable wire ids (`core/serial/WireId`) are what presets store — never enum names, class
   names, package names or translated labels. Renaming the Kotlin enum constants is safe;
-  changing an id is not.
+  changing an id is not. Four tables: `RenderModeIds`, `DitherModeIds`, `EffectIds` and
+  `AnimTargetIds`. The last one arrived on 2026-08-05 and closed the final identity in the
+  format that was still a Kotlin constant name; it did **not** raise the schema version, and
+  `PresetSchema`'s KDoc says why.
 - Preset schema version 4, with per-entry migrations that run in order. Raising the version
   means adding a migration *and* a test that decodes a literal document of the old version.
 - An unknown dither, render mode, effect or palette id is **refused**, not remapped: the preset

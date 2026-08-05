@@ -8,6 +8,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.phioster.glyphsmith.anim.AnimTarget
 import org.phioster.glyphsmith.render.RenderSettings
 import org.phioster.glyphsmith.render.ColorMode
 import org.phioster.glyphsmith.render.Layer
@@ -135,6 +136,62 @@ class PresetSchemaTest {
 
         assertEquals("palette.ice", preset.params.paletteId)
         assertEquals("the palette itself must not have changed", Palettes.byId("ice"), preset.params.activePalette())
+    }
+
+    /** A version 4 document names its animation targets with the Kotlin constants. */
+    private val version4 = """
+        {"schemaVersion":4,"presets":[{"name":"old","params":{
+          "renderMode":"render.glyph-art","paletteId":"palette.ice",
+          "animation":{"enabled":true,"frames":24,"fps":12,
+            "tracks":[{"target":"GLOW_DIRECTION","enabled":true,"from":0,"to":359}],
+            "segments":[{"target":"GLITCH_SEED","from":1,"to":9999,"start":0,"end":50}]}}}]}
+    """.trimIndent()
+
+    /**
+     * Reading already worked — the serialiser accepts a legacy constant name — and this says so
+     * rather than assuming it. What a preset *drives* is the thing a respelling could break, and
+     * it is not visible in the file: it is visible only in which field moves when the animation
+     * runs.
+     */
+    @Test
+    fun `a version 4 animation target still drives the same parameter`() {
+        val preset = PresetSchema.decode(version4).single()
+
+        assertEquals(AnimTarget.GLOW_DIRECTION, preset.params.animation.tracks.single().target)
+        assertEquals(AnimTarget.GLITCH_SEED, preset.params.animation.segments.single().target)
+    }
+
+    /**
+     * And the migration's own job: the old spelling does not survive the round trip.
+     *
+     * Without it a preset saved by this build would still contain `GLOW_DIRECTION`, and the
+     * constant would stay load-bearing for ever — which is the whole thing the ids exist to end.
+     */
+    @Test
+    fun `a re-encoded version 4 preset names its targets by id`() {
+        val text = PresetSchema.encode(PresetSchema.decode(version4))
+
+        assertTrue("the track kept its constant name", text.contains("anim.glow-direction"))
+        assertTrue("the segment kept its constant name", text.contains("anim.glitch-seed"))
+        assertTrue("a Kotlin constant is still in the file", !text.contains("GLOW_DIRECTION"))
+        assertTrue("a Kotlin constant is still in the file", !text.contains("GLITCH_SEED"))
+    }
+
+    /** A layer carries an animation of its own, and it is the one a rewrite forgets. */
+    @Test
+    fun `an animation target inside a layer is respelled too`() {
+        val document = """
+            {"schemaVersion":4,"presets":[{"name":"stacked","params":{
+              "renderMode":"render.pixel-dither",
+              "layers":[{"params":{"renderMode":"render.pixel-dither",
+                "animation":{"tracks":[{"target":"STARS_ANGLE","enabled":true}]}}}]}}]}
+        """.trimIndent()
+
+        val preset = PresetSchema.decode(document).single()
+        val layer = preset.params.layers.single()
+
+        assertEquals(AnimTarget.STARS_ANGLE, layer.params.animation.tracks.single().target)
+        assertTrue(PresetSchema.encode(listOf(preset)).contains("anim.stars-angle"))
     }
 
     /** A layer carries a palette of its own, and it is the one a rewrite forgets. */

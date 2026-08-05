@@ -5,6 +5,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import org.phioster.glyphsmith.anim.AnimTarget
+import org.phioster.glyphsmith.anim.AnimTargetIds
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.dither.DitherModeIds
 import org.phioster.glyphsmith.effects.EffectId
@@ -21,7 +23,7 @@ import org.phioster.glyphsmith.render.RenderModeIds
  */
 class WireIdTest {
 
-    private val tables = listOf(RenderModeIds, DitherModeIds, EffectIds)
+    private val tables = listOf(RenderModeIds, DitherModeIds, EffectIds, AnimTargetIds)
 
     private val json = Json { encodeDefaults = true }
 
@@ -35,6 +37,9 @@ class WireIdTest {
 
     @Test
     fun `every effect id is unique`() = assertUnique(EffectIds.ids)
+
+    @Test
+    fun `every animation target id is unique`() = assertUnique(AnimTargetIds.ids)
 
     private fun <T : Enum<T>> assertUnique(ids: Map<T, String>) {
         val duplicates = ids.values.groupBy { it }.filterValues { it.size > 1 }.keys
@@ -144,6 +149,10 @@ class WireIdTest {
         assertEquals("\"render.pixel-dither\"", json.encodeToString(RenderMode.serializer(), RenderMode.PurePixel))
         assertEquals("\"dither.atkinson\"", json.encodeToString(DitherMode.serializer(), DitherMode.ATKINSON))
         assertEquals("\"effect.glow\"", json.encodeToString(EffectId.serializer(), EffectId.GLOW))
+        assertEquals(
+            "\"anim.glow-direction\"",
+            json.encodeToString(AnimTarget.serializer(), AnimTarget.GLOW_DIRECTION),
+        )
     }
 
     @Test
