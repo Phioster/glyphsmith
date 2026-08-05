@@ -213,7 +213,7 @@ object Animator {
     fun valueAt(track: AnimTrack, frame: Int, frames: Int): Int {
         val loop = if (frames <= 0) 0f else frame.toFloat() / frames
         val u = loop * track.cycles.coerceAtLeast(1) + track.phase / 100f
-        val curve = sample(track.curve, u, frame, track.target.ordinal + 1)
+        val curve = sample(track.curve, u, frame, AnimTargets.of(track.target).salt)
         return (track.from + (track.to - track.from) * curve).roundToInt()
             .coerceIn(minOf(track.from, track.to), maxOf(track.from, track.to))
     }
@@ -281,49 +281,11 @@ object Animator {
         // A zero-width segment is a single instant; it reports its end value rather than
         // dividing by nothing.
         val local = if (width <= 0f) 1f else ((percent - span.first) / width).coerceIn(0f, 1f)
-        val shaped = shape(segment.curve, local, segment.target.ordinal + 1)
+        val shaped = shape(segment.curve, local, AnimTargets.of(segment.target).salt)
         return (segment.from + (segment.to - segment.from) * shaped).roundToInt()
             .coerceIn(minOf(segment.from, segment.to), maxOf(segment.from, segment.to))
     }
 
     private fun apply(params: RenderSettings, target: AnimTarget, value: Int): RenderSettings =
-        when (target) {
-            AnimTarget.DEPTH -> params.copy(depth = value.coerceIn(1, RenderSettings.MAX_DEPTH))
-            // The offset wraps anyway, so it is never clamped to the ramp length here.
-            AnimTarget.CHARACTER_OFFSET -> params.copy(offset = value)
-            AnimTarget.DITHER_STRENGTH -> params.copy(ditherStrength = value.coerceIn(0, 100))
-            // Left unclamped: the phase wraps inside the pattern, so a track that runs past
-            // 100 simply keeps travelling instead of stalling at the end of its range.
-            AnimTarget.MOD_PHASE -> params.copy(modPhase = value)
-            AnimTarget.MODULATION_PHASE -> params.copy(
-                effects = params.effects.copy(
-                    modulationLines = params.effects.modulationLines.copy(phase = value),
-                ),
-            )
-            AnimTarget.PATTERN_DENSITY -> params.copy(patternDensity = value.coerceIn(0, 100))
-            AnimTarget.EDGE_THRESHOLD -> params.copy(edgeThreshold = value.coerceIn(0, 100))
-            AnimTarget.GLITCH_SEED -> params.copy(
-                effects = params.effects.copy(
-                    jpegGlitch = params.effects.jpegGlitch.copy(seed = value),
-                ),
-            )
-
-            AnimTarget.CHROMATIC_OFFSET -> params.copy(
-                effects = params.effects.copy(
-                    chromatic = params.effects.chromatic.copy(maxDisplace = value.coerceIn(0, 50)),
-                ),
-            )
-
-            AnimTarget.GLOW_DIRECTION -> params.copy(
-                effects = params.effects.copy(
-                    glow = params.effects.glow.copy(direction = value),
-                ),
-            )
-
-            AnimTarget.STARS_ANGLE -> params.copy(
-                effects = params.effects.copy(
-                    stars = params.effects.stars.copy(angle = value),
-                ),
-            )
-        }
+        AnimTargets.of(target).write(params, value)
 }
