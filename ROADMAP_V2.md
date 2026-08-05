@@ -46,9 +46,10 @@ Closed 2026-08-05 by the audit in `CLAUDE_TASKS.md`, tasks 2 and 3. Studio AAA's
 material was surveyed end to end — the downloads hub, the blog, and thumbnails for all 118
 videos on their channel — and every claim checked against this repository.
 
-The result: **six gaps**, filed as tasks 9 to 14 in the order they are worth doing, one PR
-each. Three items an earlier study had listed as missing turned out to be built. One technique
-is classified *intentionally different* and is not to be reproduced.
+The result: **six gaps**, filed as tasks 9 to 14 — of which one was struck the same day, because
+k-means palette extraction is built and the audit had carried the claim forward from an older
+study without checking it. Four items an earlier study listed as missing turned out to be built.
+One technique is classified *intentionally different* and is not to be reproduced.
 
 Their signature look was already reachable and now ships as a preset, which is the sharper
 version of "identify candidate signature features": the gap was discoverability, not capability.

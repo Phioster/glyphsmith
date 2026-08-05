@@ -81,9 +81,26 @@ reads a pack, and `Settings.favouritePalettes` exists.
 | 1 | **No pre-dither value is animatable**, so the "dither in / dither out" transition — the source fading while the dither keeps running, the image dissolving into pure noise and re-forming — cannot be expressed at all. None of the 16 animation targets touches brightness, contrast or gamma. | videos 026, 076, 077; blog *Dither In/Out Animation Trick* | `anim/` |
 | 2 | **Modulation and diffusion cannot be combined.** A modulation surface is a threshold and a diffusion kernel spreads error; theirs computes one style that is both. Ours are separate families, so the look is unreachable. | video 073, *Editable Modulation Style Diffusion* | `core/dither/` |
 | 3 | **Modulation lines draw horizontally only.** Their demos show vertical. One direction parameter. | blog *Modulation Lines Demo*; videos 072, 073 | `effects/` |
-| 4 | **A palette file holds one palette.** `PaletteFile.decode` reads a single entry, so an eighty-palette pack is eighty files. Presets already import as a pack; palettes do not. | their monthly palette packs | `data/` |
+| 4 | **Imported palettes are not kept at all.** Filed first as "a palette file holds one palette", which understated it: `importPalette` applies a file as `paletteOverride` and there is no store, so a pack has nowhere to go. Extending the format alone would ship the smaller half of a feature. See the note below. | their monthly palette packs | `data/` + `ui/` |
 | 5 | **No importable threshold screen.** An image used as an ordered-dither matrix — non-executable, so it is not a runtime plugin. | video 060, *Custom Retro Shaders* | `core/dither/` |
-| 6 | **Palette extraction is median-cut, not k-means.** Minor and cosmetic; k-means gives more perceptually even palettes at the cost of iterating. | earlier transcript study | `core/color/` |
+| ~~6~~ | ~~Palette extraction is median-cut, not k-means.~~ **Struck: k-means is built.** | — | — |
+
+### Two corrections to this audit, made the day it was written
+
+**Item 6 was never a gap.** `QuantizeMethod.K_MEANS` exists, `ColorQuantizer.kMeans` implements
+Lloyd's algorithm weighted by how often each colour occurs, the colour panel offers it in a
+dropdown beside median cut, and `ColorQuantizerTest` covers it. It was carried forward from the
+earlier transcript study without being checked — the exact failure this audit was written to
+correct, repeated inside the audit. Anything sourced from that study and not verified against a
+file should be treated as unknown, not as true.
+
+**Item 4 is larger than it was filed as.** There is no palette store of any kind:
+`GlyphsmithViewModel.importPalette` drops a file's colours into `paletteOverride`, which lives
+inside whichever preset the user goes on to save. So the work is not "decode a pack" — it is a
+place for imported palettes to live, a picker that shows them, and a decision about whether they
+get stable ids. `ARCHITECTURE.md` records the current answer deliberately: *imported palettes
+are not registered, they live in a file.* Reversing that is a product decision and needs its own
+task, not a paragraph in this one.
 
 ### The finding that is not a gap
 
@@ -341,15 +358,16 @@ identically, and the new one is in the registry with a test.
 **Task 11 — modulation lines with a direction.** One parameter on `ModulationLinesParams`,
 defaulting to what it draws today so no preset changes.
 
-**Task 12 — a palette file that can hold a pack.** `PaletteFile.decode` reads one entry; accept
-a document of many while still reading a single one. Acceptance: a legacy single-palette file
-still imports, and a test decodes a literal of each.
+**Task 12 — somewhere for an imported palette to live.** The format is the small half; the
+missing half is a store, a picker that lists it, and an answer to whether an imported palette
+gets a stable id — which `ARCHITECTURE.md` currently answers with a deliberate no. Decide that
+first, in writing, then build. A pack format without a store ships half a feature.
 
 **Task 13 — an importable threshold screen.** An image read as an ordered matrix. Not
 executable, so it is not a runtime plugin — but it *is* a new identity in the preset format, so
 it needs a stable id and a decision about what happens when the screen is missing.
 
-**Task 14 — k-means palette extraction beside median-cut.** The smallest and least urgent.
+**Task 14 — struck.** k-means is built and always was.
 
 ## Working rules
 
