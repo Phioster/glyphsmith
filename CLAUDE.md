@@ -6,7 +6,7 @@
 | --- | --- |
 | `CLAUDE.md` | this file — the rules that bind new work |
 | `PROJECT_STATE.md` | where the project stands: verified counts, the package table, the compatibility invariants. The first read of a new session |
-| `ARCHITECTURE_LEGACY.md` | how the application is built, and why each seam is where it is. Current despite the file name — only `MIGRATION_LEGACY.md` is history |
+| `ARCHITECTURE.md` | how the application is built, and why each seam is where it is |
 | `ROADMAP_V2.md` | which phases are done and which are open |
 | `CLAUDE_TASKS.md` | the task queue, with what each finished task found |
 | `MIGRATION_LEGACY.md` | project history: the completed migration, and what was deliberately not built |
@@ -99,7 +99,7 @@ Shared render infrastructure must not depend on glyph-specific classes.
 
 This is not advice — `LayeringTest` reads the `import` lines of `core`,
 `render`, `glyph`, `pipeline` and `export` and fails on a dependency
-pointing the wrong way. The table of prohibitions is in `ARCHITECTURE_LEGACY.md`.
+pointing the wrong way. The table of prohibitions is in `ARCHITECTURE.md`.
 A new *allowed* dependency is ordinary work and needs no change to the test.
 
 ## Internal plugin direction

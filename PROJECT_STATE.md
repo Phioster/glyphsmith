@@ -1,16 +1,15 @@
 # PROJECT_STATE.md
 
-Where the project stands. `ARCHITECTURE_LEGACY.md` describes how it is built, `CLAUDE.md` states
+Where the project stands. `ARCHITECTURE.md` describes how it is built, `CLAUDE.md` states
 the rules that bind new work, `MIGRATION_LEGACY.md` records the migration that produced this
 shape. This file is the snapshot, and every number in it was read off the code rather than
 carried forward from the last time somebody wrote one down.
 
 Verified against the tree on 2026-08-05.
 
-Both architecture documents carry a `_LEGACY` suffix, which describes how they were filed
-rather than what is in them: `MIGRATION_LEGACY.md` really is history, but
-`ARCHITECTURE_LEGACY.md` describes the architecture the app has today and is still the place
-the layering rules are written down.
+`MIGRATION_LEGACY.md` is the only document filed as history. `ARCHITECTURE.md` briefly carried
+a `_LEGACY` suffix too, which was wrong about its contents: it describes the architecture the
+app has today and is still where the layering rules are written down.
 
 ## Current status
 
@@ -84,7 +83,7 @@ Two boundaries are easy to state wrongly and worth stating twice:
 
 The dependency direction is enforced by `LayeringTest`, which reads the actual `import` lines
 and fails the build on a dependency pointing the wrong way. The prohibition table is in
-`ARCHITECTURE_LEGACY.md`.
+`ARCHITECTURE.md`.
 
 ### Execution model
 

@@ -12,7 +12,7 @@ Current development starts from PROJECT_STATE.md and ROADMAP_V2.md.
 
 **Status: complete.** All ten steps are merged into `main`. This file is kept as the record of
 what the migration set out to do and what each step actually became; the architecture it
-produced is described in `ARCHITECTURE_LEGACY.md`, and the rules that still bind new work are in
+produced is described in `ARCHITECTURE.md`, and the rules that still bind new work are in
 `CLAUDE.md`.
 
 Anything further is ordinary work, not a migration step.
@@ -54,7 +54,7 @@ long.** `GlyphsmithViewModel` staying a ~915-line coordinator is the intended en
 
 ## What Was Not Built, And Why
 
-**Export providers.** `ARCHITECTURE_LEGACY.md` names them as a plugin category and
+**Export providers.** `ARCHITECTURE.md` names them as a plugin category and
 `ProviderCategory` has four entries rather than five. An exporter is chosen from a menu rather
 than named in a preset, so it has nothing to be identified *by* yet. `export/Exports` is the
 seam in the shape one would take, minus the ids and the registry.

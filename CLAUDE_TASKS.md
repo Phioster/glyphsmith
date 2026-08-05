@@ -23,7 +23,7 @@ For each task, keep:
 Goal: verify the current codebase state before new work starts.
 
 Prompt:
-> Read CLAUDE.md, PROJECT_STATE.md, ARCHITECTURE_LEGACY.md, and ROADMAP_V2.md. Inspect the current codebase and summarize the true current state. Do not change code.
+> Read CLAUDE.md, PROJECT_STATE.md, ARCHITECTURE.md, and ROADMAP_V2.md. Inspect the current codebase and summarize the true current state. Do not change code.
 
 Result: the review was run against the tree and found the documentation, not the code, to be
 the thing out of date. The code matched every structural claim — three render modes, four
