@@ -628,6 +628,18 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         withContext(Dispatchers.IO) { exports.shareText(text) }
     }
 
+    /**
+     * Replaces the running status line without ending the export.
+     *
+     * `runExport` says the label once and then nothing until it is finished, which is right for
+     * a save that takes a moment and wrong for one that renders every frame of an animation: at
+     * a hundred frames the app looks hung for as long as it works. `MutableStateFlow.value` is
+     * safe to set from the render thread, which is where this is called from.
+     */
+    private fun progress(text: String) {
+        _state.value = _state.value.copy(status = text)
+    }
+
     private fun runExport(label: String, block: suspend () -> String) {
         viewModelScope.launch {
             _state.value = _state.value.copy(working = true, status = "$label…")
@@ -709,11 +721,14 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         base: RenderSettings,
         animation: AnimationParams,
         plan: PlaybackPlan,
+        onProgress: (Int, Int) -> Unit = { _, _ -> },
     ): List<Bitmap> {
         val budgetSide = plan.budgetSide
+        val total = plan.positions.size
         var width = 0
         var height = 0
-        return plan.positions.map { frame ->
+        return plan.positions.mapIndexed { index, frame ->
+            onProgress(index, total)
             val position = frame.toFloat() / animation.frames
             // The clock is set here rather than in paramsAt, so temporal noise still moves
             // over a video whose parameter tracks are all switched off.
@@ -743,13 +758,22 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val params = _state.value.params
         val animation = params.animation
         val bytes = withContext(Dispatchers.Default) {
-            val frames = renderFrames(current, params, animation, PlaybackPlan.everyFrame(animation, ANIM_EXPORT_MAX_SIDE))
+            val frames = renderFrames(
+                current, params, animation, PlaybackPlan.everyFrame(animation, ANIM_EXPORT_MAX_SIDE),
+            ) { index, total -> progress("gif · rendering frame ${index + 1}/$total") }
             val width = frames.first().width
             val height = frames.first().height
-            val buffers = frames.map { bitmap ->
-                IntArray(width * height).also { bitmap.getPixels(it, 0, width, 0, 0, width, height) }
+            // Converted and released one at a time. Reading them all first held every frame
+            // twice — once as a bitmap and once as a buffer — which doubles the peak against a
+            // budget `PlaybackPlan` had already sized the frames to fit.
+            progress("gif · encoding ${frames.size} frames")
+            val buffers = ArrayList<IntArray>(frames.size)
+            frames.forEach { bitmap ->
+                val buffer = IntArray(width * height)
+                bitmap.getPixels(buffer, 0, width, 0, 0, width, height)
+                bitmap.recycle()
+                buffers += buffer
             }
-            frames.forEach { it.recycle() }
             java.io.ByteArrayOutputStream().use { out ->
                 GifEncoder.encode(buffers, width, height, 100 / animation.fps.coerceAtLeast(1), out)
                 out.toByteArray()
@@ -764,7 +788,10 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val animation = params.animation
         val file = java.io.File(context.cacheDir, "glyphsmith-anim.mp4")
         val failure = withContext(Dispatchers.Default) {
-            val frames = renderFrames(current, params, animation, PlaybackPlan.everyFrame(animation, ANIM_EXPORT_MAX_SIDE))
+            val frames = renderFrames(
+                current, params, animation, PlaybackPlan.everyFrame(animation, ANIM_EXPORT_MAX_SIDE),
+            ) { index, total -> progress("mp4 · rendering frame ${index + 1}/$total") }
+            progress("mp4 · encoding ${frames.size} frames")
             val result = Mp4Encoder.encode(frames, animation.fps.coerceAtLeast(1), file)
             frames.forEach { it.recycle() }
             result
