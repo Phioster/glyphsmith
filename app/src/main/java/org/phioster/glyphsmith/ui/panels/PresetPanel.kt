@@ -1,5 +1,8 @@
 package org.phioster.glyphsmith.ui.panels
 
+import org.phioster.glyphsmith.ui.TerminalChip
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -64,6 +67,7 @@ fun PresetPanel(
     modifier: Modifier = Modifier,
 ) {
     var name by remember { mutableStateOf("") }
+    var chosenFilter by remember { mutableStateOf<PresetFilter>(PresetFilter.All) }
     // Exports are plain JSON, but pickers and file managers label them inconsistently, so
     // text/* and */* are accepted too rather than hiding the file the user just exported.
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -88,9 +92,17 @@ fun PresetPanel(
             )
         }
 
+        // The row is derived from the library on every draw, so a shelf appears when it holds
+        // something and goes when it does not — and `resolve` makes sure the list can never stay
+        // narrowed by a chip that is no longer there.
+        val filter = PresetFilters.resolve(presets, chosenFilter)
+        FilterRow(presets, filter) { chosenFilter = it }
+
+        val visible = PresetFilters.apply(presets, filter)
+
         // Favourites first, then by the shipped category order, then by name. Sorting rather
         // than a separate section keeps one list to scroll instead of two.
-        val ordered = presets.sortedWith(
+        val ordered = visible.sortedWith(
             compareByDescending<Preset> { it.favourite }
                 .thenBy { PresetStore.categories.indexOf(it.category).let { i -> if (i < 0) 99 else i } }
                 .thenBy { it.name },
@@ -305,5 +317,40 @@ private sealed interface Shelf {
     companion object {
         fun of(preset: Preset): Shelf =
             if (preset.favourite) Favourites else Category(preset.category)
+    }
+}
+
+/**
+ * The shelf chips.
+ *
+ * A row rather than a search field: eleven shelves fit on a phone if they scroll sideways, and a
+ * text field would push the keyboard over the very list it is filtering. The count is on the chip
+ * because it answers "is it worth tapping" before the tap.
+ */
+@Composable
+private fun FilterRow(
+    presets: List<Preset>,
+    selected: PresetFilter,
+    onSelect: (PresetFilter) -> Unit,
+) {
+    val chips = PresetFilters.available(presets)
+    if (chips.size <= 1) return
+
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(bottom = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        chips.forEach { chip ->
+            TerminalChip(
+                label = "${PresetFilters.label(chip)} ${PresetFilters.count(presets, chip)}",
+                selected = chip == selected,
+                // Tapping the chosen shelf again clears it, so the way out is where the way in
+                // was — no separate "clear" control to find.
+                onClick = { onSelect(if (chip == selected) PresetFilter.All else chip) },
+            )
+        }
     }
 }
