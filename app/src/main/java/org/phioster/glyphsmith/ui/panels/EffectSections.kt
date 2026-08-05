@@ -16,6 +16,7 @@ import org.phioster.glyphsmith.effects.CmykHalftoneParams
 import org.phioster.glyphsmith.effects.DiffractionStarsParams
 import org.phioster.glyphsmith.effects.GlowParams
 import org.phioster.glyphsmith.effects.JpegGlitchParams
+import org.phioster.glyphsmith.effects.LineAxis
 import org.phioster.glyphsmith.effects.InterlaceParams
 import org.phioster.glyphsmith.effects.PixelSortParams
 import org.phioster.glyphsmith.effects.PostProcessingParams
@@ -618,12 +619,25 @@ internal fun ModulationLinesSection(
 ) {
     EffectSection("modulation lines", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
         Text(
-            "the image redrawn as a stack of horizontal lines that ride over it: brightness " +
-                "pushes each line up, a travelling wave moves it sideways. The space between " +
-                "the lines is left empty on purpose — a plot needs somewhere to be read against.",
+            "the image redrawn as a field of lines that ride over it: brightness pushes each " +
+                "line across, a travelling wave moves it along. The space between the lines is " +
+                "left empty on purpose — a plot needs somewhere to be read against.",
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(bottom = 4.dp),
+        )
+        StepperDropdown(
+            label = "axis",
+            items = LineAxis.entries.toList(),
+            selectedIndex = LineAxis.entries.indexOf(params.axis),
+            onSelect = { onChange(params.copy(axis = LineAxis.entries[it])) },
+            itemLabel = { it.label },
+            itemDetail = {
+                when (it) {
+                    LineAxis.HORIZONTAL -> "lines run across, brightness pushes them up"
+                    LineAxis.VERTICAL -> "lines run down, brightness pushes them left"
+                }
+            },
         )
         TerminalSlider(
             "line spacing", params.lineSpacing.toFloat(), 2f..64f,

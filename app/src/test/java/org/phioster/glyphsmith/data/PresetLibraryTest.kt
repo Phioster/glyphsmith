@@ -180,11 +180,16 @@ class PresetLibraryTest {
      *   diff, both of them the new preset's own. A target that arrived switched on anywhere
      *   else would have shown up as a third.
      *
+     * - **an axis on the modulation-lines effect** (2026-08-05). Every preset carries the whole
+     *   effect stack, so a new field appears in all of them: 94 added `"axis"` lines, zero
+     *   deletions, and **every one of them `HORIZONTAL`** — the value the pass drew before the
+     *   parameter existed. That is the check that a new field defaulted to the old behaviour.
+     *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "229a3e237691cb1c168e4deddf430aee7f4ac33a5264200b77eb996a1d2ae8ec"
+    private val digest = "b17d57cb2a6de6e07beb6945461cb17c94dcfc0b1291070fa7bbba41896b4e8d"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
