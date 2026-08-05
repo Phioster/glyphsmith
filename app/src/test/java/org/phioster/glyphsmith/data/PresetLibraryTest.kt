@@ -123,6 +123,7 @@ class PresetLibraryTest {
         rolling gridlock|MOTION|PurePixel|GRIDLOCK
         shifting facets|MOTION|PurePixel|LOW_POLY
         warming tube|MOTION|PurePixel|BAYER_4
+        signal bloom|MOTION|PurePixel|MOD_WAVE
         two pass screen|LAYERED|PurePixel|CLUSTER_8
         offset plates|LAYERED|PurePixel|FLOYD_STEINBERG
         terminal|GLYPH|GlyphMatrix|NONE
@@ -169,15 +170,16 @@ class PresetLibraryTest {
      *   `"enabled": false`, which is what makes five new targets across eighty-nine presets a
      *   longer file rather than five effects switching themselves on.
      *
-     * - **one new preset** (2026-08-05), `warming tube`. 395 added lines, **zero deletions**,
-     *   exactly one `"name"` in the diff. Adding a preset is the one change that is meant to
-     *   move this hash, and the check is that it moved by exactly one entry.
+     * - **two new presets** (2026-08-05), `warming tube` and then `signal bloom`. 395 added
+     *   lines each, **zero deletions** each, exactly one `"name"` in each diff. Adding a preset
+     *   is the one change that is meant to move this hash, and the check is that it moved by
+     *   exactly one entry.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "d868c75f3c9f32f064cf0822d817b27eee632337dcc663741f6b2828c4d6dae3"
+    private val digest = "fef10271b391a3e5ab471174f033771362610fe2e4cc6d933400a841209a257f"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -217,8 +219,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 90, presets.size)
-        assertEquals("curated presets", 84, curated.size)
+        assertEquals("built-in presets", 91, presets.size)
+        assertEquals("curated presets", 85, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 

@@ -211,7 +211,7 @@ The target distribution for built-in presets is approximately:
 - 80 to 90 percent Pixel Dither
 - 10 to 20 percent Glyph Art
 
-The curated library currently holds 84 presets, 75 Pixel Dither to 9 Glyph
+The curated library currently holds 85 presets, 76 Pixel Dither to 9 Glyph
 Art, which is 89 percent. Adding glyph presets is the direction with room in
 it; adding pixel ones narrows that margin.
 

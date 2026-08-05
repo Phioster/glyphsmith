@@ -1420,6 +1420,57 @@ object PresetLibrary {
             ),
         ),
 
+        /*
+         * The lit reading of a modulation dither.
+         *
+         * `drifting wave` a few entries up is the same algorithm, the same palette and the same
+         * swept phase, and looks nothing like this: at cell size 5 with no glow it is a coarse
+         * matte pattern. Here the cell is fine enough that the wave reads as line work, and the
+         * glow turns the lit parts into a source of light with the wave running through them.
+         * Two presets earn their place when the mechanism is shared but the reading is not.
+         *
+         * A modulation dither decides each cell against a moving surface rather than a fixed
+         * matrix, so the surface itself is visible wherever the image is dark: the background
+         * fills with the wave instead of going empty, and the body is shaded by the same wave
+         * it is drawn with. Sweeping the phase makes the whole field travel.
+         *
+         * A sawtooth, which is only safe because the phase is one of the cyclic targets — it
+         * wraps inside the pattern, so running off the end of the range is the same as
+         * starting again and the loop closes with no seam. Any non-cyclic target driven this
+         * way would snap in plain sight.
+         *
+         * The glow is what makes it read as light rather than as a texture: with the
+         * threshold low and the radius wide, the lit parts bloom into the dark ones and the
+         * wave in between survives. Circular, so it stays cheap — a glow with a direction
+         * rotates its buffer twice.
+         */
+        pixel(
+            "signal bloom",
+            PresetStore.CATEGORY_MOTION,
+            RenderSettings(
+                cellSize = 2,
+                depth = 6,
+                ditherMode = DitherMode.MOD_WAVE,
+                modScale = 9,
+                patternDensity = 35,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.ice",
+                effects = EffectStack(
+                    glow = GlowParams(
+                        enabled = true,
+                        threshold = 20,
+                        thresholdSmoothing = 30,
+                        radius = 90,
+                        intensity = 620,
+                    ),
+                ),
+                animation = animation(
+                    sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH),
+                    frames = 32,
+                ),
+            ),
+        ),
+
         // --- layered -------------------------------------------------------------
         // One image, two treatments, blended. A layer is a complete second set of
         // settings rendered at the same size, so what these demonstrate is the thing you

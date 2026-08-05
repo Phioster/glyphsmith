@@ -350,15 +350,15 @@ A preset is a saved configuration of available providers — not executable code
 implementation. It always stores the *complete* `RenderSettings`, effects, animation, temporal
 and layers included, so applying one is a single action.
 
-The shipped library is **90 presets**:
+The shipped library is **91 presets**:
 
-- **84 curated**, filed by mechanism across 11 categories — Classic Dither (5), Error
+- **85 curated**, filed by mechanism across 11 categories — Classic Dither (5), Error
   Diffusion (6), Ordered Dither (5), Pattern (11), Print (7), Geometry (5), Color (5), Glitch
-  (8), Motion (21), Layered (2), Glyph Art (9).
+  (8), Motion (22), Layered (2), Glyph Art (9).
 - **6 Algorithm Lab**, kept off the curated shelves and counted separately: one preset per
   kernel at otherwise identical settings.
 
-The curated split is **75 Pixel Dither to 9 Glyph Art** — 89 % to 11 %, inside the 80–90 / 10–20
+The curated split is **76 Pixel Dither to 9 Glyph Art** — 89 % to 11 %, inside the 80–90 / 10–20
 target. Built-in presets name their mode explicitly via the `pixel()` and `glyph()` helpers,
 so they depend on neither of the two defaults below.
 
