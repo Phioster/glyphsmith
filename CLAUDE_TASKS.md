@@ -384,6 +384,27 @@ it needs a stable id and a decision about what happens when the screen is missin
 
 **Task 14 — struck.** k-means is built and always was.
 
+## Task 15: phase 3 product work — **done** (2026-08-05)
+
+Three of phase 3's candidates, each investigated before being built rather than taken at the
+word of its heading.
+
+- **PR #68, preset browsing.** A row of shelf chips, derived from the library so a chip is
+  offered exactly when it selects something. `ui/panels/PresetFilters` holds the rule outside
+  Compose. The case worth knowing: filter to favourites, un-star the last one, and the chip is
+  gone while the list is still narrowed by it — `resolve` is asked on every draw so the row and
+  the list cannot disagree.
+- **PR #69, the effects panel.** Split into what is running and what could run. The arrows on a
+  disabled effect changed the stored order and changed nothing visible, and an arrow now steps
+  past the next *running* effect rather than by one position — the same thing only while nothing
+  is disabled, which is exactly the state a hand test is done in.
+- **PR #70, export polish.** Progress on the animation export, which had shown its label and
+  nothing else for the whole render; and the GIF path no longer holds every frame twice against
+  a budget sized for one.
+
+Also PR #65 (four presets for the mechanisms that shipped without one) and PR #66 (`reset
+mapping` learning about the imported screen — the task 4a defect, reintroduced the same day).
+
 ## Working rules
 
 - one branch per task
