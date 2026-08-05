@@ -68,6 +68,7 @@ object QuantisePass {
             centerY = rows / 2f,
             density = params.patternDensity,
             orb = params.orbOptions(),
+            screen = params.screenOverride,
         )
         val kernel = Dither.diffusionKernel(mode)
         val variableKernel = Dither.hasVariableKernel(mode)

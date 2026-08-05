@@ -1,5 +1,8 @@
 package org.phioster.glyphsmith
 
+import org.phioster.glyphsmith.effects.PixelOps
+import org.phioster.glyphsmith.core.dither.DitherMode
+import org.phioster.glyphsmith.core.dither.ScreenImport
 import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
@@ -276,6 +279,42 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val text = PaletteFile.encode(_state.value.params.activePalette())
         withContext(Dispatchers.IO) { exports.palette(text) }
     }
+
+    /**
+     * Reads a picture as a dither screen at [size].
+     *
+     * The picture is not stored — only the ranking taken from it, which is all the renderer ever
+     * reads. That keeps the screen inside the preset, so it survives sharing and cannot go
+     * missing the way a file reference can.
+     *
+     * The size is asked for rather than assumed because it does not mean the same thing for
+     * every picture: on a structured screen it is the size of the clump, on an unstructured one
+     * it is how far the tile travels before it repeats.
+     */
+    fun importScreen(uri: Uri, size: Int) = runExport("screen") {
+        val bitmap = withContext(Dispatchers.IO) { ImageLoader.load(context, uri, SCREEN_SOURCE_MAX) }
+            ?: return@runExport "could not read that image"
+
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        bitmap.recycle()
+
+        val luma = FloatArray(pixels.size) { PixelOps.luminance(pixels[it]) }
+        val screen = ScreenImport.screenOf(luma, width, height, size)
+
+        updateParams(
+            _state.value.params.copy(
+                ditherMode = DitherMode.CUSTOM_SCREEN,
+                screenOverride = screen,
+            ),
+        )
+        "screen loaded · ${size}x$size"
+    }
+
+    /** Clears an imported screen, so the style falls back to its own woven default. */
+    fun clearScreen() = updateParams(_state.value.params.copy(screenOverride = emptyList()))
 
     fun importPalette(uri: Uri) = runExport("palette") {
         val text = withContext(Dispatchers.IO) {
@@ -912,5 +951,14 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         const val SCRUB_MAX_SIDE = 480
         const val THUMB_MAX_SIDE = 160
         const val ANIM_EXPORT_MAX_SIDE = 1080
+
+        /**
+         * How large a picture is decoded before it is ranked into a screen.
+         *
+         * A screen is at most 32×32, so nothing above this changes the result — it only costs
+         * memory. Small enough to be cheap, large enough that a box sample still averages
+         * meaningfully rather than reading single pixels.
+         */
+        const val SCREEN_SOURCE_MAX = 512
     }
 }

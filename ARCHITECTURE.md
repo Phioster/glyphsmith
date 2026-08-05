@@ -187,7 +187,7 @@ not know what a render module is and `render` need not know what a glyph is:
 | Category | Prefix | Registry | Contents |
 | --- | --- | --- | --- |
 | `RENDER` | `render` | `render/RenderModules` | 3 render modules, in enum order |
-| `DITHER` | `dither` | `core/dither/DitherProviders` | 82 `DitherMode` entries (81 algorithms + `NONE`) |
+| `DITHER` | `dither` | `core/dither/DitherProviders` | 83 `DitherMode` entries (82 algorithms + `NONE`) |
 | `EFFECT` | `effect` | `effects/EffectProviders` | 17 passes, in the chain's default order |
 | `PALETTE` | `palette` | `core/color/PaletteProviders` | 44 built-in palettes |
 
@@ -243,7 +243,7 @@ The families and their sizes:
 | --- | --- |
 | Basic (`NONE` only) | 1 |
 | Error Diffusion | 21 |
-| Ordered | 8 |
+| Ordered | 9 |
 | Patterned | 20 |
 | Polygon | 4 |
 | Glitch | 12 |

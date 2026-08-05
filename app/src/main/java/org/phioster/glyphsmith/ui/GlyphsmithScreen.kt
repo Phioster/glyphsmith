@@ -114,6 +114,7 @@ fun GlyphsmithScreen(
     onResetPresets: () -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
+    onImportScreen: (android.net.Uri, Int) -> Unit,
     onPreviewQualityChange: (PreviewQuality) -> Unit,
     onPlaybackQualityChange: (PlaybackQuality) -> Unit,
     onToggleFavouritePalette: (String) -> Unit,
@@ -265,6 +266,7 @@ fun GlyphsmithScreen(
                     onChange = onParamsChange,
                     favourites = state.favouriteStyles,
                     onToggleFavourite = onToggleFavouriteStyle,
+                    onImportScreen = onImportScreen,
                 )
                 Tab.COLOR -> ColorPanel(
                     params = state.params,

@@ -25,7 +25,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
   and `PixelThenGlyph` (`render.pixel-then-glyph`). `PurePixel` is what new sessions start in;
   `PixelThenGlyph` is the chained mode, dithering to a palette first and reading the result as
   glyphs.
-- **Dither styles: 82 `DitherMode` entries — 81 algorithms plus `NONE`.** `NONE` is not an
+- **Dither styles: 83 `DitherMode` entries — 82 algorithms plus `NONE`.** `NONE` is not an
   algorithm. It is *no dithering at all*, sits alone in `DitherCategory.BASIC`, and is
   registered like the rest so that a picker and a preset can name it. Quoting 80 as an
   algorithm count overstates the app by one.
@@ -37,7 +37,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
   are light.
 - **Built-in presets: 92** — 86 curated (77 Pixel Dither to 9 Glyph Art) plus 6 Algorithm Lab
   presets, which are counted separately.
-- **Tests: 641 test methods across 65 JVM test classes**, three of which need Robolectric. Run
+- **Tests: 649 test methods across 66 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and
   `assembleDebug`.
 - **Animation targets: 17** — six write a plain render setting, ten reach into the effect stack,
@@ -45,7 +45,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
 - **Preset schema version: 4.**
 
 The dither families, which are the shelves a picker groups styles under, are: error diffusion
-21, patterned 20, special 16, glitch 12, ordered 8, polygon 4, basic 1 (`NONE`).
+21, patterned 20, special 16, glitch 12, ordered 9, polygon 4, basic 1 (`NONE`).
 
 ## Current architectural shape
 

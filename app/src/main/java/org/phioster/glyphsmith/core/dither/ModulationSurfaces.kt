@@ -27,6 +27,27 @@ internal object ModulationSurfaces {
 
     val MOD_LINES = Modulation { frac(u + phase) }
 
+    /**
+     * A screen the document brings with it, rather than one this file declares.
+     *
+     * Deliberately reads [ModulationCell.x] and [ModulationCell.y] rather than `u` and `v`. A
+     * screen is a tile, and a tile has to land on the cell grid: `u`/`v` are rotated and measured
+     * in periods, so using them would resample the screen at a fraction of a cell and turn a
+     * clean matrix into interference. The pattern-scale slider still reaches it, because `x` and
+     * `y` are already divided by that — which is the one size control a screen wants.
+     *
+     * Falls back to [ScreenImport.DEFAULT] while nothing has been imported — a woven screen that
+     * exists nowhere else in the app. A flat field would read as broken, and a Bayer tile would
+     * be indistinguishable from the Bayer style already in the list.
+     */
+    val CUSTOM_SCREEN = Modulation(periodLabel = "screen scale") {
+        val sx = floor(x).toInt()
+        val sy = floor(y).toInt()
+        ScreenImport.thresholdAt(screen, sx, sy)
+            ?: ScreenImport.thresholdAt(ScreenImport.DEFAULT, sx, sy)
+            ?: 0.5f
+    }
+
     // A sine band whose phase is dragged along the perpendicular axis — straight stripes would
     // be MOD_LINES with a softer edge, which is not worth a mode.
     val MOD_WAVE = Modulation {
