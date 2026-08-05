@@ -222,6 +222,28 @@ Acceptance criteria:
 - no change to how any existing animation renders
 - an effect can declare an animatable parameter without `anim/` being edited
 
+### Status, 2026-08-05: two thirds done, the last third deliberately deferred
+
+- **Stable ids — done** (PR #55). `AnimTarget.wireId` and `AnimTargetIds`. No schema bump: the
+  migration would provably rewrite nothing, and `PresetSchema`'s KDoc says why.
+- **The `when` — done** (PR #56). `anim/AnimTargets` holds one provider per target carrying the
+  field it writes. The `ordinal` that silently salted the RANDOM curve is now an explicit,
+  tested number.
+- **Five new animatable parameters — done** (PR #57). Interlace shift, pixel-sort band, slice
+  offset, CRT curvature, halftone angle.
+- **"Without `anim/` being edited" — deferred, on purpose.** Adding a target is now two
+  compiler-checked lines in two files, both in `anim/`. Removing that last step means deleting
+  the `AnimTarget` enum, which costs ~100 call sites in `PresetLibrary` and the tests and turns
+  typed constants into string ids — and buys **no correctness**: unlike the effect category,
+  where a slot could read another effect's toggle and Surprise Me could silently miss an effect,
+  there is no silent failure mode left here. The registry test catches a missing salt and the
+  enum makes an unregistered target a compile error.
+
+  Reopen this when an effect genuinely needs to *own* an animatable parameter — a downloadable
+  or third-party-authored effect would, and nothing else does. The design, including the
+  `core/anim/AnimatableParam` placement that keeps `effects/` from importing `anim/`, is written
+  up in `docs/superpowers/plans/2026-08-05-animation-target-plugins.md`, task 4.
+
 ## Task 8: palette category audit — **done, no code** (2026-08-05)
 
 Goal: bring the palette category to the maturity the effect category reached.

@@ -61,6 +61,34 @@ enum class AnimTarget(
      * different rate from the rest of the animation — like every other animated parameter.
      */
     MODULATION_PHASE("anim.modulation-lines-phase", "Modulation Phase (lines)", 0, 100, cyclic = true),
+
+    // Five effects shipped after the animation system did, and until now none of their
+    // parameters could be driven. Each of these names the one parameter that *moves* — a
+    // parameter whose animation reads as flicker rather than motion is not worth a track.
+    // Appended rather than filed next to their relatives on purpose: an enum entry's position
+    // used to salt the RANDOM curve, and while `AnimTargets` states the salt explicitly now,
+    // inserting into the middle of this list is still the kind of edit that used to change
+    // saved animations silently.
+
+    /** The comb offset of the damaged field. Swept, the tear crawls up the picture. */
+    INTERLACE_SHIFT("anim.interlace-shift", "Interlace Shift", 0, 100),
+
+    /** The upper edge of the sorted brightness band — the sort eats into the image and back. */
+    SORT_BAND("anim.pixel-sort-band", "Sort Band", 0, 100),
+
+    /** How far a slice can travel. At zero the picture reassembles itself. */
+    SLICE_OFFSET("anim.slice-offset", "Slice Offset", 0, 100),
+
+    /** The bulge of the glass. A slow sweep reads as a tube warming up. */
+    WARP_CURVATURE("anim.warp-curvature", "Warp Curvature", 0, 100),
+
+    /**
+     * The rotation added to all four printing screens.
+     *
+     * Not marked cyclic: the rosette does not repeat over 0..90 the way an angle repeats over
+     * 0..359, so a sawtooth across this range snaps rather than travels.
+     */
+    HALFTONE_ANGLE("anim.halftone-angle", "Halftone Angle", 0, 90),
 }
 
 /**

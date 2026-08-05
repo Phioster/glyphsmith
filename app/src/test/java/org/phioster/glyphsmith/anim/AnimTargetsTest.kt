@@ -45,12 +45,64 @@ class AnimTargetsTest {
             AnimTarget.GLOW_DIRECTION to 9,
             AnimTarget.STARS_ANGLE to 10,
             AnimTarget.MODULATION_PHASE to 11,
+            AnimTarget.INTERLACE_SHIFT to 12,
+            AnimTarget.SORT_BAND to 13,
+            AnimTarget.SLICE_OFFSET to 14,
+            AnimTarget.WARP_CURVATURE to 15,
+            AnimTarget.HALFTONE_ANGLE to 16,
         )
 
         expected.forEach { (target, salt) ->
             assertEquals("${target.name} changed salt", salt, AnimTargets.of(target).salt)
         }
         assertEquals("a target was added without a salt", expected.size, AnimTargets.all.size)
+    }
+
+    /**
+     * The five effects that shipped after the animation system did, and could not be animated.
+     *
+     * Each names a parameter that *moves* rather than merely changes — a shift, a band edge, an
+     * offset, a curvature, a screen angle. A parameter whose animation reads as flicker rather
+     * than motion is not worth a track.
+     */
+    @Test
+    fun `the effects that shipped after the animation system can now be driven`() {
+        val ids = AnimTargets.all.map { it.target.wireId }
+
+        listOf(
+            "anim.interlace-shift",
+            "anim.pixel-sort-band",
+            "anim.slice-offset",
+            "anim.warp-curvature",
+            "anim.halftone-angle",
+        ).forEach { assertTrue("$it is not registered", it in ids) }
+    }
+
+    /** Each of the five reaches its own effect's parameter, and only that one. */
+    @Test
+    fun `each new target writes the parameter it names`() {
+        assertEquals(70, AnimTargets.of(AnimTarget.INTERLACE_SHIFT).write(base, 70).effects.interlace.shift)
+        assertEquals(70, AnimTargets.of(AnimTarget.SORT_BAND).write(base, 70).effects.pixelSort.thresholdHigh)
+        assertEquals(70, AnimTargets.of(AnimTarget.SLICE_OFFSET).write(base, 70).effects.sliceShift.maxOffset)
+        assertEquals(70, AnimTargets.of(AnimTarget.WARP_CURVATURE).write(base, 70).effects.crtWarp.warpCurvature)
+        assertEquals(70, AnimTargets.of(AnimTarget.HALFTONE_ANGLE).write(base, 70).effects.cmyk.angle)
+    }
+
+    /**
+     * A new track is off until somebody switches it on.
+     *
+     * This is what makes adding a target safe for the shipped library: every preset carries an
+     * entry for every target, so five new ones appear in eighty-nine presets at once. Enabled by
+     * default, that would have been five effects switching themselves on across the whole
+     * library.
+     */
+    @Test
+    fun `a target added to the enum arrives disabled in a default animation`() {
+        val animation = AnimationParams()
+
+        assertEquals(AnimTargets.all.size, animation.tracks.size)
+        assertTrue("a default track is enabled", animation.tracks.none { it.enabled })
+        assertEquals(0, animation.activeCount)
     }
 
     @Test
