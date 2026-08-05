@@ -37,7 +37,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
   are light.
 - **Built-in presets: 92** — 86 curated (77 Pixel Dither to 9 Glyph Art) plus 6 Algorithm Lab
   presets, which are counted separately.
-- **Tests: 623 test methods across 63 JVM test classes**, three of which need Robolectric. Run
+- **Tests: 632 test methods across 64 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and
   `assembleDebug`.
 - **Animation targets: 17** — six write a plain render setting, ten reach into the effect stack,
