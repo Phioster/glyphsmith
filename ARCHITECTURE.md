@@ -144,15 +144,19 @@ Stated as prohibitions, and checked by `LayeringTest` reading the actual `import
 | `core` | `render`, `glyph`, `pipeline`, `state`, `ui`, `data`, `export`, `anim`, `effects` |
 | `render` | `glyph`, `pipeline`, `state`, `ui`, `data`, `export` |
 | `glyph` | `pipeline`, `state`, `ui`, `data`, `export` |
+| `effects` | `render`, `glyph`, `pipeline`, `state`, `ui`, `data`, `export`, `anim` |
 | `pipeline` | `glyph`, `state`, `ui`, `data`, `export` |
 | `export` | `glyph`, `pipeline`, `state`, `ui` |
 
-Two consequences worth naming:
+Three consequences worth naming:
 
 - The pipeline runs Glyph Art without knowing that Glyph Art exists. The mode→module binding
   is the application's and arrives as an argument.
 - `export/` is a byte sink. The text, ANSI, HTML and SVG writers are Glyph Art's own output
   and live in `glyph/`.
+- `effects/` reads pixels and knows the engine, and nothing else — not what rendered them, not
+  where they are going, and not Compose. An effect is the thing this codebase adds most often,
+  so the category is kept closed on purpose: adding one stays inside it.
 
 The same test asserts that no `org.phioster.glyphsmith.ascii` package exists and that no
 source names it. Its shared half became `render`, its glyph half `glyph`, and the part that
@@ -252,12 +256,51 @@ Effects operate on the bitmap a render module produced. They are order-dependent
 serializable parameters, are deterministic for the same input, seed and time, and do not
 touch the logical glyph grid — so `.txt`, `.ansi`, `.html` and `.svg` are unaffected by them.
 
-`EffectPass<P>` declares the three things a pass needs as one declaration inside the effect's
-own object: the slice of `EffectStack` it is configured by, the flag in that slice that
-switches it on, and the code. Previously those were two separate `when (EffectId)` blocks a
-long way from the effect, so a slot could run one effect and read another's toggle and still
-compile. `P` is erased at the interface, because the chain runs seventeen passes with
-seventeen unrelated params types and must not know one of them.
+`EffectPass<P>` declares everything a pass needs as one declaration inside the effect's own
+object: the slice of `EffectStack` it is configured by, how that slice is written back, the
+flag in it that switches it on, how it is rolled at random, and the code. Those used to be
+separate `when (EffectId)` blocks a long way from the effect, so a slot could run one effect
+and read another's toggle and still compile. `P` is erased at the interface, because the chain
+runs seventeen passes with seventeen unrelated params types and must not know one of them —
+which is also what lets a caller *change* an effect it cannot name.
+
+#### Adding an effect
+
+The effect category is the worked example of the internal plugin model. A new effect is one
+new file plus two lines, and everything else follows on its own:
+
+| Written | Where |
+| --- | --- |
+| params `data class` | `effects/EffectParams.kt` |
+| an `EffectId` constant, with its wire id and label | `effects/EffectParams.kt` |
+| a field on `EffectStack` | `effects/EffectParams.kt` |
+| the implementation and its `EffectPass` | `effects/YourEffect.kt` |
+| the panel | `ui/panels/EffectSections.kt` |
+| *slot → pass* | `effects/EffectPasses.kt` |
+| *slot → controls* | `ui/panels/EffectPanels.kt` |
+
+Nothing else. The chain, the toggle, the reorder buttons, the FX panel, the preset format, the
+saved file, the export and Surprise Me all read the registry or the stack and pick a new effect
+up without being edited.
+
+**Four things are deliberately not automatic**, and each is a different reason:
+
+- The **`EffectId` constant** and its **wire id** are the effect's stable identity. A preset's
+  effect *order* is a list of these, so every preset ever saved carries all of them. An
+  identity that is generated is an identity that can change.
+- The **`EffectStack` field** keeps the params typed and serializable. A map of params keyed by
+  id would take the compiler out of the wiring and change the preset format for nothing.
+- **`EffectPasses`** binds a slot to its implementation, and **`ui/panels/EffectPanels`** binds
+  it to its controls. Both are exhaustive `when`s for the reason `AppRenderModules` is one: a
+  map is missing an entry until somebody opens that panel in the one build nobody tried,
+  whereas a `when` stops the build. The panel binding additionally *cannot* move into
+  `effects/` — a pass carrying its own `@Composable` would put Compose on the render path and
+  make every effect need a UI toolkit to be unit-tested.
+
+`EffectCatalogTest` states the claim as tests: one provider per effect, one pass per provider,
+each registered exactly once, a duplicate registration refused at construction, every effect
+present in every list that has to hold it, and every roll switching on its own effect and
+nothing else.
 
 Execution is a data pipeline, not a call sequence:
 
@@ -364,7 +407,7 @@ than a leftover. What was extracted from it is what had an invariant worth testi
 | `state/PresetController` | applying, saving and deleting presets |
 | `state/ExportCoordinator` | what happens to a finished render and what is said about it |
 | `state/PlaybackPlan` | the testable half of animation playback — frame counts and budgets |
-| `state/RandomLook` | Surprise Me, within ranges that produce something |
+| `state/RandomLook` | Surprise Me, within ranges that produce something — the *effect* ranges belong to the effects, which declare their own rolls |
 
 Two components named in the original plan were **deliberately not built**, and should not be:
 

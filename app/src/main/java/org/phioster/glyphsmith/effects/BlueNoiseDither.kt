@@ -44,7 +44,15 @@ object BlueNoiseDither {
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
     val pass = EffectPass(
         EffectStack::blueNoise,
+        { copy(blueNoise = it) },
         BlueNoiseDitherParams::enabled,
+        randomise = { roll ->
+            copy(
+                enabled = true,
+                levels = roll.random.nextInt(2, 6),
+                noiseScale = roll.random.nextInt(1, 4),
+            )
+        },
     ) { pixels, params, ctx -> apply(pixels, params, ctx) }
 
     /** 32 is large enough that the tiling is invisible and small enough to stay cache-warm. */

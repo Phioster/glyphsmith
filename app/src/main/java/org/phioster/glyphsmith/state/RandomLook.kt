@@ -1,30 +1,11 @@
 package org.phioster.glyphsmith.state
 
 import kotlin.random.Random
-import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.core.color.Palettes
 import org.phioster.glyphsmith.core.dither.DitherMode
-import org.phioster.glyphsmith.effects.BlueNoiseDitherParams
-import org.phioster.glyphsmith.effects.BlurSharpenParams
-import org.phioster.glyphsmith.effects.ChromaticParams
-import org.phioster.glyphsmith.effects.CmykHalftoneParams
-import org.phioster.glyphsmith.effects.ColorDepthParams
-import org.phioster.glyphsmith.effects.CrtWarpParams
-import org.phioster.glyphsmith.effects.DiffractionStarsParams
-import org.phioster.glyphsmith.effects.EffectId
+import org.phioster.glyphsmith.effects.EffectProviders
+import org.phioster.glyphsmith.effects.EffectRoll
 import org.phioster.glyphsmith.effects.EffectStack
-import org.phioster.glyphsmith.effects.GlowParams
-import org.phioster.glyphsmith.effects.InterlaceParams
-import org.phioster.glyphsmith.effects.JpegGlitchParams
-import org.phioster.glyphsmith.effects.ModulationColorMode
-import org.phioster.glyphsmith.effects.ModulationLinesParams
-import org.phioster.glyphsmith.effects.PixelSortParams
-import org.phioster.glyphsmith.effects.PostProcessingParams
-import org.phioster.glyphsmith.effects.SliceShiftParams
-import org.phioster.glyphsmith.effects.SpotColorPrintParams
-import org.phioster.glyphsmith.effects.SubtextureParams
-import org.phioster.glyphsmith.effects.TextureKind
-import org.phioster.glyphsmith.effects.TintParams
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.glyph.CharacterSets
 import org.phioster.glyphsmith.render.ColorMode
@@ -46,6 +27,12 @@ import org.phioster.glyphsmith.core.color.PaletteProvider
  *
  * Anything not named in the final copy is left as the caller had it. The roll moves the look,
  * not every knob in the app.
+ *
+ * **The effect ranges are not here.** They were, as a `when` over all seventeen slots, and that
+ * made this file — which is not part of the effect category — something a new effect had to be
+ * added to before Surprise Me could reach it. Each effect declares its own roll beside its own
+ * sliders now, and this asks [EffectProviders.randomisable] for whatever declared one. The
+ * narrowness is unchanged; it simply lives with the ranges it narrows.
  *
  * It sits with the view model's other split-out halves rather than in `pipeline`, because it
  * rolls a *character set* as well as a dither and a palette, and the set library belongs to
@@ -72,111 +59,13 @@ object RandomLook {
         val palette = Palettes.all.random(random)
         val dither = DitherMode.entries.random(random)
 
+        // Two at most, picked one at a time: rolling all seventeen independently switches on
+        // half the chain and the result is mud, whatever the individual ranges say.
+        val roll = EffectRoll(random, palette)
         var effects = EffectStack()
         repeat(random.nextInt(0, 3)) {
-            effects = when (EffectId.entries.random(random)) {
-                EffectId.POST -> effects.copy(
-                    postProcessing = PostProcessingParams(
-                        enabled = true,
-                        grain = random.nextInt(0, 40),
-                        vignette = random.nextInt(0, 60),
-                        scanlines = random.nextInt(0, 60),
-                    ),
-                )
-
-                EffectId.BLUR -> effects.copy(
-                    blurSharpen = BlurSharpenParams(enabled = true, amount = random.nextInt(-70, 70)),
-                )
-
-                EffectId.TINT -> effects.copy(tint = TintParams(enabled = true, color = palette.colors.last()))
-                EffectId.CHROMATIC -> effects.copy(
-                    chromatic = ChromaticParams(enabled = true, maxDisplace = random.nextInt(2, 18)),
-                )
-
-                EffectId.GLITCH -> effects.copy(
-                    jpegGlitch = JpegGlitchParams(enabled = true, corruption = random.nextInt(20, 140)),
-                )
-
-                EffectId.SORT -> effects.copy(
-                    pixelSort = PixelSortParams(
-                        enabled = true,
-                        thresholdLow = random.nextInt(10, 40),
-                        thresholdHigh = random.nextInt(55, 90),
-                    ),
-                )
-
-                EffectId.SLICE -> effects.copy(
-                    sliceShift = SliceShiftParams(enabled = true, maxOffset = random.nextInt(4, 20)),
-                )
-
-                EffectId.INTERLACE -> effects.copy(
-                    interlace = InterlaceParams(
-                        enabled = true,
-                        shift = random.nextInt(2, 18),
-                        density = random.nextInt(30, 90),
-                        tearColor = random.nextInt(0, 60),
-                    ),
-                )
-
-                EffectId.STARS -> effects.copy(stars = DiffractionStarsParams(enabled = true))
-                EffectId.SUBTEXTURE -> effects.copy(
-                    subtexture = SubtextureParams(
-                        enabled = true,
-                        kind = TextureKind.entries.random(random),
-                        intensity = random.nextInt(20, 60),
-                    ),
-                )
-
-                EffectId.CMYK -> effects.copy(
-                    cmyk = CmykHalftoneParams(enabled = true, frequency = random.nextInt(4, 14)),
-                )
-
-                EffectId.GLOW -> effects.copy(
-                    glow = GlowParams(enabled = true, intensity = random.nextInt(200, 600)),
-                )
-
-                EffectId.MODULATION -> effects.copy(
-                    modulationLines = ModulationLinesParams(
-                        enabled = true,
-                        lineSpacing = random.nextInt(4, 16),
-                        amplitude = random.nextInt(3, 20),
-                        colorMode = ModulationColorMode.entries.random(random),
-                    ),
-                )
-
-                EffectId.PRINT -> effects.copy(
-                    spotPrint = SpotColorPrintParams(
-                        enabled = true,
-                        misalignment = random.nextInt(10, 60),
-                        inkCount = random.nextInt(2, 5),
-                        seed = random.nextInt(1, 999),
-                    ),
-                )
-
-                EffectId.DEPTH -> effects.copy(
-                    colorDepth = ColorDepthParams(
-                        enabled = true,
-                        colorLevels = random.nextInt(2, 10),
-                        colorSpace = ColorDistance.entries.random(random),
-                    ),
-                )
-
-                EffectId.DITHER -> effects.copy(
-                    blueNoise = BlueNoiseDitherParams(
-                        enabled = true,
-                        levels = random.nextInt(2, 6),
-                        noiseScale = random.nextInt(1, 4),
-                    ),
-                )
-
-                EffectId.WARP -> effects.copy(
-                    crtWarp = CrtWarpParams(
-                        enabled = true,
-                        warpCurvature = random.nextInt(10, 60),
-                        vignetteIntensity = random.nextInt(15, 60),
-                    ),
-                )
-            }
+            val provider = EffectProviders.randomisable.random(random)
+            effects = provider.pass.rolled(effects, roll) ?: effects
         }
 
         return base.copy(

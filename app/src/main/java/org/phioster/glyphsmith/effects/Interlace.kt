@@ -34,9 +34,19 @@ data class InterlaceParams(
 object Interlace {
 
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
-    val pass = EffectPass(EffectStack::interlace, InterlaceParams::enabled) { pixels, params, _ ->
-        apply(pixels, params)
-    }
+    val pass = EffectPass(
+        EffectStack::interlace,
+        { copy(interlace = it) },
+        InterlaceParams::enabled,
+        randomise = { roll ->
+            copy(
+                enabled = true,
+                shift = roll.random.nextInt(2, 18),
+                density = roll.random.nextInt(30, 90),
+                tearColor = roll.random.nextInt(0, 60),
+            )
+        },
+    ) { pixels, params, _ -> apply(pixels, params) }
 
     fun apply(source: Pixels, params: InterlaceParams): Pixels {
         if (!params.enabled) return source

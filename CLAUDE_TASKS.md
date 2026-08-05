@@ -142,6 +142,86 @@ Acceptance criteria:
 - no weakening of existing tests
 - any new guardrail states a rule that no existing test states
 
+## Task 6: the effect category as a compile-time plugin — **done** (2026-08-05)
+
+Goal: make an effect addable without editing anything outside the effect category.
+
+Prompt:
+> Extend the existing effect architecture to a fully plugin-shaped, compile-time structure. Remove only unnecessary couplings; keep the necessary ones and document why. No reflection, no ServiceLoader, no dynamic classes.
+
+**What was found.** Adding an effect meant editing nine places in five files, four of which
+were `when (EffectId)` blocks:
+
+| Where | What | Verdict |
+| --- | --- | --- |
+| `effects/EffectParams.kt` | params `data class` | necessary |
+| `effects/EffectParams.kt` | the `EffectId` constant | necessary — stable identity |
+| `effects/EffectParams.kt` | the `EffectStack` field | necessary — typed, serialized |
+| `effects/EffectIds.kt` | `when` → wire id | **removed** |
+| `effects/EffectPasses.kt` | `when` → implementation | kept, deliberate |
+| `effects/YourEffect.kt` | the effect itself | necessary |
+| `ui/panels/EffectSections.kt` | the panel | necessary |
+| `ui/panels/EffectsPanel.kt` | `when` → panel | kept, deliberate, **moved** to `EffectPanels.kt` |
+| `state/RandomLook.kt` | `when` → random ranges | **removed** |
+
+The one that mattered most was the last: `state/RandomLook` is not part of the effect category,
+so every new effect was either an edit to a file in `state/` or an effect Surprise Me could
+never roll. Nothing failed when it was forgotten — the effect simply never appeared.
+
+**What changed.**
+
+- `EffectId` states its own `wireId` and `label`. A constructor argument refuses a slot without
+  an id sooner than an exhaustive `when` did, and removes a file from the list.
+- `EffectPass` gained `write` — the counterpart to `select`, stated beside it so the two cannot
+  address different fields — and an optional `randomise`. Both keep `P` private, so a caller
+  holding an `EffectPass<*>` can now *change* an effect it cannot name.
+- Each effect declares its own Surprise Me ranges next to the sliders they narrow.
+  `EffectProviders.randomisable` is the whole of what `RandomLook` knows about effects; the roll
+  is bit-identical to the old one, which was checked over 2 000 seeds against a replay of the
+  hand-written version before that replay was deleted.
+- The panel binding moved out of `EffectsPanel` into `ui/panels/EffectPanels`, so the panel file
+  is about the chain and the table is one thing in one place.
+- `LayeringTest` gained an `effects` row: the category may not depend on `render`, `glyph`,
+  `pipeline`, `state`, `ui`, `data`, `export` or `anim`. That is what keeps the shape true.
+
+**What stayed static, and why.** Four couplings, three different reasons — the identity of a
+slot must not be generated, its params must stay typed and serializable, and the two binding
+tables are exhaustive `when`s for the `AppRenderModules` reason. The panel one additionally
+*cannot* move into `effects/`: a pass carrying a `@Composable` would put Compose on the render
+path and make every effect need a UI toolkit to be unit-tested. Written up in
+`ARCHITECTURE.md`, *Adding an effect*.
+
+**Tests.** `effects/EffectCatalogTest`, 12 methods: one provider per effect, one pass per
+provider and none shared, registered exactly once in enum order, present in every list that has
+to hold it, id and label read off the constant, a duplicate registration refused at
+construction, a roll that switches on its own effect and nothing else, rolls that stack, and
+every shipped effect offering one.
+
+## Task 7: the next plugin category — animation targets — **open**
+
+Goal: decide whether `AnimTarget` should become a provider category, and if so, make a new
+effect animatable without editing `anim/`.
+
+What is already known, so the next session does not re-derive it:
+
+- A new effect is **not** automatically animatable. `anim/AnimTarget` is a hand-written enum and
+  `Animator.apply` is a `when` over it saying which field each target writes. Five of the eleven
+  targets write into `RenderSettings.effects`.
+- **The blocker is serialization, not design.** `AnimTrack.target` and `AnimSegment.target`
+  serialize `AnimTarget` as the *Kotlin constant name* — it is the one identity in the app that
+  never got a `WireId`. Making targets pluggable means giving them stable ids first, which is a
+  preset-schema change with a migration and a literal-document test, i.e. its own task under the
+  compatibility rules. It must not be smuggled in with the feature.
+- Not every effect parameter is worth animating, so a plugged-in target list should be opt-in
+  per parameter rather than generated from the params class.
+
+Acceptance criteria:
+
+- stable ids for animation targets, with a migration and a test that decodes a document written
+  with the old constant names
+- no change to how any existing animation renders
+- an effect can declare an animatable parameter without `anim/` being edited
+
 ## Working rules
 
 - one branch per task

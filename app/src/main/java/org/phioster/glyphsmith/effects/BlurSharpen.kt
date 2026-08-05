@@ -15,7 +15,9 @@ object BlurSharpen {
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
     val pass = EffectPass(
         EffectStack::blurSharpen,
+        { copy(blurSharpen = it) },
         BlurSharpenParams::enabled,
+        randomise = { roll -> copy(enabled = true, amount = roll.random.nextInt(-70, 70)) },
     ) { pixels, params, _ -> apply(pixels, params) }
 
     fun apply(source: Pixels, params: BlurSharpenParams): Pixels {

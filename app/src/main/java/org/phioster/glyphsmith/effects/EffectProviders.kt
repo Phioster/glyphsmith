@@ -20,7 +20,7 @@ class EffectProvider(val effect: EffectId) : Provider {
     override val displayName: String = effect.label
     override val category = ProviderCategory.EFFECT
 
-    /** What the pass reads, what switches it on, and the code. See [EffectPass]. */
+    /** What the pass reads and writes, what switches it on, how it rolls, and the code. */
     val pass: EffectPass<*> = EffectPasses.of(effect)
 }
 
@@ -37,4 +37,14 @@ object EffectProviders : Registry<EffectProvider>(
         EffectId.entries.map { effect -> all.first { it.effect == effect } }.toTypedArray()
 
     fun of(effect: EffectId): EffectProvider = bySlot[effect.ordinal]
+
+    /**
+     * The effects that offer themselves to a random roll, in the chain's default order.
+     *
+     * This is the whole of what Surprise Me knows about effects. It used to be a `when` over all
+     * seventeen slots in `state/RandomLook` — a file outside the effect category — which meant a
+     * new effect either came with an edit there or was silently unreachable by the button. An
+     * effect declares its own roll now, and appears here by declaring it.
+     */
+    val randomisable: List<EffectProvider> = all.filter { it.pass.isRandomisable }
 }

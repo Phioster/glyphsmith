@@ -50,7 +50,16 @@ object SpotColorPrint {
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
     val pass = EffectPass(
         EffectStack::spotPrint,
+        { copy(spotPrint = it) },
         SpotColorPrintParams::enabled,
+        randomise = { roll ->
+            copy(
+                enabled = true,
+                misalignment = roll.random.nextInt(10, 60),
+                inkCount = roll.random.nextInt(2, 5),
+                seed = roll.random.nextInt(1, 999),
+            )
+        },
     ) { pixels, params, ctx -> apply(pixels, params, ctx) }
 
     private const val MAX_OFFSET_PIXELS = 8f

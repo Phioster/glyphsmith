@@ -46,7 +46,15 @@ object ColorDepth {
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
     val pass = EffectPass(
         EffectStack::colorDepth,
+        { copy(colorDepth = it) },
         ColorDepthParams::enabled,
+        randomise = { roll ->
+            copy(
+                enabled = true,
+                colorLevels = roll.random.nextInt(2, 10),
+                colorSpace = ColorDistance.entries.random(roll.random),
+            )
+        },
     ) { pixels, params, ctx -> apply(pixels, params, ctx) }
 
     private const val MASK_SIZE = 32

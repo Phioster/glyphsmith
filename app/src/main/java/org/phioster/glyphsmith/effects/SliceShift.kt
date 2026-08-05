@@ -30,9 +30,12 @@ data class SliceShiftParams(
 object SliceShift {
 
     /** Where the chain reaches this pass, and what switches it on. See [EffectPass]. */
-    val pass = EffectPass(EffectStack::sliceShift, SliceShiftParams::enabled) { pixels, params, _ ->
-        apply(pixels, params)
-    }
+    val pass = EffectPass(
+        EffectStack::sliceShift,
+        { copy(sliceShift = it) },
+        SliceShiftParams::enabled,
+        randomise = { roll -> copy(enabled = true, maxOffset = roll.random.nextInt(4, 20)) },
+    ) { pixels, params, _ -> apply(pixels, params) }
 
     fun apply(source: Pixels, params: SliceShiftParams): Pixels {
         if (!params.enabled || params.slices <= 0 || params.maxOffset == 0) return source

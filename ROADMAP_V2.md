@@ -18,7 +18,8 @@ Never "done"; checked whenever something lands.
 - keep boundary tests green (`LayeringTest`, `ProviderRegistryTest`, `WireIdTest`,
   `PresetSchemaTest`)
 - keep the provider model intact, and leave the `AppRenderModules` binding as the `when` it
-  deliberately is
+  deliberately is — the same holds for `EffectPasses` and `ui/panels/EffectPanels`, which are
+  binding tables for the same reason and not leftovers
 
 ## Phase 1 — documentation and project clarity (done)
 
@@ -54,6 +55,10 @@ Shipped:
   panel is split into a render-neutral dither half and a glyph-only edge half, and the tab row
   no longer hides a whole page for a capability that governs one section of it. Pixel dither —
   the default mode — can reach the dither controls. Recorded in `CLAUDE_TASKS.md`, task 4.
+- **the effect category as a compile-time plugin**. An effect now carries its id, label, params
+  slice, toggle, random roll and code itself; adding one touches its own file plus two
+  compiler-enforced binding lines and nothing outside `effects/` and `ui/panels/`. Recorded in
+  `CLAUDE_TASKS.md`, task 6, with the four deliberate couplings and the next category to take.
 
 Still good candidates:
 
