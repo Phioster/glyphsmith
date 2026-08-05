@@ -42,9 +42,10 @@ produced the level knows which mode asked for it. *Pixel dither* turns each leve
 colour and is the default.
 *Glyph art* turns it into a character from a ramp. *Pixel dither → glyphs* runs a palette
 dither to completion first and then reads that bitmap as glyphs — the other two fork at the
-quantised level, so a paletted dither could not be turned into characters at all. The panels
-that do not apply to the active mode disappear from the tab row rather than sitting there
-inert.
+quantised level, so a paletted dither could not be turned into characters at all. Controls
+that do not apply to the active mode disappear rather than sitting there inert — the controls,
+not the tabs: every tab is offered in every mode, and each panel drops the sections the mode
+has no use for.
 
 **Tone** — gamma → contrast → brightness, plus hue, saturation, midtones, highlights,
 pre-blur and denoise, applied to the sampled grid before anything quantises it. Without it a
@@ -174,7 +175,8 @@ loading someone else's preset should not repaint your interface.
 
 The optional half. Everything above applies to it — the same dither algorithms, palettes,
 effects, layers and animation — and everything below applies only to it. Its controls leave
-the tab row when the active mode has no characters in it.
+the panels they sit in when the active mode has no characters in it: the character settings,
+the edge mapping and the text exports.
 
 **Character sets** — 48 built-in ramps across 11 categories: ASCII, numbers, symbols,
 blocks, braille, geometric, languages, cards, unicode, lines, misc. Every ramp is ordered by
@@ -271,5 +273,5 @@ That is not a convention: `LayeringTest` reads the imports and fails on a depend
 the wrong way.
 
 The engine is deliberately free of Android types, so cell averaging, the tone curve, the
-dither path and ramp mapping are all unit-tested on the JVM — about 589 tests across 60
+dither path and ramp mapping are all unit-tested on the JVM — about 595 tests across 61
 classes, three of which need Robolectric.

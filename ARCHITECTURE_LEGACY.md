@@ -1,7 +1,7 @@
 # Glyphsmith Architecture
 
 Describes the application as it is built today. The migration that produced this shape is
-recorded in `MIGRATION_PLAN.md`; the rules that still bind new work are in `CLAUDE.md`.
+recorded in `MIGRATION_LEGACY.md`; the rules that still bind new work are in `CLAUDE.md`.
 
 ## Product Direction
 
@@ -95,6 +95,11 @@ registration is missing in every test, quietly.
 
 `RenderModuleProvider` is the declarative half — id, display name, `producesGlyphs`,
 `ditherFirst` — and is read by the UI and by tests that run without an Android runtime.
+
+A panel asking that question hides the controls the answer governs and nothing wider. The
+render, mapping and output panels each hide a *section*; the tab row hides nothing at all.
+`ui/panels/MappingSections` is that rule written down for the mapping panel, kept out of the
+composable and free of Compose so it can be tested without a UI host.
 
 ## Package Layout
 
@@ -380,7 +385,7 @@ Image-processing algorithms do not live in the ViewModel.
 
 ## Testing
 
-60 JVM test classes, ~589 test methods, run by `gradle testDebugUnitTest`. The engine is free
+61 JVM test classes, ~595 test methods, run by `gradle testDebugUnitTest`. The engine is free
 of Android types, so sampling, the tone curve, the dither path and ramp mapping are all
 testable on the JVM; three classes need Robolectric.
 
@@ -397,6 +402,7 @@ The architectural rules each have a test that states them:
 | presets render non-blank, reproducibly and mutually distinct | `data/PresetLibraryTest` |
 | a pass runs its own effect with its own settings, in the stored order | `effects/EffectPassTest`, `effects/EffectNodeContractTest` |
 | the chained mode | `render/ChainedModeTest` |
+| which half of the mapping panel a mode shows, and what its reset writes | `ui/panels/MappingSectionsTest` |
 | kernels against the published literature | `core/dither/LiteratureTest`, `DitherRegressionTest` |
 
 Note what a JVM test cannot reach: several effect passes go through
