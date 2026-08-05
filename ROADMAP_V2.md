@@ -25,7 +25,7 @@ Never "done"; checked whenever something lands.
 Closed by PR #48, *Make the documentation describe the application that exists*, and by the
 consolidation that followed it. What changed:
 
-- `ARCHITECTURE_LEGACY.md` describes the architecture that was built rather than the migration
+- `ARCHITECTURE.md` describes the architecture that was built rather than the migration
   that was planned — three render modes, four provider categories, the real package layout
 - `README.md`, `CLAUDE.md` and `MIGRATION_LEGACY.md` follow the same state
 - `MIGRATION_LEGACY.md` is marked complete and kept as the record of what each step became
@@ -36,7 +36,7 @@ Standing part, which stays open:
 
 - keep `CLAUDE.md` aligned with the actual project state
 - keep `PROJECT_STATE.md` as the first read for any future Claude session
-- keep `ARCHITECTURE_LEGACY.md` aligned with the real package and provider layout
+- keep `ARCHITECTURE.md` aligned with the real package and provider layout
 - add or update product-facing documentation only when it reduces confusion
 
 ## Phase 2 — feature matrix and comparison work (open)
