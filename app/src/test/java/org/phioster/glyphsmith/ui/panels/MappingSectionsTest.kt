@@ -82,6 +82,7 @@ class MappingSectionsTest {
         assertEquals(default.modScale, reset.modScale)
         assertEquals(default.modAngle, reset.modAngle)
         assertEquals(default.modPhase, reset.modPhase)
+        assertEquals(default.patternDensity, reset.patternDensity)
         assertEquals(default.orbCount, reset.orbCount)
         assertEquals(default.orbSize, reset.orbSize)
         assertEquals(default.orbIntensity, reset.orbIntensity)
@@ -101,15 +102,28 @@ class MappingSectionsTest {
         assertEquals(before.edgeOnly, reset.edgeOnly)
     }
 
+    /**
+     * The panel's own claim, stated once over the whole settings object: a reset in glyph art
+     * shows every mapping control there is, so afterwards nothing the panel owns can still be
+     * off its default. Written this way because the failure it guards against is a *forgotten*
+     * field, which a list of assertions written by the same hand as the implementation cannot
+     * catch.
+     */
+    @Test
+    fun `after a reset in glyph art no mapping setting is left off its default`() {
+        val reset = MappingSections.reset(mangled(RenderMode.GlyphMatrix))
+
+        assertEquals(RenderSettings(renderMode = RenderMode.GlyphMatrix), reset)
+    }
+
     @Test
     fun `reset restores the edge settings in glyph art`() {
         val reset = MappingSections.reset(mangled(RenderMode.GlyphMatrix))
         val default = RenderSettings()
 
-        // `edgeSetId` is deliberately absent: the button never cleared it, and splitting the
-        // panel is not the place to change what it writes.
         assertEquals(default.edgeEnabled, reset.edgeEnabled)
         assertEquals(default.edgeThreshold, reset.edgeThreshold)
+        assertEquals(default.edgeSetId, reset.edgeSetId)
         assertEquals(default.edgeOnly, reset.edgeOnly)
     }
 
