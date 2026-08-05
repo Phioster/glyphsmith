@@ -88,6 +88,27 @@ class Modulation(
 }
 
 /**
+ * A threshold that is a function of position, *and* an error passed on to the neighbours.
+ *
+ * The two families it is made of answer different questions. A [Modulation] decides a cell by
+ * where it is; an [ErrorDiffusion] decides it by what the cells before it could not represent.
+ * Doing both is not the average of the two looks, which is why it is worth its own kind: the
+ * surface alone lays its pattern over the picture and the picture loses, while the diffused
+ * residue keeps loosening the pattern's grip just enough that the image survives inside it. The
+ * lines bend around what is in the frame instead of running straight through it.
+ *
+ * Composed rather than reimplemented. It holds a real [Modulation] and a real [ErrorDiffusion]
+ * and asks them, so a surface behaves identically whether it is used alone or here, and a
+ * kernel keeps its declared depth and its variable weights.
+ *
+ * The labels come from the surface, because that is what the pattern controls are steering.
+ */
+class ModulatedDiffusion(
+    val surface: Modulation,
+    val diffusion: ErrorDiffusion,
+) : DitherAlgorithm(surface.periodLabel, surface.densityLabel)
+
+/**
  * Everything a modulation surface is allowed to know about the cell it is thresholding.
  *
  * The rotation and the scaling happen once, here, rather than in each of the thirty-odd styles:

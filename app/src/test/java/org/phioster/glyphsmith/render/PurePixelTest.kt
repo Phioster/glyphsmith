@@ -128,10 +128,16 @@ class PurePixelTest {
      * A flat field must come out flat — but only in the modes that claim to follow the content.
      *
      * The pattern families deliberately do not: a camouflage or an orb field imposes structure
-     * whatever the input, and a threshold mode adds a signed offset *before* quantising, so at
-     * pure white a negative offset rounds some cells down and leaves a faint texture. Both are
+     * whatever the input, and a style that adds a signed offset *before* quantising leaves a
+     * faint texture at pure white, because a negative offset rounds some cells down. Both are
      * the point of those styles, not a defect, and the glyph path has always done the same thing
      * with the same code.
+     *
+     * The filter asks `usesPattern` rather than `isThresholdBased`, and the difference is not
+     * cosmetic. It used to be the same set; a modulated diffusion is the first style that adds
+     * a positional offset *and* diffuses, so it fails this for the documented reason while
+     * answering no to `isThresholdBased`. The question being asked here has always been "does
+     * this style displace the decision by position", and now there is a predicate that says so.
      *
      * What is left — plain quantisation and the error-diffusion kernels — has a real invariant:
      * a value the palette can represent exactly produces zero error, so there is nothing to
@@ -142,9 +148,14 @@ class PurePixelTest {
     fun `content-driven modes leave a flat field uniform`() {
         val white = IntArray(side * side) { -1 }
         val contentDriven = DitherMode.entries.filterNot { mode ->
-            Dither.isThresholdBased(mode) || Dither.isPrecomputed(mode) || Dither.isRegion(mode)
+            Dither.usesPattern(mode) || Dither.isPrecomputed(mode) || Dither.isRegion(mode)
         }
-        assertTrue("the filter must not exclude everything", contentDriven.isNotEmpty())
+        // Named rather than counted: a filter that quietly widened until it excluded the very
+        // kernels this invariant is about would still pass an "is not empty" check.
+        assertTrue("plain quantisation dropped out", DitherMode.NONE in contentDriven)
+        assertTrue("Floyd-Steinberg dropped out", DitherMode.FLOYD_STEINBERG in contentDriven)
+        assertTrue("Atkinson dropped out", DitherMode.ATKINSON in contentDriven)
+        assertTrue("the Y-dominant kernel dropped out", DitherMode.DIFFUSE_Y in contentDriven)
 
         for (mode in contentDriven) {
             val p = params(mode)

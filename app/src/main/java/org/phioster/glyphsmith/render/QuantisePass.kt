@@ -56,6 +56,9 @@ object QuantisePass {
         val mode = params.ditherMode
         val strength = (params.ditherStrength / 100f).coerceIn(0f, 1f)
         val ordered = Dither.isThresholdBased(mode)
+        // A style that does both: the surface displaces the decision and the residue is still
+        // passed on. It takes the diffusion branch below, with the displacement added.
+        val modulated = Dither.isModulatedDiffusion(mode)
         val pattern = PatternOptions(
             scale = params.ditherScale,
             period = params.modScale,
@@ -96,11 +99,19 @@ object QuantisePass {
                 // Scaled to one level step, exactly as the ordered branch scales its own.
                 val jitter = Temporal.offset(params.temporal, col, row) / max(1, levels - 1)
 
-                val target = jitter + when {
-                    ordered -> base + (Dither.threshold(mode, col, row, base, pattern) - 0.5f) *
+                val displacement = if (ordered || modulated) {
+                    (Dither.threshold(mode, col, row, base, pattern) - 0.5f) *
                         strength / max(1, levels - 1)
+                } else {
+                    0f
+                }
 
-                    kernel.isNotEmpty() -> base + currentError[col]
+                val target = jitter + when {
+                    ordered -> base + displacement
+                    // Both terms, which is the whole of the third mechanism: where a surface
+                    // alone lays its pattern over the picture, the diffused residue keeps
+                    // loosening its grip and the image survives inside it.
+                    kernel.isNotEmpty() -> base + currentError[col] + displacement
                     else -> base
                 }
 

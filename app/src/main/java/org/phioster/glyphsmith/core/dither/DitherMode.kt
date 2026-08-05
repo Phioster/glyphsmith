@@ -107,6 +107,11 @@ enum class DitherMode {
     CONTRAST_AWARE_X,
     CONTRAST_AWARE_Y,
     VORTEX_DIFFUSION,
+
+    // Modulated diffusion: a surface displaces the decision and the error still spreads.
+    // Appended, so no existing constant's ordinal moves.
+    WAVE_DIFFUSE,
+    ORB_DIFFUSE,
     ;
 
     val label: String
@@ -135,6 +140,8 @@ enum class DitherMode {
             BLUE_NOISE_16 -> "Blue Noise 16×16"
             BLUE_NOISE_32 -> "Blue Noise 32×32"
             MOD_LINES -> "Modulation Lines"
+            WAVE_DIFFUSE -> "Wave Diffuse"
+            ORB_DIFFUSE -> "Orb Diffuse"
             MOD_WAVE -> "Modulation Wave"
             MOD_RINGS -> "Modulation Rings"
             MOD_ORB -> "Orb"
@@ -235,6 +242,7 @@ enum class DitherMode {
             -> DitherCategory.GLITCH
 
             MOD_WAVE, MOD_RINGS, MOD_ORB, BEEHIVE,
+            WAVE_DIFFUSE, ORB_DIFFUSE,
             NOISE, WAVE, RADIAL_BURST, SINE_DISTORT,
             THRESHOLDER, SINE_WAVE_MOD, TOPOGRAPHY, VORTEX, RADIAL_PEAKS, DOTTED_LINES,
             DISPLACE_CONTOUR, ORB_MATRIX,
