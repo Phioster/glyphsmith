@@ -63,8 +63,14 @@ object PixelDitherRenderer {
         return Pixels(out, width, height)
     }
 
-    /** One colour per cell, before it is expanded into blocks. */
-    private fun colorsFor(grid: IndexGrid, params: RenderSettings): IntArray {
+    /**
+     * One colour per cell, before it is expanded into blocks.
+     *
+     * Internal rather than private because the vector export asks the same question and must
+     * get the same answer — a second implementation of "what colour is this cell" is two
+     * exports of one picture that disagree.
+     */
+    internal fun colorsFor(grid: IndexGrid, params: RenderSettings): IntArray {
         val palette = params.renderPalette().colors
         val out = IntArray(grid.cols * grid.rows)
         val levels = grid.levels

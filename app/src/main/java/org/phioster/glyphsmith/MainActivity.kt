@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
                         onExportPng = viewModel::exportImage,
                         onExportTxt = viewModel::exportText,
                         onExportSvg = viewModel::exportSvg,
+                        onExportPixelSvg = viewModel::exportPixelSvg,
                         onExportHtml = viewModel::exportHtml,
                         onExportAnsi = viewModel::exportAnsi,
                         onRunBatch = viewModel::runBatch,

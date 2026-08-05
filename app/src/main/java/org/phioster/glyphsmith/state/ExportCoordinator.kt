@@ -112,6 +112,22 @@ class ExportCoordinator(private val exports: Exports) {
         }
 
     /** The size is worth saying: an outline SVG of a dense grid is megabytes, and that surprises. */
+    /**
+     * The pixel path's own vector export.
+     *
+     * Reports the block count as well as the size, because that is the number a plotter cares
+     * about — a file is openable or not, but ten thousand shapes is ten thousand cuts.
+     */
+    fun pixelSvg(svg: String?, blocks: Int): String {
+        if (svg == null) return NOTHING_TO_EXPORT
+        val uri = exports.saveSvg(svg)
+        return if (uri != null) {
+            "saved svg · $blocks shapes (${svg.length / BYTES_PER_KB} KB) to $DOWNLOAD"
+        } else {
+            SAVE_FAILED
+        }
+    }
+
     fun svg(svg: String?, mode: SvgMode): String {
         if (svg == null) return NOTHING_TO_EXPORT
         val uri = exports.saveSvg(svg)

@@ -38,6 +38,7 @@ fun OutputPanel(
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
     onExportSvg: (SvgMode) -> Unit,
+    onExportPixelSvg: () -> Unit,
     onExportHtml: () -> Unit,
     onExportAnsi: () -> Unit,
     onRunBatch: (List<android.net.Uri>) -> Unit,
@@ -168,6 +169,7 @@ fun OutputPanel(
         SectionHeader("vector")
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            TerminalButton("svg blocks", onExportPixelSvg, Modifier.weight(1f), enabled)
             TerminalButton(
                 "svg text", { onExportSvg(SvgMode.TEXT) }, Modifier.weight(1f), textEnabled,
             )
@@ -175,6 +177,14 @@ fun OutputPanel(
                 "svg outlines", { onExportSvg(SvgMode.OUTLINES) }, Modifier.weight(1f), textEnabled,
             )
         }
+        Text(
+            "blocks works in every mode: neighbouring cells of one colour become one shape, so " +
+                "a cutter or a plotter gets connected regions instead of one square per cell. " +
+                "text and outlines need a character grid.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 6.dp),
+        )
         SectionHeader("text formats")
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
