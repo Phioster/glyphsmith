@@ -113,12 +113,28 @@ object Dither {
      */
     fun isOrdered(mode: DitherMode): Boolean = algorithmOf(mode) is OrderedMatrix
 
+    /**
+     * The surface a mode thresholds against, or null when it has none.
+     *
+     * Two kinds carry one: [Modulation], which is nothing else, and [ModulatedDiffusion], which
+     * is a surface *and* a kernel. Everything that cares about the surface — the pattern
+     * controls, the labels, content-awareness — goes through here rather than testing the kind,
+     * so a style that gained a kernel does not lose its pattern panel.
+     */
+    private fun surfaceOf(mode: DitherMode): Modulation? = when (val a = algorithmOf(mode)) {
+        is Modulation -> a
+        is ModulatedDiffusion -> a.surface
+        else -> null
+    }
+
     /** Modes whose threshold is a continuous function of position rather than a tile. */
-    fun isModulation(mode: DitherMode): Boolean = algorithmOf(mode) is Modulation
+    fun isModulation(mode: DitherMode): Boolean = surfaceOf(mode) != null
 
     /** Styles that read the cell's brightness as well as its position. */
-    fun isContentAware(mode: DitherMode): Boolean =
-        (algorithmOf(mode) as? Modulation)?.readsContent == true
+    fun isContentAware(mode: DitherMode): Boolean = surfaceOf(mode)?.readsContent == true
+
+    /** Modes that displace the decision with a surface and still pass the residue on. */
+    fun isModulatedDiffusion(mode: DitherMode): Boolean = algorithmOf(mode) is ModulatedDiffusion
 
     /** What the pattern-size slider is actually called for this style. */
     fun periodLabel(mode: DitherMode): String = algorithmOf(mode).periodLabel
@@ -131,7 +147,17 @@ object Dither {
      * an error on to its neighbours. Bayer and the modulation family differ only in where
      * that threshold comes from, so the engine treats them the same way.
      */
-    fun isThresholdBased(mode: DitherMode): Boolean = isOrdered(mode) || isModulation(mode)
+    fun isThresholdBased(mode: DitherMode): Boolean = when (algorithmOf(mode)) {
+        is OrderedMatrix, is Modulation -> true
+        // A modulated diffusion has a surface but is not decided by it alone: the error still
+        // has to be passed on, so the render loop must take its diffusion branch. Widening this
+        // to "has a surface" would silently stop those styles diffusing.
+        else -> false
+    }
+
+    /** Modes the pattern controls apply to: a threshold style, or one that also diffuses. */
+    fun usesPattern(mode: DitherMode): Boolean =
+        isThresholdBased(mode) || isModulatedDiffusion(mode)
 
     /** The tile [mode] reads its threshold off, or null when it is not a matrix style at all. */
     fun matrix(mode: DitherMode): Array<IntArray>? = (algorithmOf(mode) as? OrderedMatrix)?.matrix
@@ -167,6 +193,9 @@ object Dither {
             is Modulation ->
                 algorithm.thresholdAt(ModulationCell(x / factor, y / factor, value, options, factor))
 
+            is ModulatedDiffusion -> algorithm.surface
+                .thresholdAt(ModulationCell(x / factor, y / factor, value, options, factor))
+
             else -> 0.5f
         }
     }
@@ -178,12 +207,23 @@ object Dither {
      * the whole grid up front carries none even where it plainly diffuses — there are no taps
      * for the row loop to read, because the row loop never runs.
      */
-    fun diffusionKernel(mode: DitherMode): List<DiffusionTap> =
-        (algorithmOf(mode) as? ErrorDiffusion)?.taps ?: emptyList()
+    fun diffusionKernel(mode: DitherMode): List<DiffusionTap> = kernelOf(mode)?.taps ?: emptyList()
+
+    /**
+     * The kernel a mode diffuses with, whether it carries one directly or through a surface.
+     *
+     * The four accessors below all used `as? ErrorDiffusion`, which a composed style is not.
+     * Missing one of them is not a compile error and not a visible one either — it is a style
+     * that quantises correctly and then throws its error away.
+     */
+    private fun kernelOf(mode: DitherMode): ErrorDiffusion? = when (val a = algorithmOf(mode)) {
+        is ErrorDiffusion -> a
+        is ModulatedDiffusion -> a.diffusion
+        else -> null
+    }
 
     /** How many rows below the current one a kernel reaches — the error buffer's depth. */
-    fun kernelDepth(mode: DitherMode): Int =
-        (algorithmOf(mode) as? ErrorDiffusion)?.depth ?: 1
+    fun kernelDepth(mode: DitherMode): Int = kernelOf(mode)?.depth ?: 1
 
     /**
      * Whether this mode's weights change with the value being quantised.
@@ -193,12 +233,11 @@ object Dither {
      * comes from picking different weights per input level, so his kernel cannot be hoisted
      * out of the loop the way the others are.
      */
-    fun hasVariableKernel(mode: DitherMode): Boolean =
-        (algorithmOf(mode) as? ErrorDiffusion)?.varies == true
+    fun hasVariableKernel(mode: DitherMode): Boolean = kernelOf(mode)?.varies == true
 
     /** The kernel for a cell of brightness [value] in 0..1, or null if [mode] uses a constant. */
     fun variableKernel(mode: DitherMode, value: Float): List<DiffusionTap>? =
-        (algorithmOf(mode) as? ErrorDiffusion)?.kernelFor(value)
+        kernelOf(mode)?.kernelFor(value)
 
     /**
      * Whether this mode decides every cell up front instead of along the rows.

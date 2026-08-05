@@ -164,6 +164,7 @@ private fun DitherMappingSection(
         itemDetail = {
             when {
                 it == DitherMode.NONE -> "nearest level, error discarded"
+                Dither.isModulatedDiffusion(it) -> "a pattern drives the threshold, the error still spreads"
                 Dither.isModulation(it) -> "a pattern drives the threshold"
                 Dither.isOrdered(it) -> "regular, repeating texture"
                 else -> "noisy, photographic"
@@ -179,7 +180,7 @@ private fun DitherMappingSection(
             valueText = "${params.ditherStrength}/100",
             onValueChange = { onChange(params.copy(ditherStrength = it.toInt())) },
         )
-        if (!Dither.isThresholdBased(params.ditherMode)) {
+        if (!Dither.usesPattern(params.ditherMode)) {
             TerminalToggle(
                 label = "serpentine scan",
                 checked = params.serpentine,
@@ -195,7 +196,7 @@ private fun DitherMappingSection(
         }
     }
 
-    if (Dither.isThresholdBased(params.ditherMode)) {
+    if (Dither.usesPattern(params.ditherMode)) {
         TerminalSlider(
             label = "pattern scale",
             value = params.ditherScale.toFloat(),

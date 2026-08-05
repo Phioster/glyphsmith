@@ -187,7 +187,7 @@ not know what a render module is and `render` need not know what a glyph is:
 | Category | Prefix | Registry | Contents |
 | --- | --- | --- | --- |
 | `RENDER` | `render` | `render/RenderModules` | 3 render modules, in enum order |
-| `DITHER` | `dither` | `core/dither/DitherProviders` | 80 `DitherMode` entries (79 algorithms + `NONE`) |
+| `DITHER` | `dither` | `core/dither/DitherProviders` | 82 `DitherMode` entries (81 algorithms + `NONE`) |
 | `EFFECT` | `effect` | `effects/EffectProviders` | 17 passes, in the chain's default order |
 | `PALETTE` | `palette` | `core/color/PaletteProviders` | 44 built-in palettes |
 
@@ -226,6 +226,11 @@ way, which is the distinction the render loop actually needs. The kinds are:
   blue noise; the matrices are generated from their construction rules)
 - `Modulation` and `ModulationCell` — a threshold that is a continuous function of position
 - `ErrorDiffusion` — error passed to neighbours, optionally serpentine
+- `ModulatedDiffusion` — both at once: a surface displaces the decision and the residue is
+  still passed on. Composed from a real `Modulation` and a real `ErrorDiffusion` rather than
+  reimplementing either, so a surface behaves identically alone or here. It is deliberately
+  **not** `isThresholdBased`: the render loop takes the threshold branch first, so answering
+  yes there would stop it diffusing. `usesPattern` is what the pattern controls ask.
 - `Precomputed` — the algorithm resolves the whole grid itself (Riemersma's Hilbert walk, dot
   diffusion, the region and polygon methods)
 
@@ -239,7 +244,7 @@ The families and their sizes:
 | Basic (`NONE` only) | 1 |
 | Error Diffusion | 21 |
 | Ordered | 8 |
-| Patterned | 18 |
+| Patterned | 20 |
 | Polygon | 4 |
 | Glitch | 12 |
 | Special | 16 |

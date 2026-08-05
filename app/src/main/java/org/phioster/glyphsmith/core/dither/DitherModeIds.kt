@@ -48,6 +48,8 @@ object DitherModeIds : WireIdSerializer<DitherMode>(
 
             // --- modulation surfaces ---
             DitherMode.MOD_LINES -> "dither.modulation-lines"
+            DitherMode.WAVE_DIFFUSE -> "dither.wave-diffuse"
+            DitherMode.ORB_DIFFUSE -> "dither.orb-diffuse"
             DitherMode.MOD_WAVE -> "dither.modulation-wave"
             DitherMode.MOD_RINGS -> "dither.modulation-rings"
             DitherMode.MOD_ORB -> "dither.orb"

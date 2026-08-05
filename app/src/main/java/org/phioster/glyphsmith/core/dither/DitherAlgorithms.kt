@@ -67,6 +67,14 @@ internal object DitherAlgorithms {
 
         // --- modulation ---------------------------------------------------------------------
         DitherMode.MOD_LINES -> ModulationSurfaces.MOD_LINES
+        // The third mechanism: the surface and the kernel are the real ones, asked rather than
+        // reimplemented, so each behaves exactly as it does on its own.
+        DitherMode.WAVE_DIFFUSE ->
+            ModulatedDiffusion(ModulationSurfaces.MOD_WAVE, DiffusionKernels.DIFFUSE_Y)
+
+        DitherMode.ORB_DIFFUSE ->
+            ModulatedDiffusion(ModulationSurfaces.MOD_ORB, DiffusionKernels.DIFFUSE_Y)
+
         DitherMode.MOD_WAVE -> ModulationSurfaces.MOD_WAVE
         DitherMode.MOD_RINGS -> ModulationSurfaces.MOD_RINGS
         DitherMode.MOD_ORB -> ModulationSurfaces.MOD_ORB
