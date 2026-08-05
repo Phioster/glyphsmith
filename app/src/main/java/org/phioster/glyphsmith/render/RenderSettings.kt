@@ -125,6 +125,18 @@ data class RenderSettings(
     val orbOffset: Int = 0,
     val orbDirection: Int = 0,
     val orbSeed: Int = 1,
+    /**
+     * An imported dither screen, stored inline as the ranked cells `ScreenImport` produces.
+     *
+     * Inline for the reason `paletteOverride` is: a reference to a file is a reference that can
+     * go missing, and a preset that renders differently on somebody else's device is worse than
+     * one that is a few kilobytes larger. Empty means none, and `CUSTOM_SCREEN` falls back to a
+     * Bayer tile rather than to a flat field.
+     *
+     * The size is the screen's own length — 256 or 1024 — rather than a second field that can
+     * disagree with it.
+     */
+    val screenOverride: List<Int> = emptyList(),
     /** Let strong edges pick a directional glyph instead of a brightness-matched one. */
     val edgeEnabled: Boolean = false,
     /** 0..100 — gradient magnitude a cell needs before it counts as an edge. */

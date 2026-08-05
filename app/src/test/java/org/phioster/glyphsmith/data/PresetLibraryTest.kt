@@ -185,11 +185,15 @@ class PresetLibraryTest {
      *   deletions, and **every one of them `HORIZONTAL`** — the value the pass drew before the
      *   parameter existed. That is the check that a new field defaulted to the old behaviour.
      *
+     * - **an imported-screen field on the settings** (2026-08-05). 94 added `"screenOverride"`
+     *   lines, zero deletions, every one of them empty — a document that has imported no screen
+     *   says so, and none of the shipped presets has.
+     *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "b17d57cb2a6de6e07beb6945461cb17c94dcfc0b1291070fa7bbba41896b4e8d"
+    private val digest = "3b1dfd2982f24d95b35cc4981f9e1f019a80d055e0aea935b2f170d16e3f5788"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {

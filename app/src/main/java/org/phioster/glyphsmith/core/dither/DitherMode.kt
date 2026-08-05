@@ -112,6 +112,9 @@ enum class DitherMode {
     // Appended, so no existing constant's ordinal moves.
     WAVE_DIFFUSE,
     ORB_DIFFUSE,
+
+    /** A screen the document carries, imported from a picture. */
+    CUSTOM_SCREEN,
     ;
 
     val label: String
@@ -140,6 +143,7 @@ enum class DitherMode {
             BLUE_NOISE_16 -> "Blue Noise 16×16"
             BLUE_NOISE_32 -> "Blue Noise 32×32"
             MOD_LINES -> "Modulation Lines"
+            CUSTOM_SCREEN -> "Custom Screen"
             WAVE_DIFFUSE -> "Wave Diffuse"
             ORB_DIFFUSE -> "Orb Diffuse"
             MOD_WAVE -> "Modulation Wave"
@@ -242,7 +246,7 @@ enum class DitherMode {
             -> DitherCategory.GLITCH
 
             MOD_WAVE, MOD_RINGS, MOD_ORB, BEEHIVE,
-            WAVE_DIFFUSE, ORB_DIFFUSE,
+            WAVE_DIFFUSE, ORB_DIFFUSE, CUSTOM_SCREEN,
             NOISE, WAVE, RADIAL_BURST, SINE_DISTORT,
             THRESHOLDER, SINE_WAVE_MOD, TOPOGRAPHY, VORTEX, RADIAL_PEAKS, DOTTED_LINES,
             DISPLACE_CONTOUR, ORB_MATRIX,

@@ -143,6 +143,9 @@ class ModulationCell(
 
     val orb: OrbOptions = options.orb
 
+    /** An imported screen, or empty. Only `CUSTOM_SCREEN` reads it. */
+    val screen: List<Int> = options.screen
+
     /**
      * The grid centre, scaled along with the coordinates.
      *

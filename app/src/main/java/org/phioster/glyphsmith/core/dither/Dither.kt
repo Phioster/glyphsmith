@@ -34,6 +34,15 @@ data class PatternOptions(
      * panel relabels the slider so nobody has to guess.
      */
     val density: Int = 50,
+    /**
+     * An imported screen, as the ranked cells [ScreenImport] produces, or empty for none.
+     *
+     * It travels in the options rather than in the algorithm because it is *the panel's
+     * storage*, which is what these options are for: every other style's tile is a property of
+     * the style, and this one is a property of the document. `DitherMode.CUSTOM_SCREEN` is
+     * therefore a surface that reads its threshold from here, and needs no new algorithm kind.
+     */
+    val screen: List<Int> = emptyList(),
     val orb: OrbOptions = OrbOptions(),
 )
 

@@ -150,6 +150,9 @@ class DitherRegressionTest {
         // Added with the modulated-diffusion kind. Their pins were taken on the first build that
         // had them; the other eighty were confirmed unchanged in the same run, which is the
         // whole reason this table exists.
+        // Its default screen, not an imported one — that is what a fresh document renders, and
+        // pinning it is what would catch the default changing by accident.
+        DitherMode.CUSTOM_SCREEN to "8c09f44764b5c186",
         DitherMode.WAVE_DIFFUSE to "f92721283ea89bd0",
         DitherMode.ORB_DIFFUSE to "8eb16b35408f32fd",
     )

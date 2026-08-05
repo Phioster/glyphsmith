@@ -1,5 +1,14 @@
 package org.phioster.glyphsmith.ui.panels
 
+import org.phioster.glyphsmith.core.dither.ScreenImport
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -36,10 +45,11 @@ fun MappingPanel(
     onChange: (RenderSettings) -> Unit,
     favourites: Set<String>,
     onToggleFavourite: (String) -> Unit,
+    onImportScreen: (android.net.Uri, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth()) {
-        DitherMappingSection(params, onChange, favourites, onToggleFavourite)
+        DitherMappingSection(params, onChange, favourites, onToggleFavourite, onImportScreen)
 
         if (MappingSections.showsGlyphMapping(params.renderMode)) {
             EdgeMappingSection(params, onChange)
@@ -66,6 +76,7 @@ private fun DitherMappingSection(
     onChange: (RenderSettings) -> Unit,
     favourites: Set<String>,
     onToggleFavourite: (String) -> Unit,
+    onImportScreen: (android.net.Uri, Int) -> Unit,
 ) {
     SectionHeader("tone")
 
@@ -194,6 +205,10 @@ private fun DitherMappingSection(
                 modifier = Modifier.padding(top = 4.dp),
             )
         }
+    }
+
+    if (params.ditherMode == DitherMode.CUSTOM_SCREEN) {
+        ScreenControls(params, onChange, onImportScreen)
     }
 
     if (Dither.usesPattern(params.ditherMode)) {
@@ -366,6 +381,61 @@ private fun EdgeMappingSection(params: RenderSettings, onChange: (RenderSettings
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 4.dp),
+        )
+    }
+}
+
+/**
+ * Loading a picture as the dither screen.
+ *
+ * Two buttons rather than one, because the size does not mean the same thing for every picture:
+ * on a structured screen it is the size of the clump, and on an unstructured one it is how far
+ * the tile travels before it repeats. A single default would be wrong for half of them, so the
+ * choice is the importer's.
+ */
+@Composable
+private fun ScreenControls(
+    params: RenderSettings,
+    onChange: (RenderSettings) -> Unit,
+    onImportScreen: (android.net.Uri, Int) -> Unit,
+) {
+    var pending by remember { mutableStateOf(ScreenImport.SIZES.first()) }
+    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { onImportScreen(it, pending) }
+    }
+    val loaded = ScreenImport.sizeOf(params.screenOverride)
+
+    SectionHeader("screen")
+    Text(
+        if (loaded == 0) {
+            "no screen loaded — the woven default is in use. Any picture works: its brightness " +
+                "is ranked, so every threshold appears exactly once whatever you bring."
+        } else {
+            "a ${loaded}x$loaded screen is loaded, and it travels inside the preset rather than " +
+                "as a file, so sharing the look shares the screen."
+        },
+        color = Term.InkFaint,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(bottom = 6.dp),
+    )
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        ScreenImport.SIZES.forEach { size ->
+            TerminalButton(
+                label = "load ${size}x$size",
+                onClick = {
+                    pending = size
+                    importer.launch(arrayOf("image/*"))
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+    if (loaded != 0) {
+        TerminalButton(
+            label = "clear screen",
+            accent = Term.Amber,
+            onClick = { onChange(params.copy(screenOverride = emptyList())) },
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
         )
     }
 }
