@@ -7,7 +7,7 @@ name: Walkthrough
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, ui-smoke-test]
 
 jobs:
   walkthrough:
