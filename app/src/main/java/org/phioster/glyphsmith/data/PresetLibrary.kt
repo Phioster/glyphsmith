@@ -1374,6 +1374,52 @@ object PresetLibrary {
             ),
         ),
 
+        /*
+         * The one that animates the *glass* rather than the picture.
+         *
+         * Every other motion preset moves something inside the image — a phase, a density, a
+         * seed. This one bends the whole frame: the curvature runs from flat to a full bulge
+         * and back, so a straight edge bows outwards, the corners pull in, and the shadow in
+         * them deepens as they go. Starting at zero is the point of it. The first frame is the
+         * picture the user already has, and the second is visibly not, which is what makes the
+         * control legible without reading anything.
+         *
+         * A sine rather than a ramp: a tube settling is a there-and-back movement, and it is
+         * also the only shape that closes the loop, so an exported GIF does not snap at the
+         * seam.
+         *
+         * The scanlines and the phosphor palette are held still on purpose. They set the scene
+         * in the first frame; if they moved too there would be three things changing at once
+         * and no way to tell which control did what.
+         */
+        pixel(
+            "warming tube",
+            PresetStore.CATEGORY_MOTION,
+            RenderSettings(
+                cellSize = 3,
+                depth = 6,
+                ditherMode = DitherMode.BAYER_4,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.phosphor",
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(
+                        enabled = true,
+                        scanlines = 55,
+                        scanlineSpacing = 3,
+                        vignette = 20,
+                    ),
+                    // Curvature starts flat and is driven; the corner shadow is held, so the
+                    // darkening tracks the bulge instead of competing with it.
+                    crtWarp = CrtWarpParams(
+                        enabled = true,
+                        warpCurvature = 0,
+                        vignetteIntensity = 45,
+                    ),
+                ),
+                animation = animation(sweep(AnimTarget.WARP_CURVATURE, 0, 85), frames = 36),
+            ),
+        ),
+
         // --- layered -------------------------------------------------------------
         // One image, two treatments, blended. A layer is a complete second set of
         // settings rendered at the same size, so what these demonstrate is the thing you

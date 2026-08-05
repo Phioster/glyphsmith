@@ -122,6 +122,7 @@ class PresetLibraryTest {
         pulsing stipple|MOTION|PurePixel|STIPPLING
         rolling gridlock|MOTION|PurePixel|GRIDLOCK
         shifting facets|MOTION|PurePixel|LOW_POLY
+        warming tube|MOTION|PurePixel|BAYER_4
         two pass screen|LAYERED|PurePixel|CLUSTER_8
         offset plates|LAYERED|PurePixel|FLOYD_STEINBERG
         terminal|GLYPH|GlyphMatrix|NONE
@@ -168,11 +169,15 @@ class PresetLibraryTest {
      *   `"enabled": false`, which is what makes five new targets across eighty-nine presets a
      *   longer file rather than five effects switching themselves on.
      *
+     * - **one new preset** (2026-08-05), `warming tube`. 395 added lines, **zero deletions**,
+     *   exactly one `"name"` in the diff. Adding a preset is the one change that is meant to
+     *   move this hash, and the check is that it moved by exactly one entry.
+     *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "8d959560cfcf08b657754deb17876e6dac284e7f531a49aee1d626251cedc51b"
+    private val digest = "d868c75f3c9f32f064cf0822d817b27eee632337dcc663741f6b2828c4d6dae3"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -212,8 +217,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 89, presets.size)
-        assertEquals("curated presets", 83, curated.size)
+        assertEquals("built-in presets", 90, presets.size)
+        assertEquals("curated presets", 84, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 
