@@ -270,7 +270,7 @@ to hold it, id and label read off the constant, a duplicate registration refused
 construction, a roll that switches on its own effect and nothing else, rolls that stack, and
 every shipped effect offering one.
 
-## Task 7: the next plugin category — animation targets — **open**
+## Task 7: the next plugin category — animation targets — **done in substance** (2026-08-05)
 
 Goal: decide whether `AnimTarget` should become a provider category, and if so, make a new
 effect animatable without editing `anim/`.
@@ -340,10 +340,25 @@ Result: **it is already there, by a different route, and nothing was written.**
 The next category is task 7, and the plan for it is
 `docs/superpowers/plans/2026-08-05-animation-target-plugins.md`.
 
-## Tasks 9 to 14: the audit's gaps, one PR each — **open**
+## Tasks 9 to 14: the audit's gaps — **five closed, one open** (2026-08-05)
 
 Numbered in the order of the table in tasks 2/3, which is the order they are worth doing. Each
 is small enough for one PR and stays inside one category.
+
+| Task | State |
+| --- | --- |
+| 9 — a pre-dither value that can be animated | **done**, PR #60, with the `forming` preset |
+| 10 — a style that modulates *and* diffuses | **done**, PR #63, two styles |
+| 11 — modulation lines with a direction | **done**, PR #61 |
+| 12 — somewhere for an imported palette to live | **open**, and the only one |
+| 13 — an importable threshold screen | **done**, PR #64 |
+| 14 — k-means | **struck**: it was built all along |
+
+Presets for the four mechanisms that shipped without one followed in PR #65, and PR #66 taught
+`reset mapping` about the screen — a defect introduced the same day the rule against it was
+already written down.
+
+The original wording of each is kept below.
 
 **Task 9 — a pre-dither value that can be animated.** Add an animation target for the source
 brightness so a dither-in/out transition is expressible. `brightness` is a `Float` and a target

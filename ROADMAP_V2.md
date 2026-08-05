@@ -67,15 +67,28 @@ Shipped:
   compiler-enforced binding lines and nothing outside `effects/` and `ui/panels/`. Recorded in
   `CLAUDE_TASKS.md`, task 6, with the four deliberate couplings and the next category to take.
 
-Next, and planned:
+Also shipped, 2026-08-05:
 
-- **animation targets as the next plugin category** — `CLAUDE_TASKS.md` task 7, with the
-  step-by-step plan in `docs/superpowers/plans/2026-08-05-animation-target-plugins.md`. The
-  palette category was audited first and needs no work at all (task 8).
+- **animation targets**, three quarters of `CLAUDE_TASKS.md` task 7: stable ids, the target
+  carrying the field it writes, and five effects made animatable. The fourth quarter — deleting
+  the `AnimTarget` enum so an effect can own its parameter — is deferred with a written trigger,
+  because it costs ~100 typed call sites and buys no correctness.
+- **five of the six audit gaps** (tasks 9–14), and four presets so the mechanisms can be found.
 
-Still good candidates:
+The palette category was audited and needs no work at all (task 8).
 
-- the rest of the capability-driven UI cleanup: every panel should hide sections, not pages
+Still good candidates, in the order they look worth doing:
+
+- **preset browsing and discovery.** The library is 96 presets across 11 categories and the
+  picker is one sorted list with headings — favourites first, then category, then name. There is
+  no search and no filter. The recurring lesson of the audit was that the gap is discoverability
+  rather than capability; at this size that now applies to the library itself.
+- **effect catalog organization.** Seventeen effects in one chain list, same shape of problem.
+- somewhere for an imported palette to live (task 12) — convenience, not a defect
+- export workflow polish
+- signature effect additions
+- ~~the rest of the capability-driven UI cleanup~~ — done: the three places that branch on
+  `producesGlyphs` each hide a section, and the tab row branches on nothing
 - effect catalog organization
 - export workflow polish
 - preset browsing and discovery improvements
