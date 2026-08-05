@@ -35,12 +35,13 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
 - **Character sets: 48** across 11 categories (Glyph Art only).
 - **Themes: 7** — Matrix, Amber CRT, Ice, Handheld and Rose are dark; Parchment and Medieval
   are light.
-- **Built-in presets: 91** — 85 curated (76 Pixel Dither to 9 Glyph Art) plus 6 Algorithm Lab
+- **Built-in presets: 92** — 86 curated (77 Pixel Dither to 9 Glyph Art) plus 6 Algorithm Lab
   presets, which are counted separately.
 - **Tests: 623 test methods across 63 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and
   `assembleDebug`.
-- **Animation targets: 16** — six write a plain render setting, ten reach into the effect stack.
+- **Animation targets: 17** — six write a plain render setting, ten reach into the effect stack,
+  and one writes a *pre-dither* value: what the algorithm reads rather than what it draws.
 - **Preset schema version: 4.**
 
 The dither families, which are the shelves a picker groups styles under, are: error diffusion
