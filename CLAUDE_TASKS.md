@@ -222,6 +222,29 @@ Acceptance criteria:
 - no change to how any existing animation renders
 - an effect can declare an animatable parameter without `anim/` being edited
 
+## Task 8: palette category audit — **done, no code** (2026-08-05)
+
+Goal: bring the palette category to the maturity the effect category reached.
+
+Prompt:
+> Bring the palette architecture to the same maturity as the finished effect plugin architecture. If it is already modular enough, document that and move to the next category instead of producing artificial code.
+
+Result: **it is already there, by a different route, and nothing was written.**
+
+- Adding a built-in palette is one line in `core/color/Palettes.kt`. The registry, the wire id,
+  the picker's categories, presets, the schema migration and Surprise Me are all derived from
+  that line.
+- A palette carries no behaviour. The defect the effect work removed — a constant mapped to code
+  by hand in several places — cannot arise where there is no code to map to.
+- `PaletteProviders` is not on any read path, and that is deliberate: routing the picker through
+  it would change nothing observable. Written down in `ARCHITECTURE.md` so the next session does
+  not "fix" it.
+- Imported palettes are not second-class. They are applied as `paletteOverride` and therefore
+  already survive saving and sharing; naming and shelving them is a product question.
+
+The next category is task 7, and the plan for it is
+`docs/superpowers/plans/2026-08-05-animation-target-plugins.md`.
+
 ## Working rules
 
 - one branch per task

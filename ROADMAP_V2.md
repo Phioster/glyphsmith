@@ -60,6 +60,12 @@ Shipped:
   compiler-enforced binding lines and nothing outside `effects/` and `ui/panels/`. Recorded in
   `CLAUDE_TASKS.md`, task 6, with the four deliberate couplings and the next category to take.
 
+Next, and planned:
+
+- **animation targets as the next plugin category** — `CLAUDE_TASKS.md` task 7, with the
+  step-by-step plan in `docs/superpowers/plans/2026-08-05-animation-target-plugins.md`. The
+  palette category was audited first and needs no work at all (task 8).
+
 Still good candidates:
 
 - the rest of the capability-driven UI cleanup: every panel should hide sections, not pages

@@ -323,6 +323,27 @@ category listings key on. The *wire id* is `palette.grayscale`, and that is what
 preset carries. Both spellings resolve, because files written by older builds contain the bare
 one. Imported palettes are not registered: they live in a file.
 
+**The palette category is complete as it stands, and was audited on 2026-08-05 rather than
+rebuilt.** Adding a built-in palette is one line in `Palettes.all`; from there the registry, the
+wire id, the picker's categories, presets, the schema migration and Surprise Me all follow
+without another edit. There is no per-palette behaviour, so the failure the effect category was
+opened up to remove — a constant mapped to code by hand in several places, the copies drifting
+apart — has no counterpart here and never did. A palette is data.
+
+`PaletteProviders` is deliberately **not** on the read path. The picker reads
+`Palettes.categories` and `Palettes.inCategory`, `RandomLook` reads `Palettes.all`, and the
+renderers read `Palettes.byId`; the registry is read by `pipeline/Providers`, which holds the
+ids to their rules. Routing the UI through the registry instead would change nothing a user or
+a test can observe, so it is not done.
+
+Imported palettes stay out of the registry on purpose. `GlyphsmithViewModel.importPalette`
+applies a file as `paletteOverride` — a colour list carried inside the preset — so an imported
+palette already survives saving, sharing and reloading. Giving it a name and a shelf of its own
+is a product decision, not an architectural gap.
+
+A new palette *category* is free text on the palette. The `const val` names in `Palettes` are a
+convention that keeps the built-ins consistent, not a registry that has to be extended.
+
 ## Presets
 
 A preset is a saved configuration of available providers — not executable code, not a plugin
