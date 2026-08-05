@@ -153,7 +153,7 @@ class PresetLibraryTest {
      * that has to stay stable: it is what a user's file is compared against and what an export
      * hands to somebody else.
      *
-     * It has moved twice, and each move was checked rather than pasted in:
+     * It has moved three times, and each move was checked rather than pasted in:
      *
      * - **schema 4**, when a palette stopped being named by a bare id. Diffing the encoded
      *   library against the old one showed nothing but `schemaVersion` and 91 `paletteId` values.
@@ -162,12 +162,17 @@ class PresetLibraryTest {
      *   979 track targets and 22 segment targets, rewritten from `GLOW_DIRECTION` to
      *   `anim.glow-direction`. No `schemaVersion`, and nothing the renderer reads. That is what
      *   makes the new digest a spelling change rather than a change to the shipped library.
+     * - **five new animation targets** (2026-08-05), when the effects that shipped after the
+     *   animation system became animatable. Every preset carries an entry per target, so the
+     *   diff was 4095 lines — and **zero deletions**. Every added block is a track with
+     *   `"enabled": false`, which is what makes five new targets across eighty-nine presets a
+     *   longer file rather than five effects switching themselves on.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "9598623b7cacc7f019270c157d703aa4d6369d48fa2b3e82809140e757e9e526"
+    private val digest = "8d959560cfcf08b657754deb17876e6dac284e7f531a49aee1d626251cedc51b"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {

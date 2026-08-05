@@ -37,9 +37,10 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
   are light.
 - **Built-in presets: 89** — 83 curated (74 Pixel Dither to 9 Glyph Art) plus 6 Algorithm Lab
   presets, which are counted separately.
-- **Tests: 620 test methods across 63 JVM test classes**, three of which need Robolectric. Run
+- **Tests: 623 test methods across 63 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and
   `assembleDebug`.
+- **Animation targets: 16** — six write a plain render setting, ten reach into the effect stack.
 - **Preset schema version: 4.**
 
 The dither families, which are the shelves a picker groups styles under, are: error diffusion

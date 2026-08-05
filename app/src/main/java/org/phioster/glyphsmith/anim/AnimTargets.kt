@@ -74,6 +74,37 @@ object AnimTargets {
                 ),
             )
         },
+        AnimTargetProvider(AnimTarget.INTERLACE_SHIFT, 12) { p, v ->
+            p.copy(
+                effects = p.effects.copy(
+                    interlace = p.effects.interlace.copy(shift = v.coerceIn(0, 100)),
+                ),
+            )
+        },
+        AnimTargetProvider(AnimTarget.SORT_BAND, 13) { p, v ->
+            p.copy(
+                effects = p.effects.copy(
+                    pixelSort = p.effects.pixelSort.copy(thresholdHigh = v.coerceIn(0, 100)),
+                ),
+            )
+        },
+        AnimTargetProvider(AnimTarget.SLICE_OFFSET, 14) { p, v ->
+            p.copy(
+                effects = p.effects.copy(
+                    sliceShift = p.effects.sliceShift.copy(maxOffset = v.coerceIn(0, 100)),
+                ),
+            )
+        },
+        AnimTargetProvider(AnimTarget.WARP_CURVATURE, 15) { p, v ->
+            p.copy(
+                effects = p.effects.copy(
+                    crtWarp = p.effects.crtWarp.copy(warpCurvature = v.coerceIn(0, 100)),
+                ),
+            )
+        },
+        AnimTargetProvider(AnimTarget.HALFTONE_ANGLE, 16) { p, v ->
+            p.copy(effects = p.effects.copy(cmyk = p.effects.cmyk.copy(angle = v.coerceIn(0, 90))))
+        },
     )
 
     /**
