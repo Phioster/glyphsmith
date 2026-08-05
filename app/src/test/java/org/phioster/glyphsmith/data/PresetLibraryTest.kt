@@ -77,6 +77,10 @@ class PresetLibraryTest {
         survey map|PATTERN|PurePixel|TOPOGRAPHY
         hot iron|PATTERN|PurePixel|MOD_ORB
         modulation cyberpunk|PATTERN|PurePixel|NONE
+        wave weave|PATTERN|PurePixel|WAVE_DIFFUSE
+        orb lattice|PATTERN|PurePixel|ORB_DIFFUSE
+        loose weave|PATTERN|PurePixel|CUSTOM_SCREEN
+        standing signal|PATTERN|PurePixel|NONE
         newsprint|PRINT|PurePixel|NONE
         duplicator print|PRINT|PurePixel|NONE
         process rosette|PRINT|PurePixel|PRINT_PATTERN
@@ -189,11 +193,14 @@ class PresetLibraryTest {
      *   lines, zero deletions, every one of them empty — a document that has imported no screen
      *   says so, and none of the shipped presets has.
      *
+     * - **four presets for the styles that shipped without one** (2026-08-05). Zero deletions,
+     *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
+     *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "3b1dfd2982f24d95b35cc4981f9e1f019a80d055e0aea935b2f170d16e3f5788"
+    private val digest = "23cbe11e794687a25feeb4f813c185eceae077674d027d63d3a228196ed832e8"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -233,8 +240,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 92, presets.size)
-        assertEquals("curated presets", 86, curated.size)
+        assertEquals("built-in presets", 96, presets.size)
+        assertEquals("curated presets", 90, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 

@@ -32,6 +32,7 @@ import org.phioster.glyphsmith.effects.CrtWarpParams
 import org.phioster.glyphsmith.effects.ColorDepthParams
 import org.phioster.glyphsmith.effects.SpotColorPrintParams
 import org.phioster.glyphsmith.effects.ModulationColorMode
+import org.phioster.glyphsmith.effects.LineAxis
 import org.phioster.glyphsmith.effects.ModulationLinesParams
 import org.phioster.glyphsmith.effects.InterlaceParams
 import org.phioster.glyphsmith.effects.BlueNoiseDitherParams
@@ -525,6 +526,88 @@ object PresetLibrary {
                         threshold = 38,
                         radius = 90,
                         intensity = 520,
+                    ),
+                ),
+            ),
+        ),
+
+        /*
+         * The three styles that shipped without anything to find them by.
+         *
+         * A capability nobody can reach is not a feature, and in this app a preset is how one
+         * becomes reachable. Each of these was chosen by rendering the candidates and comparing
+         * them, not by picking plausible numbers.
+         */
+        pixel(
+            "wave weave",
+            PresetStore.CATEGORY_PATTERN,
+            // Modulated diffusion: the surface bends the decision and the residue still spreads,
+            // so the wave runs through the background and *around* the subject rather than over
+            // it. A fine cell against a short period is what keeps the lines reading as lines.
+            RenderSettings(
+                cellSize = 2,
+                depth = 3,
+                ditherMode = DitherMode.WAVE_DIFFUSE,
+                modScale = 6,
+                patternDensity = 40,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.ice",
+            ),
+        ),
+        pixel(
+            "orb lattice",
+            PresetStore.CATEGORY_PATTERN,
+            /*
+             * The same mechanism with the orb surface, and it needs a *coarse* period to work.
+             * At a scale near the cell size the diffusion dissolves the lattice into grain —
+             * pleasant, but it shows nothing. Well above it the orbs survive in the flat areas
+             * while the subject keeps the smooth gradation the plain orb style cannot give it.
+             */
+            RenderSettings(
+                cellSize = 4,
+                depth = 4,
+                ditherMode = DitherMode.ORB_DIFFUSE,
+                modScale = 22,
+                patternDensity = 40,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.ember",
+            ),
+        ),
+        pixel(
+            "loose weave",
+            PresetStore.CATEGORY_PATTERN,
+            // The imported-screen style on the woven screen it ships with, at two levels on
+            // toned stock: the clearest way to see what a screen *is* before replacing it with
+            // one of your own.
+            RenderSettings(
+                cellSize = 3,
+                depth = 2,
+                ditherMode = DitherMode.CUSTOM_SCREEN,
+                colorMode = ColorMode.SINGLE,
+                inkColor = 0xFF101418.toInt(),
+                backgroundColor = 0xFFEDE7DA.toInt(),
+            ),
+        ),
+        pixel(
+            "standing signal",
+            PresetStore.CATEGORY_PATTERN,
+            // The modulation lines drawn down the frame rather than across it. Brightness pushes
+            // each column sideways, so the subject is read out of the displacement — the plot
+            // needs the space between the columns, which is why nothing is dithered underneath.
+            RenderSettings(
+                cellSize = 2,
+                depth = 6,
+                ditherMode = DitherMode.NONE,
+                colorMode = ColorMode.SOURCE,
+                effects = EffectStack(
+                    modulationLines = ModulationLinesParams(
+                        enabled = true,
+                        axis = LineAxis.VERTICAL,
+                        lineSpacing = 7,
+                        amplitude = 14,
+                        waveMix = 30,
+                        dotSize = 2,
+                        colorMode = ModulationColorMode.PHOSPHOR,
                     ),
                 ),
             ),
