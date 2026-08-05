@@ -1,0 +1,64 @@
+name: Walkthrough
+
+# Deliberately not on every push. The JVM tests are the fast gate — they run in a couple of
+# minutes and there are hundreds of them — and an emulator would put ten minutes in front of
+# every commit for one walk through the app. This runs when it is asked for, and on main, where
+# the question is "does the thing we just merged still start" rather than "is this line right".
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  walkthrough:
+    name: Walk the app on an emulator
+    runs-on: ubuntu-latest
+    # An emulator that will not boot is a job that hangs until the six-hour default kills it.
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      # KVM is what makes an x86_64 image usable rather than a twenty-minute crawl. The runner
+      # has it; the permissions have to be asked for.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Walkthrough
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          # No window, no audio, no boot animation: none of it is being looked at, and each one
+          # is a way for the boot to stall.
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: gradle connectedDebugAndroidTest --no-daemon
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: walkthrough-report
+          retention-days: 3
+          path: app/build/reports/androidTests/
