@@ -40,12 +40,18 @@ Standing part, which stays open:
 - keep `ARCHITECTURE.md` aligned with the real package and provider layout
 - add or update product-facing documentation only when it reduces confusion
 
-## Phase 2 — feature matrix and comparison work (open)
+## Phase 2 — feature matrix and comparison work (done)
 
-- build a feature matrix for the current app
-- compare Glyphsmith with the public Dither Boy feature set
-- classify features as present, partial, missing, or intentionally different
-- identify candidate signature features for Glyphsmith
+Closed 2026-08-05 by the audit in `CLAUDE_TASKS.md`, tasks 2 and 3. Studio AAA's public
+material was surveyed end to end — the downloads hub, the blog, and thumbnails for all 118
+videos on their channel — and every claim checked against this repository.
+
+The result: **six gaps**, filed as tasks 9 to 14 in the order they are worth doing, one PR
+each. Three items an earlier study had listed as missing turned out to be built. One technique
+is classified *intentionally different* and is not to be reproduced.
+
+Their signature look was already reachable and now ships as a preset, which is the sharper
+version of "identify candidate signature features": the gap was discoverability, not capability.
 
 ## Phase 3 — feature slices (open, first one shipped)
 
