@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -218,6 +219,12 @@ class ExerciseEverythingTest {
                     rule.waitForIdle()
                     clicked++
                 }
+                // A menu that just opened is a menu to choose from. Without this the walk opened
+                // twenty of them on the ANIM tab and closed none — the notes said "18 STILL
+                // OPEN" — and no amount of pressing back afterwards got them down, because the
+                // key never reached their windows. Choosing an item is what closes a menu, and
+                // it is also what a person does with one.
+                chooseFromAnyMenu()
             }
             index++
         }
@@ -236,6 +243,30 @@ class ExerciseEverythingTest {
      * already has.
      */
     private fun popups() = rule.onAllNodes(isPopup()).fetchSemanticsNodes().size
+
+    /**
+     * Picks the first entry out of any open menu, until none is open.
+     *
+     * The reliable way to close a Compose menu is to use it: the entry's own handler sets the
+     * menu closed, where a back press has to reach the popup's window and, through the
+     * accessibility route, did not. Bounded, because a menu whose first entry opens another menu
+     * would otherwise be a loop.
+     */
+    private fun chooseFromAnyMenu(): Int {
+        val inMenu = hasClickAction() and hasAnyAncestor(isPopup())
+        var chosen = 0
+        repeat(POPUP_LIMIT) {
+            if (rule.onAllNodes(inMenu).fetchSemanticsNodes().isEmpty()) return chosen
+            val before = popups()
+            runCatching {
+                rule.onAllNodes(inMenu)[0].performClick()
+                rule.waitForIdle()
+            }
+            if (popups() >= before) return chosen
+            chosen++
+        }
+        return chosen
+    }
 
     /**
      * Closes menus the walk left standing open, and stops the moment a press achieves nothing.
