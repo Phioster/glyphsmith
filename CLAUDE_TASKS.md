@@ -340,7 +340,7 @@ Result: **it is already there, by a different route, and nothing was written.**
 The next category is task 7, and the plan for it is
 `docs/superpowers/plans/2026-08-05-animation-target-plugins.md`.
 
-## Tasks 9 to 14: the audit's gaps — **five closed, one open** (2026-08-05)
+## Tasks 9 to 14: the audit's gaps — **all closed** (2026-08-06)
 
 Numbered in the order of the table in tasks 2/3, which is the order they are worth doing. Each
 is small enough for one PR and stays inside one category.
@@ -350,7 +350,7 @@ is small enough for one PR and stays inside one category.
 | 9 — a pre-dither value that can be animated | **done**, PR #60, with the `forming` preset |
 | 10 — a style that modulates *and* diffuses | **done**, PR #63, two styles |
 | 11 — modulation lines with a direction | **done**, PR #61 |
-| 12 — somewhere for an imported palette to live | **open**, and the only one |
+| 12 — somewhere for an imported palette to live | **done**, PRs #87 and #88 |
 | 13 — an importable threshold screen | **done**, PR #64 |
 | 14 — k-means | **struck**: it was built all along |
 
@@ -377,6 +377,15 @@ defaulting to what it draws today so no preset changes.
 missing half is a store, a picker that lists it, and an answer to whether an imported palette
 gets a stable id — which `ARCHITECTURE.md` currently answers with a deliberate no. Decide that
 first, in writing, then build. A pack format without a store ships half a feature.
+
+*Closed 2026-08-06.* The decision went the way `ARCHITECTURE.md` already leaned, and the
+reasoning is now written there: **no stable identity.** A provider id is a promise the build
+makes about something compiled into it, and a palette that arrived this morning cannot make it —
+a preset naming one would break on any device where the file was never opened. So a preset keeps
+carrying the colours, and what was added is a shelf to take a palette off. `PaletteStore` (#87)
+holds them in one JSON file shaped after `PresetStore`, the format reads a pack as well as a
+single palette, and the colour panel lists them under *IMPORTED*, apart from the built-ins (#88).
+`PaletteFile` gained the tests it never had.
 
 **Task 13 — an importable threshold screen.** An image read as an ordered matrix. Not
 executable, so it is not a runtime plugin — but it *is* a new identity in the preset format, so
