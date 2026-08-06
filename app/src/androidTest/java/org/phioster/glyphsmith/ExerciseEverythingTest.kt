@@ -2,19 +2,16 @@ package org.phioster.glyphsmith
 
 import android.graphics.Bitmap
 import android.net.Uri
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
-import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 // `onAllNodes` is a member of SemanticsNodeInteractionsProvider, not a free function — importing
 // it is what the second run rejected. `onRoot` and `onNodeWithText` really are extensions.
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
@@ -22,6 +19,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -70,11 +68,33 @@ class ExerciseEverythingTest {
         }
     }
 
+    /** Shots that could not be taken at all, reported together at the end of the walk. */
+    private val missed = mutableListOf<String>()
+
+    /**
+     * A picture of the screen, through UiAutomation rather than Compose.
+     *
+     * `captureToImage()` was the obvious call and it does not work here: it reads the pixels back
+     * out of the composition's own surface, and on a software-rendered emulator that read fails —
+     * the first run of this test died on "Failed to capture a node to bitmap", with the graphics
+     * layer logging `Failed to find ColorBuffer` underneath it. UiAutomation takes the screenshot
+     * the system takes, which is both robust to that and the more honest answer to the question
+     * being asked: this is the screen as the device would show it, dialogs and system bars and
+     * all, not a redraw of one composable.
+     *
+     * A failure here is recorded rather than thrown, so one unlucky frame does not cost the whole
+     * walk; [everyControlOnEveryTab] fails at the end if anything was missed.
+     */
     private fun shot(name: String) {
-        val bitmap = rule.onRoot().captureToImage().asAndroidBitmap()
+        val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+        if (bitmap == null) {
+            missed += name
+            return
+        }
         File(shots, "$name.png").outputStream().use {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
         }
+        bitmap.recycle()
     }
 
     private fun loadAnImage() {
@@ -178,7 +198,12 @@ class ExerciseEverythingTest {
             shot("%02d-%s-controls".format(i + 1, tab.lowercase()))
         }
 
-        // Still alive after all of that, which is the only thing this file asserts.
+        // Still alive after all of that, which is the thing the walk itself asserts.
         rule.onNodeWithText("SET").assertExists()
+
+        // And the pictures actually landed. Checked at the end rather than at each capture so a
+        // run that loses one frame still leaves the other twenty-four to look at.
+        assertTrue("no screenshots were written at all", shots.listFiles().orEmpty().isNotEmpty())
+        assertTrue("screens not captured: $missed", missed.isEmpty())
     }
 }
