@@ -1,0 +1,65 @@
+name: Robo
+
+# Asked for rather than automatic, and that is about the quota rather than about caution: the
+# free tier allows fifteen runs a day across everything, and this repository has merged more
+# than that in a single afternoon. Triggering it by hand is also the shape the tool wants —
+# start it, put the phone down, read the report when it is finished.
+on:
+  workflow_dispatch:
+
+jobs:
+  robo:
+    name: Let the crawler loose on the app
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Skips cleanly rather than failing while the project has no Firebase credentials, so the
+    # workflow can live on main before the account behind it exists.
+    if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Build the APK
+        run: gradle assembleDebug --no-daemon
+
+      - name: Authenticate
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          # Written outside the workspace so no later step can archive it by accident.
+          printf '%s' "$KEY" > "$RUNNER_TEMP/key.json"
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/key.json"
+          gcloud config set project "${{ secrets.FIREBASE_PROJECT_ID }}"
+
+      - name: Crawl
+        run: |
+          # No device is named on purpose: model names are retired over time, and a run that
+          # fails because a phone from three years ago is gone teaches nothing. Google's default
+          # is maintained; --timeout keeps one crawl inside the free tier.
+          gcloud firebase test android run \
+            --type robo \
+            --app app/build/outputs/apk/debug/app-debug.apk \
+            --timeout 4m \
+            --format='value(outcome)' 2>&1 | tee robo.log
+          echo
+          echo "The video, the screenshots and the logcat are in the Firebase console —"
+          echo "the link is printed above, under 'Test results will be streamed to'."
+
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/key.json"
