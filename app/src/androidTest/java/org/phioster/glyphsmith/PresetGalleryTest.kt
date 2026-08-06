@@ -93,7 +93,15 @@ class PresetGalleryTest {
     }
 
     private companion object {
-        /** Small enough that ninety renders fit in an emulator run, large enough to judge. */
-        const val MAX_SIDE = 420
+        /**
+         * Near what the app actually renders at, and that matters more than it looks.
+         *
+         * The first run of this used 420, and it made the coarse-celled presets — low poly, hex
+         * tiles, camouflage — look broken: a preset with a 16-pixel cell gets twenty-six cells
+         * across at 420 and a hundred at 1600, so a style that needs a grid to describe a shape
+         * had no grid to work with. They were about to be filed as defects. A gallery that
+         * renders at a size nobody uses measures something nobody sees.
+         */
+        const val MAX_SIDE = 1200
     }
 }
