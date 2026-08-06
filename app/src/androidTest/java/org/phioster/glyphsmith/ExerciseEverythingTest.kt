@@ -319,7 +319,14 @@ class ExerciseEverythingTest {
 
         const val TWO_SECONDS = 2_000L
 
-        /** How many stacked menus to close before giving up and photographing what is there. */
-        const val POPUP_LIMIT = 4
+        /**
+         * How many stacked menus to close before giving up and photographing what is there.
+         *
+         * Four was not enough — the notes said "closed 4 menus" and the picture still had one in
+         * it. The ANIM tab carries a curve menu and a property menu per segment, and the walk
+         * adds segments, so the stack is as deep as the panel is long. The loop stops as soon as
+         * none is left; this only bounds the pathological case.
+         */
+        const val POPUP_LIMIT = 12
     }
 }
