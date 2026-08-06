@@ -45,62 +45,56 @@ class PresetWorkbenchTest {
         }
     }
 
-    /** Everything the candidates share, so what differs between two pictures is what was varied. */
-    private fun base() = RenderSettings(
-        cellSize = 3,
-        depth = 5,
+    /**
+     * Exactly what `orb lattice` ships as, which is the fixed point of this round.
+     *
+     * The first twelve candidates all came out near-black, including the one meant to be the
+     * plain mechanism — so the fault was in the starting point, not in the variations. This
+     * starts from a setting known to render bright and changes one ingredient per picture. A
+     * bisection finds it in one run; guessing finds it in six.
+     */
+    private fun known() = RenderSettings(
+        cellSize = 4,
+        depth = 4,
         ditherMode = DitherMode.ORB_DIFFUSE,
         modScale = 22,
         patternDensity = 40,
         colorMode = ColorMode.PALETTE,
-        paletteId = "palette.ice",
-        backgroundColor = 0xFF000206.toInt(),
-        effects = EffectStack(
-            glow = GlowParams(
-                enabled = true,
-                threshold = 42,
-                thresholdSmoothing = 40,
-                radius = 110,
-                intensity = 700,
-                falloff = 14,
-            ),
-        ),
+        paletteId = "palette.ember",
     )
 
-    /**
-     * Tone pushed the way the reference's Adjustments panel is pushed in its own tutorials:
-     * contrast up, midtones down so the ground falls away, highlights up so the subject clips.
-     */
-    private fun RenderSettings.toned() = copy(
-        contrast = 1.8f,
-        midtones = 30,
-        highlights = 75,
+    private fun glow() = EffectStack(
+        glow = GlowParams(
+            enabled = true,
+            threshold = 42,
+            thresholdSmoothing = 40,
+            radius = 110,
+            intensity = 700,
+            falloff = 14,
+        ),
     )
 
     private fun candidates(): List<Pair<String, RenderSettings>> = listOf(
-        "01-as-shipped-mechanism" to base(),
-        "02-toned" to base().toned(),
-        "03-toned-fine-orbs" to base().toned().copy(modScale = 14),
-        "04-toned-coarse-orbs" to base().toned().copy(modScale = 34),
-        "05-toned-sparse" to base().toned().copy(patternDensity = 22),
-        "06-toned-dense" to base().toned().copy(patternDensity = 62),
-        "07-toned-cell-2" to base().toned().copy(cellSize = 2),
-        "08-toned-cell-6" to base().toned().copy(cellSize = 6),
-        "09-toned-big-glow" to base().toned().copy(
+        "01-known-bright" to known(),
+        "02-ice" to known().copy(paletteId = "palette.ice"),
+        "03-ice-black-ground" to known().copy(
+            paletteId = "palette.ice",
+            backgroundColor = 0xFF000206.toInt(),
+        ),
+        "04-ember-glow" to known().copy(effects = glow()),
+        "05-ice-glow" to known().copy(paletteId = "palette.ice", effects = glow()),
+        "06-ice-glow-weak" to known().copy(
+            paletteId = "palette.ice",
             effects = EffectStack(
-                glow = GlowParams(
-                    enabled = true,
-                    threshold = 30,
-                    thresholdSmoothing = 45,
-                    radius = 170,
-                    intensity = 950,
-                    falloff = 12,
-                ),
+                glow = GlowParams(enabled = true, threshold = 20, radius = 60, intensity = 300),
             ),
         ),
-        "10-toned-few-levels" to base().toned().copy(depth = 3),
-        "11-toned-many-levels" to base().toned().copy(depth = 8),
-        "12-toned-harder" to base().copy(contrast = 2.4f, midtones = 18, highlights = 88),
+        "07-ice-depth-6" to known().copy(paletteId = "palette.ice", depth = 6),
+        "08-ice-cell-3" to known().copy(paletteId = "palette.ice", cellSize = 3),
+        "09-ice-contrast-up" to known().copy(paletteId = "palette.ice", contrast = 1.6f),
+        "10-ice-midtones-down" to known().copy(paletteId = "palette.ice", midtones = 30),
+        "11-ice-midtones-up" to known().copy(paletteId = "palette.ice", midtones = 70),
+        "12-ice-highlights-up" to known().copy(paletteId = "palette.ice", highlights = 78),
     )
 
     private fun source(): Triple<IntArray, Int, Int> {
