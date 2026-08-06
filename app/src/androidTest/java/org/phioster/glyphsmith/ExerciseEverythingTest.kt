@@ -1,5 +1,6 @@
 package org.phioster.glyphsmith
 
+import android.accessibilityservice.AccessibilityService
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.ui.semantics.SemanticsActions
@@ -8,6 +9,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.isPopup
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 // `onAllNodes` is a member of SemanticsNodeInteractionsProvider, not a free function — importing
 // it is what the second run rejected. `onRoot` and `onNodeWithText` really are extensions.
@@ -178,11 +180,20 @@ class ExerciseEverythingTest {
         return index
     }
 
-    /** Clicks every clickable that is not on the avoid list, one at a time, top to bottom. */
+    /**
+     * Clicks every clickable that is not on the avoid list, one at a time, top to bottom.
+     *
+     * Bounded, and the bound is not decoration. The list is re-read each time round because a
+     * click can reveal controls that were not there before — which is the point — but some of
+     * them *add* controls: `[+ segment]` on the ANIM tab appends a segment with its own row of
+     * them, so the walk clicks it, finds more to click, and clicks it again. That pass took
+     * thirteen minutes on its own before this budget existed. A run that never ends is not a
+     * thorough run.
+     */
     private fun clickEverySafeControl(provider: SemanticsNodeInteractionsProvider): Int {
         var clicked = 0
         var index = 0
-        while (true) {
+        while (clicked < CLICK_BUDGET) {
             val nodes = provider.onAllNodes(hasClickAction()).fetchSemanticsNodes()
             if (index >= nodes.size) break
             val label = nodes[index].config
@@ -202,6 +213,24 @@ class ExerciseEverythingTest {
         return clicked
     }
 
+    /**
+     * Closes a menu the walk left standing open.
+     *
+     * The ANIM tab's curve menu was open when its screenshot was taken, so the picture recorded
+     * the menu instead of the panel it was meant to show. Only when there is actually a popup:
+     * a back press on a screen with nothing over it would leave the activity, and the walk would
+     * end early with everything apparently fine.
+     *
+     * Through UiAutomation rather than Espresso, so this stays on the one dependency the file
+     * already has.
+     */
+    private fun dismissAnyPopup() {
+        if (rule.onAllNodes(isPopup()).fetchSemanticsNodes().isEmpty()) return
+        InstrumentationRegistry.getInstrumentation().uiAutomation
+            .performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
+        rule.waitForIdle()
+    }
+
     @Test
     fun everyControlOnEveryTab() {
         loadAnImage()
@@ -216,6 +245,7 @@ class ExerciseEverythingTest {
             shot("%02d-%s-sliders".format(i + 1, tab.lowercase()))
 
             clickEverySafeControl(rule)
+            dismissAnyPopup()
             shot("%02d-%s-controls".format(i + 1, tab.lowercase()))
         }
 
@@ -226,5 +256,16 @@ class ExerciseEverythingTest {
         // run that loses one frame still leaves the other twenty-four to look at.
         assertTrue("no screenshots were written at all", shots.listFiles().orEmpty().isNotEmpty())
         assertTrue("screens not captured: $missed", missed.isEmpty())
+    }
+
+    private companion object {
+        /**
+         * How many clicks one tab is worth.
+         *
+         * Well above what any panel holds — the fullest is nowhere near forty — so it bounds the
+         * control that breeds more controls without cutting short a tab that simply has a lot on
+         * it. If a panel ever legitimately passes this, the number is the thing to change.
+         */
+        const val CLICK_BUDGET = 40
     }
 }
