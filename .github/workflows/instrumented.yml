@@ -7,7 +7,7 @@ name: Walkthrough
 on:
   workflow_dispatch:
   push:
-    branches: [main, ui-exercise]
+    branches: [main]
 
 jobs:
   walkthrough:
