@@ -53,19 +53,11 @@ jobs:
           # is a way for the boot to stall.
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          # The screenshots are the point of the second test, so they have to come off the device
-          # before it is thrown away. Through `run-as` and a tar down the pipe, not `adb pull`:
-          # the pictures sit in the app's internal storage, because the external directory that
-          # `pull` can name is hidden from the shell by scoped storage. `|| true` because a failed
-          # test still leaves pictures behind, and those are exactly the ones worth looking at.
-          script: |
-            gradle connectedDebugAndroidTest --no-daemon
-            adb shell run-as org.phioster.glyphsmith ls -l /data/data/org.phioster.glyphsmith/files/shots || true
-            adb exec-out run-as org.phioster.glyphsmith tar c -C /data/data/org.phioster.glyphsmith/files shots > shots.tar || true
-            ls -l shots.tar || true
-            head -c 120 shots.tar | od -c | head -4 || true
-            tar xf shots.tar || true
-            ls shots || true
+          # Nothing fetches the screenshots here, deliberately: the task uninstalls the app when
+          # it finishes, so anything left on the device at this point is already gone. Gradle
+          # collects them itself, out of the directory it names in `additionalTestOutputDir`,
+          # while the app is still installed.
+          script: gradle connectedDebugAndroidTest --no-daemon
 
       - name: Upload the screenshots
         if: always()
@@ -73,7 +65,7 @@ jobs:
         with:
           name: screens
           retention-days: 7
-          path: shots/
+          path: app/build/outputs/connected_android_test_additional_output/
 
       - name: Upload report
         if: failure()

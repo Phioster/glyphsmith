@@ -61,17 +61,25 @@ class ExerciseEverythingTest {
     )
 
     /**
-     * Internal storage, not the external files directory.
+     * The directory Gradle collects after the run, if it named one.
      *
-     * The external one is the obvious choice and it cannot be read off the device: since Android
-     * 11 the FUSE view hides `/sdcard/Android/data/<package>` from the shell as well as from other
-     * apps, so `adb pull` answers "No such file or directory" for a directory that is plainly
-     * there. Internal storage is reachable through `run-as`, which works because a debug build is
-     * debuggable — see the extraction line in `.github/workflows/instrumented.yml`.
+     * Anywhere the test can obviously write is somewhere the pictures cannot be fetched from,
+     * and it took three runs to see why: `connectedAndroidTest` **uninstalls the app** when it
+     * finishes, so by the time anything on the host reaches for them, the app's storage — private
+     * and external alike — is gone with the package. `adb pull` said the directory did not exist
+     * and `run-as` said the package did not exist, and both were telling the truth.
+     *
+     * `additionalTestOutputDir` is the instrumentation argument the Android Gradle plugin passes
+     * for exactly this, and it copies that directory off the device *before* the uninstall, into
+     * `app/build/outputs/connected_android_test_additional_output/`. Falling back to private
+     * storage when the argument is absent keeps the test runnable straight from an IDE, where the
+     * pictures then stay on the device and nothing has taken them away.
      */
     private val shots: File by lazy {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        File(context.filesDir, "shots").apply {
+        val given = InstrumentationRegistry.getArguments().getString("additionalTestOutputDir")
+        val base = given?.let(::File)
+            ?: InstrumentationRegistry.getInstrumentation().targetContext.filesDir
+        File(base, "shots").apply {
             deleteRecursively()
             mkdirs()
         }
