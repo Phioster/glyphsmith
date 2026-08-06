@@ -59,7 +59,10 @@ class ExerciseEverythingTest {
      */
     private val avoid = listOf(
         "share", "save", "copy", "pick", "load", "import", "export",
-        "svg", "txt", "html", "ansi", "gif", "mp4", "camera", "capture",
+        "svg", "txt", "html", "ansi", "gif", "mp4", "camera",
+        // "capture" was here for the camera and the only thing it ever blocked was
+        // "[capture current settings as a layer]" — the whole of the LYR tab, which the notes
+        // duly reported as nought controls clicked. The camera button is labelled "[cam]".
         // Added after the first successful run: the preset shelf reported "preset deleted" and
         // it was this walk that did it. Everything else here is undone by the next run; a
         // deleted user preset is not.
@@ -259,11 +262,19 @@ class ExerciseEverythingTest {
             shot("%02d-%s-sliders".format(i + 1, tab.lowercase()))
 
             val clicked = clickEverySafeControl(rule)
+            // A second pass, and the notes are why it exists: FX, COLOUR, ANIM and LYR all
+            // reported nought sliders moved, and they are full of them. A dither's parameters,
+            // an effect's amount, an animation's depth — none of those exist until the thing
+            // they belong to is switched on, and switching on happens here. One pass moved the
+            // sliders that were there at rest and never came back for the ones it had revealed.
+            val revealed = moveEverySlider()
             val closed = dismissAnyPopup()
             shot("%02d-%s-controls".format(i + 1, tab.lowercase()))
 
             notes.appendLine(
-                "$tab: $moved sliders, $clicked controls" + if (closed) ", closed a menu" else "",
+                "$tab: $moved sliders, $clicked controls, $revealed sliders after" +
+                    (if (clicked >= CLICK_BUDGET) ", budget reached" else "") +
+                    (if (closed) ", closed a menu" else ""),
             )
         }
 
@@ -285,11 +296,13 @@ class ExerciseEverythingTest {
         /**
          * How many clicks one tab is worth.
          *
-         * Well above what any panel holds — the fullest is nowhere near forty — so it bounds the
-         * control that breeds more controls without cutting short a tab that simply has a lot on
-         * it. If a panel ever legitimately passes this, the number is the thing to change.
+         * Forty was a guess and the notes showed it was too low: FX, COLOUR, ANIM and PRE all
+         * reached it, so four tabs were being cut short rather than only the one that breeds
+         * controls. Eighty still bounds `[+ segment]`, which is the whole reason for a budget,
+         * and the notes now say when a tab hits the limit — so the next wrong guess is visible
+         * rather than silent.
          */
-        const val CLICK_BUDGET = 40
+        const val CLICK_BUDGET = 80
 
         /** How long to let the screen stop moving before photographing it. */
         const val SETTLE = 250L
