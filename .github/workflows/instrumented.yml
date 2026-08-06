@@ -60,7 +60,12 @@ jobs:
           # test still leaves pictures behind, and those are exactly the ones worth looking at.
           script: |
             gradle connectedDebugAndroidTest --no-daemon
-            adb exec-out run-as org.phioster.glyphsmith tar c -C /data/data/org.phioster.glyphsmith/files shots 2>/dev/null | tar x || true
+            adb shell run-as org.phioster.glyphsmith ls -l /data/data/org.phioster.glyphsmith/files/shots || true
+            adb exec-out run-as org.phioster.glyphsmith tar c -C /data/data/org.phioster.glyphsmith/files shots > shots.tar || true
+            ls -l shots.tar || true
+            head -c 120 shots.tar | od -c | head -4 || true
+            tar xf shots.tar || true
+            ls shots || true
 
       - name: Upload the screenshots
         if: always()
