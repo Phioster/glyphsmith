@@ -92,8 +92,11 @@ jobs:
           test -n "$WHERE" || { echo "gcloud printed no results location"; exit 0; }
           echo "results at gs://$WHERE"
           mkdir -p robo
+          # The contents rather than the directory: Test Lab names it after the wall clock,
+          # colons and all, and an artifact path may not contain one. The fetch worked and the
+          # upload was what failed.
           # The video is tens of megabytes and says less than the stills; everything else comes.
-          gsutil -m cp -r "gs://$WHERE" robo/ || true
+          gsutil -m cp -r "gs://$WHERE/*" robo/ || true
           find robo -name '*.mp4' -delete
           find robo -type f | head -50
 
