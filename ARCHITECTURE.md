@@ -341,10 +341,22 @@ renderers read `Palettes.byId`; the registry is read by `pipeline/Providers`, wh
 ids to their rules. Routing the UI through the registry instead would change nothing a user or
 a test can observe, so it is not done.
 
-Imported palettes stay out of the registry on purpose. `GlyphsmithViewModel.importPalette`
-applies a file as `paletteOverride` — a colour list carried inside the preset — so an imported
-palette already survives saving, sharing and reloading. Giving it a name and a shelf of its own
-is a product decision, not an architectural gap.
+Imported palettes stay out of the registry on purpose, and now have a shelf anyway. That was
+the product decision the audit's task 12 asked to be made in writing, and it is this:
+
+- **`PaletteStore` keeps them** — one JSON file in app-private storage, upsert by name, shaped
+  after `PresetStore` down to the read-modify-write. The colour panel lists them under
+  *IMPORTED*, apart from the category dropdown.
+- **They still get no stable identity.** A provider id is a promise the build makes about
+  something compiled into it; a palette that arrived this morning cannot make it. A preset
+  naming one would break on any device where the file was never opened.
+- **So a preset carries the colours, not the name.** `applyPalette` goes through
+  `paletteOverride` exactly as `importPalette` always did, which is why a preset made from an
+  imported palette survives saving, sharing and reloading. `importScreen` answers the same
+  question the same way for an imported dither screen.
+
+Listing them beside the built-ins would suggest the two are the same kind of thing, and the
+first person to save a preset against one and send it somewhere would find out otherwise.
 
 A new palette *category* is free text on the palette. The `const val` names in `Palettes` are a
 convention that keeps the built-ins consistent, not a registry that has to be extended.

@@ -51,6 +51,9 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
 - **Animation targets: 17** — six write a plain render setting, ten reach into the effect stack,
   and one writes a *pre-dither* value: what the algorithm reads rather than what it draws.
 - **Preset schema version: 4.**
+- **Imported palettes are kept** in `PaletteStore` — one JSON file, listed under *IMPORTED* in
+  the colour panel, deliberately without stable ids. A preset made from one carries the colours,
+  not a reference. `ARCHITECTURE.md`, *Palette Providers*, has the reasoning.
 
 The dither families, which are the shelves a picker groups styles under, are: error diffusion
 21, patterned 21, special 16, glitch 12, ordered 8, polygon 4, basic 1 (`NONE`).
