@@ -4,10 +4,12 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasSetProgressAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodes
 import androidx.compose.ui.test.onNodeWithText
@@ -103,29 +105,35 @@ class ExerciseEverythingTest {
      * to keep working.
      */
     private fun moveEverySlider(): Int {
-        var moved = 0
-        // Re-fetched each time: setting one can add or remove others — a scanline slider only
-        // exists once scanlines are above zero.
+        // Matched on the action itself rather than on a named matcher, which is both the plainer
+        // statement of what a slider is here and one fewer API name to be wrong about.
+        val isSlider = SemanticsMatcher.keyIsDefined(SemanticsActions.SetProgress)
+        var index = 0
         while (true) {
-            val nodes = rule.onAllNodes(hasSetProgressAction()).fetchSemanticsNodes()
-            if (moved >= nodes.size) break
-            val node = nodes[moved]
-            val range = node.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.ProgressBarRangeInfo)
-            if (range != null) {
-                val target = if (range.current > (range.range.start + range.range.endInclusive) / 2f) {
-                    range.range.start + (range.range.endInclusive - range.range.start) * 0.25f
+            // Re-fetched every time: setting one can add or remove others — the scanline spacing
+            // slider only exists once scanlines are above zero.
+            val nodes = rule.onAllNodes(isSlider).fetchSemanticsNodes()
+            if (index >= nodes.size) break
+
+            val info = nodes[index].config.getOrNull(SemanticsProperties.ProgressBarRangeInfo)
+            if (info != null) {
+                val from = info.range.start
+                val to = info.range.endInclusive
+                // Away from wherever it is, so a slider already at one end still moves.
+                val target = if (info.current > (from + to) / 2f) {
+                    from + (to - from) * 0.25f
                 } else {
-                    range.range.start + (range.range.endInclusive - range.range.start) * 0.75f
+                    from + (to - from) * 0.75f
                 }
                 runCatching {
-                    rule.onAllNodes(hasSetProgressAction())[moved]
-                        .performSemanticsAction(SemanticsActions.SetProgress) { it(target) }
+                    rule.onAllNodes(isSlider)[index]
+                        .performSemanticsAction(SemanticsActions.SetProgress) { set -> set(target) }
                     rule.waitForIdle()
                 }
             }
-            moved++
+            index++
         }
-        return moved
+        return index
     }
 
     /** Clicks every clickable that is not on the avoid list, one at a time, top to bottom. */
@@ -136,7 +144,7 @@ class ExerciseEverythingTest {
             val nodes = provider.onAllNodes(hasClickAction()).fetchSemanticsNodes()
             if (index >= nodes.size) break
             val label = nodes[index].config
-                .getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)
+                .getOrNull(SemanticsProperties.Text)
                 ?.joinToString(" ") { it.text }
                 ?.lowercase()
                 .orEmpty()
