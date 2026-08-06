@@ -40,6 +40,14 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
 - **Tests: 684 test methods across 69 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and
   `assembleDebug`.
+- **Instrumented tests: 4, on an emulator**, in the `Walkthrough` workflow — on `main` and on
+  request, not on every push, because an emulator costs a quarter of an hour. Three open every
+  tab and check the app is still there; the fourth, `ExerciseEverythingTest`, moves every slider
+  and clicks every control that is not on its avoid list, photographing each screen as it goes.
+  Those screenshots are the output: `python3 tools/screens.py` fetches them from the last run and
+  lays them out on one sheet to be looked at. They have already found two things no assertion
+  would have — a walk that deleted a user preset, and a default emulator too small to say
+  anything about the layout.
 - **Animation targets: 17** — six write a plain render setting, ten reach into the effect stack,
   and one writes a *pre-dither* value: what the algorithm reads rather than what it draws.
 - **Preset schema version: 4.**
