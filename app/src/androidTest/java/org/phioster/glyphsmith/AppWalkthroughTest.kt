@@ -116,10 +116,32 @@ class AppWalkthroughTest {
         rule.waitForIdle()
 
         rule.onNodeWithText("PRE").assertExists()
+
+        // Waited for rather than assumed. A render is debounced and then runs off the main
+        // thread, so `waitForIdle` says the *interface* has settled, not that a picture exists —
+        // and this asserted straight after it. That held while the emulator had nothing else to
+        // do and broke the day the gallery started rendering ninety-six images in the same run.
+        // The assumption was the defect; the load only exposed it.
+        rule.waitUntil(RENDER_TIMEOUT) { preview() != null }
+
+        assertTrue("the render produced nothing", preview() != null)
         rule.activityRule.scenario.onActivity { activity ->
             val state = ViewModelProvider(activity)[GlyphsmithViewModel::class.java].state.value
-            assertTrue("the render produced nothing", state.preview != null)
             assertTrue("the source was lost", state.hasImage)
         }
+    }
+
+    /** The rendered preview, read off the same view model the composable holds. */
+    private fun preview(): Any? {
+        var found: Any? = null
+        rule.activityRule.scenario.onActivity { activity ->
+            found = ViewModelProvider(activity)[GlyphsmithViewModel::class.java].state.value.preview
+        }
+        return found
+    }
+
+    private companion object {
+        /** Generous: a loaded emulator rendering at full size is slow, and slow is not wrong. */
+        const val RENDER_TIMEOUT = 20_000L
     }
 }
