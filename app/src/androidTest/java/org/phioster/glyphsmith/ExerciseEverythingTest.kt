@@ -11,7 +11,8 @@ import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodes
+// `onAllNodes` is a member of SemanticsNodeInteractionsProvider, not a free function — importing
+// it is what the second run rejected. `onRoot` and `onNodeWithText` really are extensions.
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
