@@ -12,11 +12,24 @@ jobs:
     name: Let the crawler loose on the app
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Skips cleanly rather than failing while the project has no Firebase credentials, so the
-    # workflow can live on main before the account behind it exists.
-    if: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
 
     steps:
+      # A job-level `if` reading `secrets` is what this used to be, and it is not valid: the
+      # secrets context does not exist when job conditions are evaluated, so GitHub rejected the
+      # whole file and reported a failed run against every push. Nothing ran, and the red mark
+      # said nothing about the code.
+      #
+      # The check belongs in a step, where the context does exist. Failing rather than skipping,
+      # because this workflow is only ever started by hand: someone who asks for a crawl and gets
+      # a silent green has been told nothing.
+      - name: Check the credentials are configured
+        env:
+          KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          test -n "$KEY" || { echo "FIREBASE_SERVICE_ACCOUNT is not set"; exit 1; }
+          test -n "$PROJECT" || { echo "FIREBASE_PROJECT_ID is not set"; exit 1; }
+
       - name: Checkout
         uses: actions/checkout@v4
 
