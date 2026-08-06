@@ -85,12 +85,15 @@ jobs:
         if: always()
         run: |
           set -o pipefail
-          WHERE=$(sed -n 's#.*storage/browser/\([^]]*\)/*\].*#\1#p' robo.log | head -1)
+          WHERE=$(sed -n 's#.*storage/browser/\([^]]*\)\].*#\1#p' robo.log | head -1)
+          # The printed location already ends in a slash, and appending another made a path that
+          # matched nothing at all — "No URLs matched" on a bucket with the results plainly in it.
+          WHERE=${WHERE%/}
           test -n "$WHERE" || { echo "gcloud printed no results location"; exit 0; }
           echo "results at gs://$WHERE"
           mkdir -p robo
           # The video is tens of megabytes and says less than the stills; everything else comes.
-          gsutil -m cp -r "gs://$WHERE/**" robo/ || true
+          gsutil -m cp -r "gs://$WHERE" robo/ || true
           find robo -name '*.mp4' -delete
           find robo -type f | head -50
 

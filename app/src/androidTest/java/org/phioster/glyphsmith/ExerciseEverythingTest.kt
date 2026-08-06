@@ -94,6 +94,9 @@ class ExerciseEverythingTest {
     /** Shots that could not be taken at all, reported together at the end of the walk. */
     private val missed = mutableListOf<String>()
 
+    /** What the walk did on each tab, written out beside the pictures. */
+    private val notes = StringBuilder()
+
     /**
      * A picture of the screen, through UiAutomation rather than Compose.
      *
@@ -109,6 +112,11 @@ class ExerciseEverythingTest {
      * walk; [everyControlOnEveryTab] fails at the end if anything was missed.
      */
     private fun shot(name: String) {
+        // The screenshot comes from the system, not from the composition, so "Compose is idle"
+        // is not the same as "the screen has stopped moving". A short settle in front of every
+        // capture is the difference between a picture of a panel and a picture of an animation.
+        rule.waitForIdle()
+        Thread.sleep(SETTLE)
         val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
         if (bitmap == null) {
             missed += name
@@ -224,11 +232,17 @@ class ExerciseEverythingTest {
      * Through UiAutomation rather than Espresso, so this stays on the one dependency the file
      * already has.
      */
-    private fun dismissAnyPopup() {
-        if (rule.onAllNodes(isPopup()).fetchSemanticsNodes().isEmpty()) return
+    private fun dismissAnyPopup(): Boolean {
+        if (rule.onAllNodes(isPopup()).fetchSemanticsNodes().isEmpty()) return false
         InstrumentationRegistry.getInstrumentation().uiAutomation
             .performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
-        rule.waitForIdle()
+        // Waiting for the popup to be gone, not merely for the composition to settle: the first
+        // attempt did press back and the picture still had the menu in it, torn across two
+        // frames, because the capture went out while it was still animating away.
+        runCatching {
+            rule.waitUntil(TWO_SECONDS) { rule.onAllNodes(isPopup()).fetchSemanticsNodes().isEmpty() }
+        }
+        return true
     }
 
     @Test
@@ -241,13 +255,22 @@ class ExerciseEverythingTest {
             rule.waitForIdle()
             shot("%02d-%s-opened".format(i + 1, tab.lowercase()))
 
-            moveEverySlider()
+            val moved = moveEverySlider()
             shot("%02d-%s-sliders".format(i + 1, tab.lowercase()))
 
-            clickEverySafeControl(rule)
-            dismissAnyPopup()
+            val clicked = clickEverySafeControl(rule)
+            val closed = dismissAnyPopup()
             shot("%02d-%s-controls".format(i + 1, tab.lowercase()))
+
+            notes.appendLine(
+                "$tab: $moved sliders, $clicked controls" + if (closed) ", closed a menu" else "",
+            )
         }
+
+        // Written beside the pictures, because the pictures do not say how they came about. When
+        // a menu was still standing open in one of them, the question was whether the walk had
+        // failed to close it or had closed it too late to matter — and there was nothing to read.
+        File(shots, "notes.txt").writeText(notes.toString())
 
         // Still alive after all of that, which is the thing the walk itself asserts.
         rule.onNodeWithText("SET").assertExists()
@@ -267,5 +290,10 @@ class ExerciseEverythingTest {
          * it. If a panel ever legitimately passes this, the number is the thing to change.
          */
         const val CLICK_BUDGET = 40
+
+        /** How long to let the screen stop moving before photographing it. */
+        const val SETTLE = 250L
+
+        const val TWO_SECONDS = 2_000L
     }
 }
