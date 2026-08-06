@@ -58,3 +58,9 @@ jobs:
       # which publishes a rolling "dev" release instead of eating the artifact quota.
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
+
+      # The instrumented tests are not run here — that needs an emulator and a quarter of an
+      # hour — but they are compiled, which costs seconds. Without this, a misspelling in them
+      # is found by the emulator run on main, after the merge. It has happened twice.
+      - name: Compile the instrumented tests
+        run: gradle assembleDebugAndroidTest --no-daemon --stacktrace

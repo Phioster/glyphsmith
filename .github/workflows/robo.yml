@@ -77,6 +77,32 @@ jobs:
           echo "The video, the screenshots and the logcat are in the Firebase console —"
           echo "the link is printed above, under 'Test results will be streamed to'."
 
+      # The console holds everything and needs a Google login to see. What the crawler actually
+      # found should be readable by whoever is looking at the run, so the results come back here
+      # too. The bucket is not known in advance — Test Lab makes one per project — so it is read
+      # out of the line gcloud prints when it starts.
+      - name: Fetch what the crawler saw
+        if: always()
+        run: |
+          set -o pipefail
+          WHERE=$(sed -n 's#.*storage/browser/\([^]]*\)/*\].*#\1#p' robo.log | head -1)
+          test -n "$WHERE" || { echo "gcloud printed no results location"; exit 0; }
+          echo "results at gs://$WHERE"
+          mkdir -p robo
+          # The video is tens of megabytes and says less than the stills; everything else comes.
+          gsutil -m cp -r "gs://$WHERE/**" robo/ || true
+          find robo -name '*.mp4' -delete
+          find robo -type f | head -50
+
+      - name: Upload what the crawler saw
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: robo-results
+          retention-days: 7
+          path: robo/
+          if-no-files-found: ignore
+
       - name: Remove the key
         if: always()
         run: rm -f "$RUNNER_TEMP/key.json"
