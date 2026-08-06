@@ -58,6 +58,10 @@ class ExerciseEverythingTest {
     private val avoid = listOf(
         "share", "save", "copy", "pick", "load", "import", "export",
         "svg", "txt", "html", "ansi", "gif", "mp4", "camera", "capture",
+        // Added after the first successful run: the preset shelf reported "preset deleted" and
+        // it was this walk that did it. Everything else here is undone by the next run; a
+        // deleted user preset is not.
+        "del]", "delete",
     )
 
     /**

@@ -49,6 +49,10 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
+          # A phone-shaped screen. The default AVD is 320x640, and the first set of screenshots
+          # showed what that is worth: every panel cramped, labels overlapping, nothing that says
+          # anything about how the app looks on the device it is written for.
+          profile: Nexus 5X
           # No window, no audio, no boot animation: none of it is being looked at, and each one
           # is a way for the boot to stall.
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
