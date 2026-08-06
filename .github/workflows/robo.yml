@@ -61,6 +61,10 @@ jobs:
 
       - name: Crawl
         run: |
+          # Without pipefail the pipe swallows the exit code and reports tee's. The first real
+          # run made that concrete: the crawl died on a 403 and the job finished green, which is
+          # worse than no check at all.
+          set -o pipefail
           # No device is named on purpose: model names are retired over time, and a run that
           # fails because a phone from three years ago is gone teaches nothing. Google's default
           # is maintained; --timeout keeps one crawl inside the free tier.
