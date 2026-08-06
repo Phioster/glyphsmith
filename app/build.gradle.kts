@@ -18,6 +18,7 @@ android {
         targetSdk = 35
         versionCode = 2
         versionName = "1.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -177,4 +178,14 @@ dependencies {
     // that can be tested without it still is — see PresetStoreTest for where the line falls.
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("androidx.test:core:1.6.1")
+
+    // The instrumented pass: one walk through the real app on a real Android, for the class of
+    // fault no unit test sees — a tab that crashes when it is opened, a panel that will not
+    // compose, an activity that dies on rotation. Breadth stays with the JVM tests; this is
+    // about the app standing up at all.
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.12.01"))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
