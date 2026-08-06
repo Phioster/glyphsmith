@@ -51,6 +51,7 @@ import org.phioster.glyphsmith.data.ImageLoader
 import org.phioster.glyphsmith.data.LiveCamera
 import org.phioster.glyphsmith.data.LiveFrame
 import org.phioster.glyphsmith.data.PaletteFile
+import org.phioster.glyphsmith.data.PaletteStore
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PlaybackQuality
 import org.phioster.glyphsmith.data.PreviewQuality
@@ -106,6 +107,8 @@ data class UiState(
     val looped: Boolean = true,
     val playbackQuality: PlaybackQuality = PlaybackQuality.RENDERED,
     val favouritePalettes: Set<String> = emptySet(),
+    /** Palettes the user imported and kept. Named rather than identified — see [PaletteStore]. */
+    val importedPalettes: List<PaletteFile> = emptyList(),
     val favouriteStyles: Set<String> = emptySet(),
     /** The live camera is running and the preview is showing what it sees. */
     val liveCamera: Boolean = false,
@@ -122,6 +125,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     private val presets = PresetController(app)
     private val settings = Settings(app)
+    private val palettes = PaletteStore(app)
     private val exports = ExportCoordinator(AndroidExports(app))
 
     private val _state = MutableStateFlow(
@@ -133,6 +137,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             playbackQuality = settings.playbackQuality,
             favouritePalettes = settings.favouritePalettes,
             favouriteStyles = settings.favouriteStyles,
+            importedPalettes = palettes.load(),
         ),
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -320,6 +325,15 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     /** Clears an imported screen, so the style falls back to its own woven default. */
     fun clearScreen() = updateParams(_state.value.params.copy(screenOverride = emptyList()))
 
+    /**
+     * Reads a palette file, keeps what is in it, and applies the first one.
+     *
+     * Keeping is the half that was missing: the colours used to go straight into the render and
+     * nowhere else, so the same file had to be found again the next time. Applying the first
+     * still happens because that is plainly what someone opening one palette meant; opening a
+     * pack of twelve puts twelve on the shelf and shows one, which is the same promise kept at
+     * a different size.
+     */
     fun importPalette(uri: Uri) = runExport("palette") {
         val text = withContext(Dispatchers.IO) {
             runCatching {
@@ -327,10 +341,34 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             }.getOrNull()
         } ?: return@runExport "could not read that file"
 
-        val file = PaletteFile.decode(text) ?: return@runExport "that file isn't a palette"
-        val colors = PaletteFile.colorsOf(file)
-        if (colors.isEmpty()) return@runExport "no usable colours in that file"
+        val read = PaletteFile.decodeAll(text)
+        if (read.isEmpty()) return@runExport "that file isn't a palette"
 
+        val kept = withContext(Dispatchers.IO) { palettes.add(read) }
+        _state.value = _state.value.copy(importedPalettes = kept)
+
+        val first = read.first()
+        val colors = PaletteFile.colorsOf(first)
+        if (colors.isEmpty()) return@runExport "kept ${read.size}, but no usable colours to show"
+        applyPalette(first)
+
+        if (read.size > 1) {
+            "kept ${read.size} palettes · showing ${first.name}"
+        } else {
+            "kept ${first.name} · ${colors.size} colours"
+        }
+    }
+
+    /**
+     * Paints with a palette off the shelf.
+     *
+     * Through `paletteOverride`, the same road an imported palette has always taken, so a preset
+     * saved afterwards carries the colours rather than a reference to a file the next device
+     * will not have.
+     */
+    fun applyPalette(file: PaletteFile) {
+        val colors = PaletteFile.colorsOf(file)
+        if (colors.isEmpty()) return
         updateParams(
             _state.value.params.copy(
                 colorMode = ColorMode.PALETTE,
@@ -338,7 +376,17 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 paletteLocks = List(colors.size) { false },
             ),
         )
-        "loaded ${file.name} · ${colors.size} colours"
+    }
+
+    /**
+     * Takes one off the shelf for good.
+     *
+     * What is on screen is left alone on purpose. The colours in `paletteOverride` are the
+     * current look, not a link to the shelf, and repainting the image because a list entry was
+     * tidied away would be a surprise — the same reason removing a preset does not unload it.
+     */
+    fun forgetPalette(name: String) {
+        _state.value = _state.value.copy(importedPalettes = palettes.remove(name))
     }
 
     fun undo() = history.undo()?.let(::restore)

@@ -115,6 +115,8 @@ fun GlyphsmithScreen(
     onResetPresets: () -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
+    onApplyPalette: (org.phioster.glyphsmith.data.PaletteFile) -> Unit,
+    onForgetPalette: (String) -> Unit,
     onImportScreen: (android.net.Uri, Int) -> Unit,
     onPreviewQualityChange: (PreviewQuality) -> Unit,
     onPlaybackQualityChange: (PlaybackQuality) -> Unit,
@@ -275,6 +277,9 @@ fun GlyphsmithScreen(
                     onExtractPalette = onExtractPalette,
                     onExportPalette = onExportPalette,
                     onImportPalette = onImportPalette,
+                    imported = state.importedPalettes,
+                    onApplyPalette = onApplyPalette,
+                    onForgetPalette = onForgetPalette,
                     favourites = state.favouritePalettes,
                     onToggleFavourite = onToggleFavouritePalette,
                 )

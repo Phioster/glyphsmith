@@ -40,6 +40,7 @@ import kotlin.random.Random
 import org.phioster.glyphsmith.core.color.Palettes
 import org.phioster.glyphsmith.core.color.Palette
 import org.phioster.glyphsmith.core.color.PaletteProvider
+import org.phioster.glyphsmith.data.PaletteFile
 
 /** How many colours the extraction offers to pull out — a short ramp or a rich one. */
 private val EXTRACT_COUNTS = listOf(5, 8, 16)
@@ -56,6 +57,9 @@ fun ColorPanel(
     onExtractPalette: (Int, QuantizeMethod) -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
+    imported: List<PaletteFile>,
+    onApplyPalette: (PaletteFile) -> Unit,
+    onForgetPalette: (String) -> Unit,
     favourites: Set<String>,
     onToggleFavourite: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -102,6 +106,9 @@ fun ColorPanel(
                 onExtractPalette = onExtractPalette,
                 onExportPalette = onExportPalette,
                 onImportPalette = onImportPalette,
+                imported = imported,
+                onApplyPalette = onApplyPalette,
+                onForgetPalette = onForgetPalette,
                 favourites = favourites,
                 onToggleFavourite = onToggleFavourite,
                 categories = categories,
@@ -148,6 +155,9 @@ private fun PaletteSection(
     onExtractPalette: (Int, QuantizeMethod) -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
+    imported: List<PaletteFile>,
+    onApplyPalette: (PaletteFile) -> Unit,
+    onForgetPalette: (String) -> Unit,
     favourites: Set<String>,
     onToggleFavourite: (String) -> Unit,
     categories: List<String>,
@@ -378,11 +388,14 @@ private fun PaletteSection(
         }
         Text(
             "a palette file is just a name and a list of hex colours — editable by hand, " +
-                "and re-sorted by luminance on the way back in",
+                "and re-sorted by luminance on the way back in. One file or a pack of them; " +
+                "what you open is kept below",
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 4.dp),
         )
+
+        ImportedPalettes(imported, onApplyPalette, onForgetPalette)
         Text(
             "■ pins a stop against the shuffle",
             color = Term.InkFaint,
@@ -400,6 +413,65 @@ private fun PaletteSection(
             )
         }
     }
+}
+
+/**
+ * The palettes this device has been given, as opposed to the ones it was built with.
+ *
+ * Kept apart from the category dropdown rather than folded into it, and that is the shape of the
+ * decision underneath: a shipped palette has an id a preset can name, and an imported one does
+ * not — it is a set of colours somebody handed over this morning. Listing the two together would
+ * suggest they are the same kind of thing, and the first person to save a preset against one and
+ * send it somewhere would find out that they are not.
+ *
+ * Absent entirely until something has been imported. An empty shelf explaining itself is a
+ * paragraph every user reads once and then scrolls past forever.
+ */
+@Composable
+private fun ImportedPalettes(
+    imported: List<PaletteFile>,
+    onApply: (PaletteFile) -> Unit,
+    onForget: (String) -> Unit,
+) {
+    if (imported.isEmpty()) return
+
+    Text(
+        "IMPORTED",
+        color = Term.InkDim,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(top = 10.dp),
+    )
+    imported.forEach { file ->
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 3.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            // The colours themselves, because a name is not what anyone is choosing by.
+            PaletteRamp(
+                PaletteFile.colorsOf(file),
+                Modifier.weight(1f).padding(top = 4.dp),
+            )
+            Text(
+                file.name,
+                color = Term.Ink,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f).padding(top = 5.dp),
+            )
+            TerminalButton(label = "use", onClick = { onApply(file) })
+            TerminalButton(
+                label = "[del]",
+                accent = Term.Amber,
+                onClick = { onForget(file.name) },
+            )
+        }
+    }
+    Text(
+        "these stay on this device. A preset made from one carries the colours themselves, " +
+            "so it still opens where the file was never seen",
+        color = Term.InkFaint,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(top = 4.dp),
+    )
 }
 
 @Composable
