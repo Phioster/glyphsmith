@@ -1,8 +1,8 @@
 package org.phioster.glyphsmith
 
-import android.accessibilityservice.AccessibilityService
 import android.graphics.Bitmap
 import android.net.Uri
+import android.view.KeyEvent
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -235,24 +235,34 @@ class ExerciseEverythingTest {
      * Through UiAutomation rather than Espresso, so this stays on the one dependency the file
      * already has.
      */
+    private fun popups() = rule.onAllNodes(isPopup()).fetchSemanticsNodes().size
+
+    /**
+     * Closes menus the walk left standing open, and stops the moment a press achieves nothing.
+     *
+     * Two lessons are built into this. Menus stack — the ANIM tab carries a curve menu and a
+     * property menu per segment — so one press is not enough. And the press has to reach the
+     * menu's own window: `UiAutomation.performGlobalAction` goes through the accessibility
+     * service and left this menu exactly where it was, twelve times in a row, while the counter
+     * happily reported twelve closures. `sendKeyDownUpSync` injects the key into the focused
+     * window, which is the popup.
+     *
+     * Counting what actually closed rather than what was attempted is the other half of that: a
+     * count of presses reads as success and is a lie. If a press changes nothing the loop stops,
+     * and whatever is left is reported by the caller.
+     */
     private fun dismissAnyPopup(): Int {
         var closed = 0
-        // Menus stack. The ANIM picture had two in it — a property menu with a curve menu on top
-        // — and one back press left the other standing, which read as the dismissal not working
-        // at all. Bounded rather than while-open, so a screen that somehow always has a popup
-        // cannot hold the walk here.
-        while (closed < POPUP_LIMIT && rule.onAllNodes(isPopup()).fetchSemanticsNodes().isNotEmpty()) {
-            val before = rule.onAllNodes(isPopup()).fetchSemanticsNodes().size
-            InstrumentationRegistry.getInstrumentation().uiAutomation
-                .performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
-            // Waiting for the popup to be gone, not merely for the composition to settle: the
-            // first attempt did press back and the picture still had the menu in it, torn across
-            // two frames, because the capture went out while it was still animating away.
-            runCatching {
-                rule.waitUntil(TWO_SECONDS) {
-                    rule.onAllNodes(isPopup()).fetchSemanticsNodes().size < before
-                }
-            }
+        repeat(POPUP_LIMIT) {
+            val before = popups()
+            if (before == 0) return closed
+            InstrumentationRegistry.getInstrumentation()
+                .sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+            // Waiting for the menu to be gone, not merely for the composition to settle: an
+            // earlier attempt did dismiss one and the picture still had it in it, torn across two
+            // frames, because the capture went out while it was animating away.
+            runCatching { rule.waitUntil(TWO_SECONDS) { popups() < before } }
+            if (popups() >= before) return closed
             closed++
         }
         return closed
@@ -279,12 +289,16 @@ class ExerciseEverythingTest {
             // sliders that were there at rest and never came back for the ones it had revealed.
             val revealed = moveEverySlider()
             val closed = dismissAnyPopup()
+            val left = popups()
             shot("%02d-%s-controls".format(i + 1, tab.lowercase()))
 
             notes.appendLine(
                 "$tab: $moved sliders, $clicked controls, $revealed sliders after" +
                     (if (clicked >= CLICK_BUDGET) ", budget reached" else "") +
-                    (if (closed > 0) ", closed $closed menus" else ""),
+                    (if (closed > 0) ", closed $closed menus" else "") +
+                    // Said out loud, because a menu in the picture with nothing in the notes is
+                    // what sent me looking for a bug in the dismissal three times over.
+                    (if (left > 0) ", $left STILL OPEN" else ""),
             )
         }
 
