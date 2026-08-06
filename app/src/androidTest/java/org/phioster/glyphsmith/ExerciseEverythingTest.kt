@@ -60,9 +60,18 @@ class ExerciseEverythingTest {
         "svg", "txt", "html", "ansi", "gif", "mp4", "camera", "capture",
     )
 
+    /**
+     * Internal storage, not the external files directory.
+     *
+     * The external one is the obvious choice and it cannot be read off the device: since Android
+     * 11 the FUSE view hides `/sdcard/Android/data/<package>` from the shell as well as from other
+     * apps, so `adb pull` answers "No such file or directory" for a directory that is plainly
+     * there. Internal storage is reachable through `run-as`, which works because a debug build is
+     * debuggable — see the extraction line in `.github/workflows/instrumented.yml`.
+     */
     private val shots: File by lazy {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        File(context.getExternalFilesDir(null), "shots").apply {
+        File(context.filesDir, "shots").apply {
             deleteRecursively()
             mkdirs()
         }
