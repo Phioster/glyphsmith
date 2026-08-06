@@ -63,6 +63,29 @@ data class PaletteFile(
         fun colorsOf(file: PaletteFile): List<Int> =
             Palettes.fromColors(file.colors.mapNotNull { parseHex(it) })
 
+        /** Several palettes as one document, which is what a pack is and what the store keeps. */
+        fun encodeAll(palettes: List<PaletteFile>): String = json.encodeToString(palettes)
+
+        /**
+         * Reads either shape: one palette, or a list of them.
+         *
+         * A pack and a single palette are the same thing to whoever is handing one over — both
+         * arrive as a `.json` and both should just open. Asking the caller to know which it has
+         * would push the question out to every call site, and the file itself already answers
+         * it: an array starts with `[`.
+         *
+         * Empty palettes are dropped rather than refused, so a pack with one bad entry still
+         * yields the rest. A document with nothing usable in it comes back empty, and the
+         * caller says so.
+         */
+        fun decodeAll(text: String): List<PaletteFile> {
+            val single = decode(text)
+            if (single != null) return listOf(single)
+            val many = runCatching { json.decodeFromString<List<PaletteFile>>(text) }.getOrNull()
+                ?: return emptyList()
+            return many.filter { it.colors.isNotEmpty() }
+        }
+
         private fun parseHex(value: String): Int? {
             val digits = value.trim().removePrefix("#").removePrefix("0x").removePrefix("0X")
             // Six digits or eight; an alpha given in the file is dropped, since a palette
