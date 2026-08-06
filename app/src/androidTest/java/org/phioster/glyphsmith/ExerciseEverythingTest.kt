@@ -235,17 +235,27 @@ class ExerciseEverythingTest {
      * Through UiAutomation rather than Espresso, so this stays on the one dependency the file
      * already has.
      */
-    private fun dismissAnyPopup(): Boolean {
-        if (rule.onAllNodes(isPopup()).fetchSemanticsNodes().isEmpty()) return false
-        InstrumentationRegistry.getInstrumentation().uiAutomation
-            .performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
-        // Waiting for the popup to be gone, not merely for the composition to settle: the first
-        // attempt did press back and the picture still had the menu in it, torn across two
-        // frames, because the capture went out while it was still animating away.
-        runCatching {
-            rule.waitUntil(TWO_SECONDS) { rule.onAllNodes(isPopup()).fetchSemanticsNodes().isEmpty() }
+    private fun dismissAnyPopup(): Int {
+        var closed = 0
+        // Menus stack. The ANIM picture had two in it — a property menu with a curve menu on top
+        // — and one back press left the other standing, which read as the dismissal not working
+        // at all. Bounded rather than while-open, so a screen that somehow always has a popup
+        // cannot hold the walk here.
+        while (closed < POPUP_LIMIT && rule.onAllNodes(isPopup()).fetchSemanticsNodes().isNotEmpty()) {
+            val before = rule.onAllNodes(isPopup()).fetchSemanticsNodes().size
+            InstrumentationRegistry.getInstrumentation().uiAutomation
+                .performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
+            // Waiting for the popup to be gone, not merely for the composition to settle: the
+            // first attempt did press back and the picture still had the menu in it, torn across
+            // two frames, because the capture went out while it was still animating away.
+            runCatching {
+                rule.waitUntil(TWO_SECONDS) {
+                    rule.onAllNodes(isPopup()).fetchSemanticsNodes().size < before
+                }
+            }
+            closed++
         }
-        return true
+        return closed
     }
 
     @Test
@@ -274,7 +284,7 @@ class ExerciseEverythingTest {
             notes.appendLine(
                 "$tab: $moved sliders, $clicked controls, $revealed sliders after" +
                     (if (clicked >= CLICK_BUDGET) ", budget reached" else "") +
-                    (if (closed) ", closed a menu" else ""),
+                    (if (closed > 0) ", closed $closed menus" else ""),
             )
         }
 
@@ -308,5 +318,8 @@ class ExerciseEverythingTest {
         const val SETTLE = 250L
 
         const val TWO_SECONDS = 2_000L
+
+        /** How many stacked menus to close before giving up and photographing what is there. */
+        const val POPUP_LIMIT = 4
     }
 }

@@ -97,7 +97,10 @@ jobs:
           # upload was what failed.
           # The video is tens of megabytes and says less than the stills; everything else comes.
           gsutil -m cp -r "gs://$WHERE/*" robo/ || true
+          # The video is large and says less than the stills, and the APK came from this very
+          # run — eighteen megabytes of something already on disk.
           find robo -name '*.mp4' -delete
+          find robo -name '*.apk' -delete
           find robo -type f | head -50
 
       - name: Upload what the crawler saw
