@@ -231,13 +231,23 @@ gradle assembleDebug
 
 CI runs all four on every push.
 
-Release builds are signed with a key that never enters the repository: `release.yml` decodes
-it from a secret into the runner for one job, and the build fails rather than publishes if the
-resulting APK is not signed by it. Without that secret a local `assembleRelease` falls back to
-debug signing, so it still works.
+Release builds are signed **on the maintainer's device only**. The key is neither in the
+repository nor in GitHub Actions secrets — a key that exists in two places can leak from two
+places. CI therefore builds the release APK debug-signed and *verifies that the release key was
+not used*, which would mean it had leaked into CI.
 
-A `workflow_dispatch` run builds an APK and uploads it as a run artifact, publishing nothing;
-pushing a `vX.Y.Z` tag is what cuts a GitHub Release.
+Signing and publishing happen locally:
+
+```
+tools/sign-release.sh app-release.apk v1.2.0
+```
+
+That replaces the signature, refuses to continue if the result is still debug-signed or carries
+an unexpected signer, and uploads the signed APK to the release. Needs `apksigner`
+(`pkg install apksigner` on Termux).
+
+Every run — tag or `workflow_dispatch` — uploads the debug-signed APK as a run artifact and
+publishes nothing on its own.
 
 ## Layout
 
