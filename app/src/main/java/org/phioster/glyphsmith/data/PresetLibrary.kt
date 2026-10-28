@@ -287,6 +287,30 @@ object PresetLibrary {
         // A matrix decides the threshold, so the pattern is fixed and the picture moves
         // through it. Everything on this shelf is a matrix; nothing here diffuses error.
         pixel(
+            "ash and mauve",
+            PresetStore.CATEGORY_ORDERED,
+            // The look of O EMPIRE! WARD OFF THY ROT: a Bayer screen over four dusty greys
+            // sampled from the game, softened afterwards so the dots bloom, with a dark rim.
+            RenderSettings(
+                cellSize = 3,
+                depth = 6,
+                contrast = 1.1f,
+                ditherMode = DitherMode.BAYER_8,
+                colorMode = ColorMode.PALETTE,
+                // Four greys from the game's grey scenes, plus the two poppy reds of its
+                // field scene: red source pixels come out red, everything else stays ash.
+                paletteOverride = listOf(
+                    0xFF2B272A.toInt(), 0xFF7A6A6E.toInt(), 0xFFB1AEAB.toInt(), 0xFFE8E8DA.toInt(),
+                    0xFFE0242E.toInt(), 0xFFA8202A.toInt(),
+                ),
+                backgroundColor = 0xFF2B272A.toInt(),
+                effects = EffectStack(
+                    blurSharpen = BlurSharpenParams(enabled = true, amount = 35, radius = 2),
+                    postProcessing = PostProcessingParams(enabled = true, vignette = 60, grain = 8),
+                ),
+            ),
+        ),
+        pixel(
             "bayer eight",
             PresetStore.CATEGORY_ORDERED,
             RenderSettings(
