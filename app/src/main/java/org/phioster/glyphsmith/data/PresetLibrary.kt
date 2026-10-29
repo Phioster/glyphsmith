@@ -293,6 +293,9 @@ object PresetLibrary {
             // sampled from the game, softened afterwards so the dots bloom, with a dark rim.
             RenderSettings(
                 cellSize = 3,
+                // Pinned because the default fills the 8192 px budget: a portrait photo then
+                // exported at ~5700x7600 and the blur and vignette copies ran out of heap.
+                pixelBlock = 4,
                 depth = 6,
                 contrast = 1.1f,
                 ditherMode = DitherMode.BAYER_8,
