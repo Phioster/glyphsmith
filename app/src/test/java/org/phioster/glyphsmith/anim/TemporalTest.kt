@@ -10,8 +10,8 @@ class TemporalTest {
     private val patterns = TemporalPattern.entries
 
     @Test
-    fun `there are nine patterns`() {
-        assertEquals(9, patterns.size)
+    fun `there are ten patterns`() {
+        assertEquals(10, patterns.size)
     }
 
     @Test
@@ -153,5 +153,13 @@ class TemporalTest {
         assertTrue(Animator.sample(AnimCurve.EASE_IN, 0.5f, 0, 1) < 0.5f)
         assertTrue(Animator.sample(AnimCurve.EASE_OUT, 0.5f, 0, 1) > 0.5f)
         assertEquals(0.5f, Animator.sample(AnimCurve.EASE_IN_OUT, 0.5f, 0, 1), 1e-5f)
+    }
+
+    @Test
+    fun `diagonal stripes run along their angle and change across it`() {
+        val along = (0..6).map { Temporal.sample(TemporalPattern.DIAGONAL, it * 0.7f, -it * 0.7f, 0.1f, 1, 45) }
+        along.forEach { assertEquals(along[0], it, 1e-4f) }
+        val across = (0..6).map { Temporal.sample(TemporalPattern.DIAGONAL, it * 0.1f, it * 0.1f, 0.1f, 1, 45) }
+        assertTrue(across.max() - across.min() > 0.5f)
     }
 }

@@ -335,7 +335,7 @@ private fun TemporalSection(params: TemporalParams, onChange: (TemporalParams) -
         )
         if (!params.enabled) {
             Text(
-                "nine animated noise patterns that shift the dithering itself, the way an " +
+                "ten animated noise patterns that shift the dithering itself, the way an " +
                     "old screen never quite holds still",
                 color = Term.InkFaint,
                 style = MaterialTheme.typography.bodySmall,
@@ -375,6 +375,15 @@ private fun TemporalSection(params: TemporalParams, onChange: (TemporalParams) -
             valueText = "${params.amount}/100",
             onValueChange = { onChange(params.copy(amount = it.toInt())) },
         )
+        if (params.pattern == TemporalPattern.DIAGONAL) {
+            TerminalSlider(
+                label = "angle",
+                value = params.angle.toFloat(),
+                range = 0f..359f,
+                valueText = "${params.angle}°",
+                onValueChange = { onChange(params.copy(angle = it.toInt())) },
+            )
+        }
         Text(
             "every pattern is periodic over the loop, so the last frame lands back on the " +
                 "first — whole speeds only, for the same reason",

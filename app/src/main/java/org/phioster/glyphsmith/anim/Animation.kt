@@ -111,6 +111,9 @@ enum class AnimTarget(
 
     /** The orb lattice's own rotation, independent of the pattern angle. */
     ORB_DIRECTION("anim.orb-direction", "Orb Direction", 0, 359, cyclic = true),
+
+    /** The direction the diagonal temporal stripes run — turned with the orbs, they move as one. */
+    TEMPORAL_ANGLE("anim.temporal-angle", "Temporal Angle", 0, 359, cyclic = true),
 }
 
 /**
