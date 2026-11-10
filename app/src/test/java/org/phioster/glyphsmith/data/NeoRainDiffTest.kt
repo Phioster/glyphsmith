@@ -50,8 +50,9 @@ class NeoRainDiffTest {
                 else -> preset
             }
         }
-        val text = PresetSchema.encode(old)
-            .replace(Regex(",\\s*\"(runs|vary|falloff|head|gamma|mirror)\":\\s*[^,}\\s]+"), "")
+        val inner = Regex(",\\s*\"(runs|vary|falloff|head|gamma|mirror)\":\\s*[^,}\\s]+")
+        val text = Regex("\"neoGlow\":\\s*\\{[^}]*\\}")
+            .replace(PresetSchema.encode(old)) { it.value.replace(inner, "") }
         val hashed = MessageDigest.getInstance("SHA-256").digest(text.toByteArray())
             .joinToString("") { "%02x".format(it) }
         assertEquals("c340751c75553f5c672725d694763ffc42c88ded88a15c837aaf717f76b0b964", hashed)
