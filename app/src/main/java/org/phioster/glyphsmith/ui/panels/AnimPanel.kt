@@ -335,7 +335,7 @@ private fun TemporalSection(params: TemporalParams, onChange: (TemporalParams) -
         )
         if (!params.enabled) {
             Text(
-                "ten animated noise patterns that shift the dithering itself, the way an " +
+                "eleven animated noise patterns that shift the dithering itself, the way an " +
                     "old screen never quite holds still",
                 color = Term.InkFaint,
                 style = MaterialTheme.typography.bodySmall,
