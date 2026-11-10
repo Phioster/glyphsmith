@@ -24,7 +24,7 @@ class ShapesTest {
             val c = Shapes.contours(kind)
             var hits = 0
             for (y in -10..10) for (x in -10..10) if (Shapes.inside(c, x / 10f + 0.01f, y / 10f + 0.01f)) hits++
-            assertTrue("$kind covers $hits of 441 probes", hits in 60..440)
+            assertTrue("$kind covers $hits of 441 probes", hits in 40..440)
         }
     }
 
@@ -44,5 +44,22 @@ class ShapesTest {
             assertTrue(d.startsWith("M"))
             assertEquals(Shapes.contours(kind).size, d.count { it == 'Z' })
         }
+    }
+
+    @Test
+    fun `the bayer tiles fill two, six and ten of sixteen cells`() {
+        fun filled(kind: ShapeKind): Int {
+            val c = Shapes.contours(kind)
+            return (0 until 16).count { Shapes.inside(c, -0.75f + (it % 4) * 0.5f, -0.75f + (it / 4) * 0.5f) }
+        }
+        assertEquals(listOf(2, 6, 10), listOf(ShapeKind.BAYER_13, ShapeKind.BAYER_38, ShapeKind.BAYER_63).map(::filled))
+    }
+
+    @Test
+    fun `the triangles point where their names say`() {
+        assertTrue(Shapes.inside(Shapes.contours(ShapeKind.TRIANGLE), 0f, -0.9f))
+        assertTrue(Shapes.inside(Shapes.contours(ShapeKind.TRIANGLE_DOWN), 0f, 0.9f))
+        assertTrue(Shapes.inside(Shapes.contours(ShapeKind.TRIANGLE_LEFT), -0.9f, 0f))
+        assertTrue(Shapes.inside(Shapes.contours(ShapeKind.TRIANGLE_RIGHT), 0.9f, 0f))
     }
 }

@@ -18,6 +18,8 @@ data class ShapeBand(
     val size: Int = 100,
     /** 1..100 — the band's share of the tonal range, relative to the other bands. */
     val width: Int = 50,
+    /** This band's own colour, used when [ShapeShifterParams.perBandColor] is on. */
+    val color: Int = -1,
 )
 
 enum class FeatherPattern(val label: String) { ORDERED("ordered"), SCATTER("scatter") }
@@ -42,6 +44,12 @@ data class ShapeShifterParams(
     val layout: ShapeLayout = ShapeLayout.SQUARE,
     /** 0..359 — every shape turned by this many degrees. */
     val rotation: Int = 0,
+    /** Each band draws in its own [ShapeBand.color] instead of what the colour mode would give. */
+    val perBandColor: Boolean = false,
+    /** 0..100 — how far each shape is turned at random, up to a quarter turn either way. */
+    val rotationJitter: Int = 0,
+    /** Hard pixel edges instead of smoothed ones. */
+    val crispEdges: Boolean = false,
 )
 
 /** A named list of bands to start from. */
@@ -52,6 +60,10 @@ class ShapeSet(val name: String, val bands: List<ShapeBand>) {
 object ShapeSets {
     private fun set(name: String, vararg bands: Pair<ShapeKind, Int>) =
         ShapeSet(name, bands.map { (shape, size) -> ShapeBand(shape, size) })
+
+    private const val RED = 0xFFE5262B.toInt()
+    private const val GREY = 0xFF8A8A8A.toInt()
+    private const val PALE = 0xFFE4E4E4.toInt()
 
     // The brightest band stops at or just under 100, so neighbours touch without merging and
     // the shapes stay readable; overlap is a choice made with the grid's shape size.
@@ -95,6 +107,28 @@ object ShapeSets {
             "bars",
             ShapeKind.EMPTY to 100, ShapeKind.BAR to 55, ShapeKind.BAR to 95,
             ShapeKind.SQUARE to 100,
+        ),
+        set(
+            "hexagons",
+            ShapeKind.EMPTY to 100, ShapeKind.HEXAGON to 45, ShapeKind.HEXAGON to 72,
+            ShapeKind.HEXAGON to 100,
+        ),
+        // A dither built from bands: the tiles fill their cell, so the steps read as tone.
+        set(
+            "bayer tiles",
+            ShapeKind.EMPTY to 100, ShapeKind.BAYER_13 to 100, ShapeKind.BAYER_38 to 100,
+            ShapeKind.BAYER_63 to 100, ShapeKind.SQUARE to 114,
+        ),
+        // Carries band colours of its own; they show once "colour per band" is on.
+        ShapeSet(
+            "red hearts",
+            listOf(
+                ShapeBand(ShapeKind.EMPTY),
+                ShapeBand(ShapeKind.CIRCLE, 40, color = GREY),
+                ShapeBand(ShapeKind.CIRCLE, 70, color = PALE),
+                ShapeBand(ShapeKind.CIRCLE, 95, color = PALE),
+                ShapeBand(ShapeKind.PIXEL_HEART, 100, 25, RED),
+            ),
         ),
     )
 
@@ -166,7 +200,9 @@ class ShapeField(
     val color: IntArray,
     /** Cell indices dark to bright, so brighter shapes are drawn over darker ones. */
     val order: IntArray,
-    val rotation: Int,
+    /** Degrees per cell: the grid's rotation plus that cell's jitter. */
+    val rotation: IntArray,
+    val crisp: Boolean = false,
 )
 
 object ShapeShifter {
@@ -177,6 +213,9 @@ object ShapeShifter {
     private const val OPAQUE = 0xFF000000.toInt()
     private const val LEVELS = 256
     private const val QUARTER = 4
+    private const val FULL_TURN = 360
+    private const val JITTER_REACH = 90
+    private const val JITTER_STEP = 6
 
     /** 4×4 Bayer, the ordered feather's thresholds. */
     private val bayer = intArrayOf(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5)
@@ -202,6 +241,8 @@ object ShapeShifter {
         val radius = FloatArray(n)
         val shape = Array(n) { ShapeKind.EMPTY }
         val color = IntArray(n)
+        val rotation = IntArray(n)
+        val jitterSteps = shifter.rotationJitter.coerceIn(0, 100) * JITTER_REACH / 100 / JITTER_STEP
         val base = 0.5f * shifter.shapeSize.coerceIn(10, 200) / 100f
         val toneScale = shifter.toneScaling.coerceIn(0, 100) / 100f
         // The feather jitters the tone by up to half an average band before the band is chosen.
@@ -218,10 +259,15 @@ object ShapeShifter {
                 y[i] = row + 0.5f
                 shape[i] = band.shape
                 radius[i] = base * band.size.coerceIn(0, 200) / 100f * (1f - toneScale * (1f - tone))
-                color[i] = colourOf(i, tone, grid, params, palette)
+                color[i] = if (shifter.perBandColor) band.color or OPAQUE else colourOf(i, tone, grid, params, palette)
+                // Jitter in whole steps, so cells that land on the same turn share one stamp.
+                val turn = Math.round((hash(col + 7919, row) * 2f - 1f) * jitterSteps) * JITTER_STEP
+                rotation[i] = Math.floorMod(shifter.rotation + turn, FULL_TURN)
             }
         }
-        return ShapeField(grid.cols, grid.rows, x, y, radius, shape, color, byTone(grid.luma, n), shifter.rotation)
+        return ShapeField(
+            grid.cols, grid.rows, x, y, radius, shape, color, byTone(grid.luma, n), rotation, shifter.crispEdges,
+        )
     }
 
     private fun threshold(col: Int, row: Int, pattern: FeatherPattern): Float = when (pattern) {
@@ -260,10 +306,7 @@ object ShapeShifter {
         val out = IntArray(width * height)
         if (!params.transparentBackground) out.fill(params.backgroundColor or OPAQUE)
 
-        val radians = field.rotation * PI / 180.0
-        val cosR = cos(radians).toFloat()
-        val sinR = sin(radians).toFloat()
-        val stamps = HashMap<Int, Stamp>()
+        val stamps = HashMap<Long, Stamp>()
 
         for (i in field.order) {
             val kind = field.shape[i]
@@ -275,9 +318,15 @@ object ShapeShifter {
             val cy = Math.round(field.y[i] * block * QUARTER)
             val fx = Math.floorMod(cx, QUARTER)
             val fy = Math.floorMod(cy, QUARTER)
-            val key = kind.ordinal or (fx shl 4) or (fy shl 6) or (halfPixels shl 8)
+            val turn = field.rotation[i]
+            val key = kind.ordinal.toLong() or (fx.toLong() shl 8) or (fy.toLong() shl 10) or
+                (turn.toLong() shl 12) or (halfPixels.toLong() shl 24)
             val stamp = stamps.getOrPut(key) {
-                Stamp.of(kind, halfPixels / 2f, fx / QUARTER.toFloat(), fy / QUARTER.toFloat(), cosR, sinR)
+                val radians = turn * PI / 180.0
+                Stamp.of(
+                    kind, halfPixels / 2f, fx / QUARTER.toFloat(), fy / QUARTER.toFloat(),
+                    cos(radians).toFloat(), sin(radians).toFloat(), field.crisp,
+                )
             }
             blit(out, width, height, stamp, Math.floorDiv(cx, QUARTER), Math.floorDiv(cy, QUARTER), field.color[i])
         }
@@ -318,7 +367,15 @@ object ShapeShifter {
     private class Stamp(val half: Int, val alpha: ByteArray) {
         companion object {
             @Suppress("LongParameterList")
-            fun of(kind: ShapeKind, radius: Float, fx: Float, fy: Float, cosR: Float, sinR: Float): Stamp {
+            fun of(
+                kind: ShapeKind,
+                radius: Float,
+                fx: Float,
+                fy: Float,
+                cosR: Float,
+                sinR: Float,
+                crisp: Boolean,
+            ): Stamp {
                 val half = ceil(radius).toInt() + 1
                 val side = half * 2
                 val alpha = ByteArray(side * side)
@@ -334,7 +391,8 @@ object ShapeShifter {
                             val uy = (py * cosR - px * sinR) / radius
                             if (Shapes.inside(contours, ux, uy)) hits++
                         }
-                        alpha[j * side + i] = (hits * 255 / (SAMPLES * SAMPLES)).toByte()
+                        val cover = hits * 255 / (SAMPLES * SAMPLES)
+                        alpha[j * side + i] = (if (crisp) (if (cover >= 128) 255 else 0) else cover).toByte()
                     }
                 }
                 return Stamp(half, alpha)

@@ -36,6 +36,7 @@ import org.phioster.glyphsmith.render.ShapeSet
 import org.phioster.glyphsmith.render.ShapeSets
 import org.phioster.glyphsmith.render.ShapeShifterParams
 import org.phioster.glyphsmith.render.Shapes
+import org.phioster.glyphsmith.ui.HexColorField
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton
@@ -72,7 +73,7 @@ internal fun ShapeShifterSection(params: RenderSettings, onChange: (RenderSettin
     )
 
     BandStrip(bands, selected) { open = it }
-    BandEditor(bands, selected) { update(shifter.copy(bands = it)) }
+    BandEditor(bands, selected, shifter.perBandColor) { update(shifter.copy(bands = it)) }
 
     Row(
         Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -89,6 +90,12 @@ internal fun ShapeShifterSection(params: RenderSettings, onChange: (RenderSettin
         TerminalButton("even", { update(shifter.copy(bands = ShapeBands.distribute(bands))) }, Modifier.weight(1f))
         TerminalButton("reverse", { update(shifter.copy(bands = ShapeBands.reverse(bands))) }, Modifier.weight(1f))
     }
+
+    TerminalToggle(
+        label = "colour per band",
+        checked = shifter.perBandColor,
+        onCheckedChange = { update(shifter.copy(perBandColor = it)) },
+    )
 
     TerminalSlider(
         "feather", shifter.feather.toFloat(), 0f..100f,
@@ -127,14 +134,24 @@ internal fun ShapeShifterSection(params: RenderSettings, onChange: (RenderSettin
         { update(shifter.copy(rotation = it.toInt())) },
         valueText = "${shifter.rotation}°",
     )
+    TerminalSlider(
+        "rotation jitter", shifter.rotationJitter.toFloat(), 0f..100f,
+        { update(shifter.copy(rotationJitter = it.toInt())) },
+        valueText = "${shifter.rotationJitter}/100",
+    )
+    TerminalToggle(
+        label = "crisp edges",
+        checked = shifter.crispEdges,
+        onCheckedChange = { update(shifter.copy(crispEdges = it)) },
+    )
     TerminalToggle(
         label = "invert tones",
         checked = params.invert,
         onCheckedChange = { onChange(params.copy(invert = it)) },
     )
     Text(
-        "colour comes from the COLOUR tab: source takes each cell's own colour, palette picks " +
-            "by tone, single draws every shape in the ink colour.",
+        "without colour per band, colour comes from the COLOUR tab: source takes each cell's " +
+            "own colour, palette picks by tone, single draws every shape in the ink colour.",
         color = Term.InkFaint,
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(top = 6.dp),
@@ -170,7 +187,12 @@ private fun BandStrip(bands: List<ShapeBand>, selected: Int, onSelect: (Int) -> 
 }
 
 @Composable
-private fun BandEditor(bands: List<ShapeBand>, index: Int, onChange: (List<ShapeBand>) -> Unit) {
+private fun BandEditor(
+    bands: List<ShapeBand>,
+    index: Int,
+    ownColour: Boolean,
+    onChange: (List<ShapeBand>) -> Unit,
+) {
     val band = bands[index]
     val set: (ShapeBand) -> Unit = { next -> onChange(bands.mapIndexed { i, old -> if (i == index) next else old }) }
 
@@ -197,6 +219,13 @@ private fun BandEditor(bands: List<ShapeBand>, index: Int, onChange: (List<Shape
         { set(band.copy(width = it.toInt())) },
         valueText = "${band.width}",
     )
+    if (ownColour && band.shape != ShapeKind.EMPTY) {
+        HexColorField(
+            label = "band colour",
+            color = band.color,
+            onColorChange = { set(band.copy(color = it)) },
+        )
+    }
 }
 
 @Composable
