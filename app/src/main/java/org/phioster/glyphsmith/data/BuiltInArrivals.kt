@@ -30,5 +30,8 @@ object BuiltInArrivals {
         )
     }
 
+    /** Every built-in counts as offered once a library is written by a build that ships it. */
+    fun allOffered(builtIns: List<Preset>): Set<String> = builtIns.map { key(it.name) }.toSet()
+
     private fun key(name: String) = name.trim().lowercase()
 }

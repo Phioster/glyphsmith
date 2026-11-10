@@ -51,6 +51,12 @@ class PresetStore(context: Context) {
 
     fun save(presets: List<Preset>) {
         runCatching { file.writeText(PresetSchema.encode(presets)) }
+        // A library this build writes has been offered everything this build ships; only a
+        // file from before the record existed needs the arrivals worked out on load.
+        if (!offeredFile.exists()) {
+            val all = BuiltInArrivals.allOffered(PresetLibrary.builtIns)
+            runCatching { offeredFile.writeText(all.sorted().joinToString("\n")) }
+        }
     }
 
     fun exportJson(): String = PresetSchema.encode(load())

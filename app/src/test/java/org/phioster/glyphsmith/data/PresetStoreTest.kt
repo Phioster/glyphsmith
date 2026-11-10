@@ -41,6 +41,7 @@ class PresetStoreTest {
         val context = ApplicationProvider.getApplicationContext<android.app.Application>()
         file = File(context.filesDir, "presets.json")
         file.delete()
+        File(context.filesDir, "presets_offered.txt").delete()
         store = PresetStore(context)
     }
 
@@ -284,5 +285,15 @@ class PresetStoreTest {
         assertEquals("old", loaded.name)
         assertEquals(RenderMode.GlyphMatrix, loaded.params.renderMode)
         assertEquals(7, loaded.params.cellSize)
+    }
+
+    /** A library written before the offered record existed gets this build's arrivals once. */
+    @Test
+    fun `an old library gains the presets shipped since, once`() {
+        file.writeText(PresetSchema.encode(listOf(preset("mine"))))
+
+        val names = store.load().map { it.name }
+        BuiltInArrivals.SINCE_1_1_0.forEach { assertTrue("$it did not arrive", it in names) }
+        assertEquals(names, store.load().map { it.name })
     }
 }
