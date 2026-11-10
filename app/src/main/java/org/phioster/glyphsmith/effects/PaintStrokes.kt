@@ -16,7 +16,7 @@ import org.phioster.glyphsmith.core.image.Pixels
 @Serializable
 data class PaintStrokesParams(
     val enabled: Boolean = false,
-    /** 1..48 — the brush, in 1/600 of the picture's shorter side, so preview and export agree. */
+    /** 1..48 — the brush, in 1/1000 of the picture's shorter side, so preview and export agree. */
     val brushSize: Int = 14,
     /** 0..100 — how hard a stroke's border is. */
     val sharpness: Int = 70,
@@ -34,14 +34,14 @@ data class PaintStrokesParams(
 
 object PaintStrokes {
 
-    private const val UNIT_DIVISOR = 600f
-    private const val MAX_SMOOTH = 8
-    private const val SMOOTH_SHARE = 0.75f
-    private const val PASS_SHRINK = 0.6f
+    private const val UNIT_DIVISOR = 1000f
+    private const val MAX_SMOOTH = 4
+    private const val SMOOTH_SHARE = 0.4f
+    private const val PASS_SHRINK = 0.5f
     private const val SPACING = 0.55f
-    private const val REFINE_AT = 18
+    private const val REFINE_AT = 26
     private const val TILT = 0.5f
-    private const val SHADE = 0.1f
+    private const val SHADE = 0.16f
 
     val pass = EffectPass(
         EffectStack::paintStrokes,
@@ -56,7 +56,7 @@ object PaintStrokes {
         val w = source.width
         val h = source.height
         if (!params.enabled || w < 4 || h < 4) return source
-        val unit = max(2f, min(w, h) * params.brushSize.coerceIn(1, 48) / UNIT_DIVISOR)
+        val unit = max(1.5f, min(w, h) * params.brushSize.coerceIn(1, 48) / UNIT_DIVISOR)
         // Strokes read their colour and their edges from a lightly smoothed copy, so a dither's
         // single dots mix into the tone they stand for instead of each claiming a stroke.
         val smooth = PixelOps.blurRgba(source, (unit * SMOOTH_SHARE).toInt().coerceIn(2, MAX_SMOOTH)).data
@@ -65,7 +65,7 @@ object PaintStrokes {
         var size = unit
         for (round in 0 until params.passes.coerceIn(1, 4)) {
             paint(smooth, canvas, w, h, size, round, params)
-            size = max(2f, size * PASS_SHRINK)
+            size = max(1.5f, size * PASS_SHRINK)
         }
 
         val mix = params.mix.coerceIn(0, 100) * 256 / 100

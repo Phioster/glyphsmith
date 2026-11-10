@@ -77,6 +77,13 @@ object PresetLibrary {
     private fun glyph(name: String, category: String, params: RenderSettings) =
         Preset(name, params.copy(renderMode = RenderMode.GlyphMatrix), category)
 
+    /** Twenty-four pigments, dark to light: earths, reds, skin, greens, blues, greys and white. */
+    private val PAINT_BOX = listOf(
+        0xFF0B0A0C, 0xFF1F1A1C, 0xFF2B1D14, 0xFF16263A, 0xFF1F3324, 0xFF4A2A1A, 0xFF5E1F1C, 0xFF3A3F47,
+        0xFF2F5078, 0xFF3F6B3A, 0xFF7A4A2A, 0xFFA3352C, 0xFF6E6A66, 0xFF8C6A4A, 0xFF5E8FB8, 0xFF7FA05A,
+        0xFFC07A4A, 0xFFD9A441, 0xFFA8A29A, 0xFFDDA98A, 0xFFE8C9A8, 0xFFB8D4E8, 0xFFE9E2D6, 0xFFFBF8F0,
+    ).map { it.toInt() }
+
     /** A Shape Shifter preset: tones drawn as vector shapes on a grid. */
     private fun shapes(name: String, category: String, params: RenderSettings) =
         Preset(name, params.copy(renderMode = RenderMode.ShapeShifter), category)
@@ -1453,15 +1460,18 @@ object PresetLibrary {
             "oil study",
             PresetStore.CATEGORY_CLASSIC,
             // A fine colour dither repainted in brush strokes: the strokes mix its dots back
-            // into tones, turn along the edges and stop at them. Two passes, the second with a
-            // smaller brush for the detail the first one lost.
+            // into tones, turn along the edges and stop at them. Three passes, each with half
+            // the brush, bring back the detail the big strokes lose. The palette is a painter's
+            // box wide enough to hold a photograph's colours; extract one from the picture for
+            // its exact ones.
             RenderSettings(
                 cellSize = 2,
                 ditherMode = DitherMode.FLOYD_STEINBERG,
                 colorMode = ColorMode.SOURCE,
                 paletteId = "palette.oxide",
+                paletteOverride = PAINT_BOX,
                 effects = EffectStack(
-                    paintStrokes = PaintStrokesParams(enabled = true, brushSize = 16, passes = 2),
+                    paintStrokes = PaintStrokesParams(enabled = true, brushSize = 26, passes = 3),
                 ),
             ),
         ),
