@@ -1890,8 +1890,8 @@ object PresetLibrary {
         glyph(
             "matrix reveal",
             PresetStore.CATEGORY_GLYPH,
-            // Katakana that stay where they are while runs of green light fall through them —
-            // neo glow lighting only what is drawn, swept once per loop.
+            // Code rain that uncovers the picture: each column's bright head falls and leaves the
+            // katakana portrait standing behind it, then the rain closes over it again.
             RenderSettings(
                 charSetId = "lang-katakana",
                 cellSize = 8,
@@ -1912,6 +1912,7 @@ object PresetLibrary {
                         falloff = 70,
                         head = 75,
                         gamma = 20,
+                        reveal = true,
                     ),
                     glow = GlowParams(enabled = true, threshold = 55, radius = 40, intensity = 350),
                     // Neo glow before glow, so the bright heads are what blooms.

@@ -5,6 +5,7 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.floor
+import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sin
 import org.phioster.glyphsmith.core.image.Pixels
@@ -47,6 +48,12 @@ data class NeoGlowParams(
     val gamma: Int = 50,
     /** Every other lane runs the opposite way. */
     val mirror: Boolean = false,
+    /**
+     * Uncover the picture instead of only raining over it: each lane's head sweeps through once,
+     * leaving the image standing behind it, then a second wave covers it with rain again so the
+     * loop closes. Outside the uncovered part only the rain shows.
+     */
+    val reveal: Boolean = false,
 )
 
 object NeoGlow {
@@ -89,7 +96,16 @@ object NeoGlow {
                 val way = if (params.mirror && Math.floorMod(laneIndex, 2) == 1) along - t else t
                 val glow = brightest(way, laneIndex, along, tail, phase, params)
                 val index = y * source.width + x
-                source.data[index] = light(source.data[index], rest + (1f - rest) * glow, boost * glow, params, glow)
+                if (params.reveal) {
+                    val (shown, head) = uncovered(way, laneIndex, along, tail, phase, params)
+                    // Uncovered: the picture as drawn, rain gone. Covered: only the rain shows.
+                    val rain = glow * (1f - shown)
+                    val keep = rest * (1f - shown) * (1f - glow) + max(shown, glow)
+                    val spark = max(head, rain)
+                    source.data[index] = light(source.data[index], keep.coerceAtMost(1f), boost * spark, params, head)
+                } else {
+                    source.data[index] = light(source.data[index], rest + (1f - rest) * glow, boost * glow, params, glow)
+                }
             }
         }
         return source
@@ -109,6 +125,29 @@ object NeoGlow {
             if (glow > best) best = glow
         }
         return shape(best, params.falloff)
+    }
+
+    /**
+     * How far [t] in this lane is uncovered (0..1) and how strongly the travelling edge lights it.
+     *
+     * The first half of the loop sweeps an uncovering edge through the lane, the second half a
+     * covering one in the same direction — so the last frame is all rain again, like the first.
+     * Stagger offsets the lanes, which is what gives the edge its ragged, code-like front.
+     */
+    @Suppress("LongParameterList")
+    internal fun uncovered(t: Float, lane: Int, along: Float, tail: Float, phase: Float, params: NeoGlowParams): Pair<Float, Float> {
+        val lag = hash(lane, params.seed + 3) * params.stagger.coerceIn(0, 100) / 100f * 0.35f
+        // Each half-loop is squeezed so even the latest lane finishes its sweep before the next.
+        val u = frac(phase)
+        val second = u >= 0.5f
+        val local = ((if (second) u - 0.5f else u) * 2f - lag) / (1f - 0.35f)
+        if (local <= 0f) return (if (second) 1f else 0f) to 0f
+        val edge = local.coerceAtMost(1f) * (along + tail)
+        val behind = edge - t
+        val soft = max(1f, tail * 0.15f)
+        val passed = (behind / soft).coerceIn(0f, 1f)
+        val head = if (behind in 0f..tail) shape(1f - behind / tail, params.falloff) else 0f
+        return (if (second) 1f - passed else passed) to head
     }
 
     /** Falloff 50 leaves the tail linear; 100 cubes it, 0 takes its cube root. */

@@ -64,4 +64,19 @@ class NeoGlowTest {
         val black = NeoGlow.apply(grey(5), NeoGlowParams(enabled = true, gamma = 0, rest = 100, intensity = 400))
         assertTrue(black.data.all { PixelOps.redOf(it) == 5 })
     }
+
+    @Test
+    fun `reveal starts covered, stands uncovered at half way and closes again`() {
+        val p = NeoGlowParams(enabled = true, reveal = true, stagger = 0)
+        fun shown(phase: Float) = NeoGlow.uncovered(t = 20f, lane = 0, along = 100f, tail = 20f, phase = phase, params = p).first
+        assertEquals(0f, shown(0f), 0f)
+        assertEquals(1f, shown(0.49f), 0f)
+        assertEquals(0f, shown(0.99f), 0f)
+    }
+
+    @Test
+    fun `an uncovered dark pixel stays dark while covered ones only show rain`() {
+        val out = NeoGlow.apply(grey(10), NeoGlowParams(enabled = true, reveal = true, offset = 45, rest = 0, intensity = 400))
+        assertTrue(out.data.all { PixelOps.redOf(it) <= 10 })
+    }
 }

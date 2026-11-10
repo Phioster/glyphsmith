@@ -71,6 +71,11 @@ internal fun NeoGlowSection(params: NeoGlowParams, move: MoveHandler, onChange: 
             valueText = "${params.gamma}/100",
         )
         TerminalToggle(
+            label = "reveal the picture",
+            checked = params.reveal,
+            onCheckedChange = { onChange(params.copy(reveal = it)) },
+        )
+        TerminalToggle(
             label = "mirror",
             checked = params.mirror,
             onCheckedChange = { onChange(params.copy(mirror = it)) },
