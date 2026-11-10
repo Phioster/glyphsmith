@@ -1172,6 +1172,68 @@ object PresetLibrary {
             ),
         ),
         pixel(
+            "phosphor relief",
+            PresetStore.CATEGORY_MOTION,
+            // A tube drawing a face in scan lines: fine modulation lines, the picture held dark so
+            // the pattern stays loose, tinted before a strong glow, then phosphor triads and film
+            // grain over the light. The order is the point — tint first, so the glow is blue.
+            RenderSettings(
+                cellSize = 3,
+                depth = 2,
+                ditherMode = DitherMode.MOD_LINES,
+                modScale = 3,
+                brightness = -0.3f,
+                colorMode = ColorMode.SINGLE,
+                effects = EffectStack(
+                    tint = TintParams(enabled = true, color = 0xFF0048FF.toInt(), amount = 50),
+                    glow = GlowParams(enabled = true, threshold = 47, radius = 200, intensity = 1000),
+                    subtexture = SubtextureParams(
+                        enabled = true,
+                        kind = TextureKind.RGB_TRIAD,
+                        scale = 3,
+                        intensity = 50,
+                    ),
+                    postProcessing = PostProcessingParams(enabled = true, grain = 45),
+                ),
+                animation = animation(sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH), frames = 36),
+            ),
+        ),
+        pixel(
+            "drifting orbs",
+            PresetStore.CATEGORY_MOTION,
+            // Soft orbs whose rows slide through each other while a faint noise moves under the
+            // dither: kept weak on purpose, so the picture stays the subject and the motion is
+            // only something you notice.
+            RenderSettings(
+                cellSize = 4,
+                depth = 3,
+                ditherMode = DitherMode.MOD_ORB,
+                modScale = 7,
+                orbCount = 3,
+                orbSize = 70,
+                orbIntensity = 40,
+                colorMode = ColorMode.SINGLE,
+                temporal = TemporalParams(
+                    enabled = true,
+                    pattern = TemporalPattern.BANDS,
+                    scale = 16,
+                    speed = 1,
+                    amount = 8,
+                ),
+                effects = EffectStack(
+                    tint = TintParams(enabled = true, color = 0xFF9CFF5A.toInt(), amount = 60),
+                    glow = GlowParams(enabled = true, threshold = 19, radius = 78, intensity = 500),
+                    subtexture = SubtextureParams(
+                        enabled = true,
+                        kind = TextureKind.RGB_TRIAD,
+                        scale = 3,
+                        intensity = 40,
+                    ),
+                ),
+                animation = animation(sweep(AnimTarget.ORB_OFFSET, -100, 100), frames = 40),
+            ),
+        ),
+        pixel(
             "modulation lines",
             PresetStore.CATEGORY_MOTION,
             RenderSettings(
@@ -1700,6 +1762,27 @@ object PresetLibrary {
                 colorMode = ColorMode.PALETTE,
                 paletteId = "palette.phosphor",
                 contrast = 1.3f,
+            ),
+        ),
+        glyph(
+            "tube glyphs",
+            PresetStore.CATEGORY_GLYPH,
+            // The new per-channel texture on characters: every glyph is lit through red, green
+            // and blue phosphor stripes, then glows like a terminal on a real tube.
+            RenderSettings(
+                charSetId = "ascii-standard-10",
+                cellSize = 6,
+                contrast = 1.2f,
+                effects = EffectStack(
+                    tint = TintParams(enabled = true, color = 0xFF0048FF.toInt(), amount = 45),
+                    glow = GlowParams(enabled = true, threshold = 40, radius = 120, intensity = 700),
+                    subtexture = SubtextureParams(
+                        enabled = true,
+                        kind = TextureKind.RGB_TRIAD,
+                        scale = 3,
+                        intensity = 45,
+                    ),
+                ),
             ),
         ),
         glyph(

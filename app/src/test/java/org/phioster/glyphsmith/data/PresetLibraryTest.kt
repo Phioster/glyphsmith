@@ -111,6 +111,8 @@ class PresetLibraryTest {
         bad signal|MOTION|PurePixel|NONE
         static storm|MOTION|PurePixel|NONE
         rolling glow|MOTION|PurePixel|NONE
+        phosphor relief|MOTION|PurePixel|MOD_LINES
+        drifting orbs|MOTION|PurePixel|MOD_ORB
         modulation lines|MOTION|PurePixel|MOD_LINES
         waveform glitch|MOTION|PurePixel|MOD_WAVE
         cyberpunk|MOTION|PurePixel|NONE
@@ -134,6 +136,7 @@ class PresetLibraryTest {
         offset plates|LAYERED|PurePixel|FLOYD_STEINBERG
         terminal|GLYPH|GlyphMatrix|NONE
         phosphor|GLYPH|GlyphMatrix|NONE
+        tube glyphs|GLYPH|GlyphMatrix|NONE
         braille|GLYPH|GlyphMatrix|NONE
         matrix|GLYPH|GlyphMatrix|NONE
         monogram|GLYPH|GlyphMatrix|NONE
@@ -198,6 +201,9 @@ class PresetLibraryTest {
      *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
      *
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
+     * - **`phosphor relief`, `drifting orbs`, `tube glyphs`** (2026-11-10), the two Studio AAA
+     *   tutorial looks plus a glyph partner. Checked in CI: the library without these three
+     *   names hashed to the previous digest exactly.
      * - **Orb Offset / Orb Direction** (2026-11-10): two new animation targets, so every preset
      *   carries two more *disabled* tracks. Checked in CI by stripping them again: the library then
      *   hashed to the previous digest exactly, and none of the new tracks is switched on.
@@ -206,7 +212,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "503bc03e1f6fe8a12de0830a2da7e8ef703785b5972eecd67a37be814a5a21a3"
+    private val digest = "61719895be8d1ade6cef3a6e92ee0c8dd4cf8c224c18676de8fcc93e6af3941a"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -246,8 +252,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 97, presets.size)
-        assertEquals("curated presets", 91, curated.size)
+        assertEquals("built-in presets", 100, presets.size)
+        assertEquals("curated presets", 94, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 
