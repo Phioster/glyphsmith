@@ -44,6 +44,8 @@ data class PostProcessingParams(
     val saturation: Int = 100,
     /** 0..100 — monochrome noise, the cheap way to make a clean render look photographed. */
     val grain: Int = 0,
+    /** What the grain looks like: even noise, or film's clumped grain that lives in the mid-tones. */
+    val grainKind: GrainKind = GrainKind.UNIFORM,
     /** 0..100 — darkening towards the corners. */
     val vignette: Int = 0,
     /** 0..100 — strength of the CRT line darkening. */
@@ -52,6 +54,13 @@ data class PostProcessingParams(
     val scanlineSpacing: Int = 3,
     val seed: Int = 1,
 )
+
+enum class GrainKind(val label: String) {
+    UNIFORM("Uniform"),
+
+    /** Clumped, a little coarser, strongest in the mid-tones and fading out of black and white. */
+    FILM("Film"),
+}
 
 enum class TintMode { TINT, DUOTONE }
 
