@@ -15,7 +15,9 @@ class NeoGlowDiffTest {
 
     @Test
     fun `without neo glow the library hashes as before`() {
-        val text = PresetSchema.encode(PresetLibrary.builtIns.map { it.copy(params = strip(it.params)) })
+        val new = setOf("triad tube", "floating lights", "diagonal drift", "silver halide", "matrix reveal")
+        val kept = PresetLibrary.builtIns.filter { it.name !in new }
+        val text = PresetSchema.encode(kept.map { it.copy(params = strip(it.params)) })
             .replace(Regex("\"neoGlow\":\\s*\\{[^}]*\\},(\\s*)"), "")
             .replace(Regex(",\\s*\"effect\\.neo-glow\""), "")
         val hashed = MessageDigest.getInstance("SHA-256").digest(text.toByteArray())
