@@ -198,12 +198,15 @@ class PresetLibraryTest {
      *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
      *
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
+     * - **Orb Offset / Orb Direction** (2026-11-10): two new animation targets, so every preset
+     *   carries two more *disabled* tracks. Checked in CI by stripping them again: the library then
+     *   hashed to the previous digest exactly, and none of the new tracks is switched on.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "8e81701da4a64464cc83c22738100b130128f18e042d97e24e462ac97cf0beff"
+    private val digest = "503bc03e1f6fe8a12de0830a2da7e8ef703785b5972eecd67a37be814a5a21a3"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
