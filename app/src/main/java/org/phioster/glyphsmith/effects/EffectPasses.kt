@@ -53,5 +53,6 @@ internal object EffectPasses {
         EffectId.GLOW -> EpsilonGlow.pass
         EffectId.WARP -> CrtWarp.pass
         EffectId.NEO_GLOW -> NeoGlow.pass
+        EffectId.PAINT -> PaintStrokes.pass
     }
 }

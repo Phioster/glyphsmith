@@ -213,7 +213,7 @@ The target distribution for built-in presets is approximately:
 - 80 to 90 percent Pixel Dither
 - 10 to 20 percent Glyph Art
 
-The curated library currently holds 106 presets: 88 Pixel Dither, 11 Glyph
+The curated library currently holds 107 presets: 89 Pixel Dither, 11 Glyph
 Art and 7 Shape Shifter — 83, 10 and 7 percent. Shape Shifter presets are a
 small third shelf (at most 10 percent, all filed under Geometry) and count
 towards neither of the two targets.

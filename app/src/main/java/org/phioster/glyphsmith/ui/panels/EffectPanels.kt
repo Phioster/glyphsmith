@@ -86,5 +86,8 @@ internal fun EffectControls(
         EffectId.WARP -> CrtWarpSection(fx.crtWarp, move) { p -> update { copy(crtWarp = p) } }
 
         EffectId.NEO_GLOW -> NeoGlowSection(fx.neoGlow, move) { p -> update { copy(neoGlow = p) } }
+
+        EffectId.PAINT ->
+            PaintStrokesSection(fx.paintStrokes, move) { p -> update { copy(paintStrokes = p) } }
     }
 }
