@@ -10,10 +10,10 @@ import kotlin.math.hypot
 import kotlin.math.sin
 
 /**
- * The ten noise patterns.
+ * The eleven noise patterns.
  *
  * The reference app's temporal variation advertises nine controllable noise patterns but
- * publishes none of their names or maths. These ten are this app's own set, named after
+ * publishes none of their names or maths. These eleven are this app's own set, named after
  * what they do rather than after anything of theirs.
  */
 enum class TemporalPattern(val label: String) {
@@ -29,6 +29,9 @@ enum class TemporalPattern(val label: String) {
 
     /** Soft stripes at [TemporalParams.angle], sliding across the picture along their normal. */
     DIAGONAL("Diagonal"),
+
+    /** A soft noise field that wanders about, as if dragged slowly around a loop. */
+    RANDOM_WALK("Random Walk"),
 }
 
 @Serializable
@@ -153,6 +156,16 @@ object Temporal {
 
         // A triangle wave along the stripes' normal: soft-edged bands, one per scale unit, that
         // move one band per loop — so the loop closes for any angle.
+        // The noise itself never changes; where it is read from travels round a circle, two
+        // octaves on different circles. The field drifts and turns without ever flickering, and
+        // after one loop the read position is back where it began.
+        TemporalPattern.RANDOM_WALK -> {
+            val a = TAU * time
+            val coarse = valueNoise(u * 0.5f + 1.7f * cos(a).toFloat(), v * 0.5f + 1.7f * sin(a).toFloat(), 0f, seed)
+            val fine = valueNoise(u + 0.9f * sin(a).toFloat(), v - 0.9f * cos(a).toFloat(), 0f, seed + 7)
+            (coarse * 0.7f + fine * 0.3f) * 2f - 1f
+        }
+
         TemporalPattern.DIAGONAL -> {
             val r = Math.toRadians(angle.toDouble())
             val across = (u * cos(r) + v * sin(r)).toFloat()

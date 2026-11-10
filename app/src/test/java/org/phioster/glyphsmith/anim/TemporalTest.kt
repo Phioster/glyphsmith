@@ -10,8 +10,8 @@ class TemporalTest {
     private val patterns = TemporalPattern.entries
 
     @Test
-    fun `there are ten patterns`() {
-        assertEquals(10, patterns.size)
+    fun `there are eleven patterns`() {
+        assertEquals(11, patterns.size)
     }
 
     @Test
@@ -161,5 +161,14 @@ class TemporalTest {
         along.forEach { assertEquals(along[0], it, 1e-4f) }
         val across = (0..6).map { Temporal.sample(TemporalPattern.DIAGONAL, it * 0.1f, it * 0.1f, 0.1f, 1, 45) }
         assertTrue(across.max() - across.min() > 0.5f)
+    }
+
+    @Test
+    fun `random walk drifts smoothly rather than flickering`() {
+        val a = Temporal.sample(TemporalPattern.RANDOM_WALK, 2.3f, 4.1f, 0.30f, 2)
+        val b = Temporal.sample(TemporalPattern.RANDOM_WALK, 2.3f, 4.1f, 0.31f, 2)
+        val far = (0 until 20).map { Temporal.sample(TemporalPattern.RANDOM_WALK, 2.3f, 4.1f, it / 20f, 2) }
+        assertTrue("a small step in time is a small change", abs(a - b) < 0.15f)
+        assertTrue("over the loop it does wander", far.max() - far.min() > 0.2f)
     }
 }
