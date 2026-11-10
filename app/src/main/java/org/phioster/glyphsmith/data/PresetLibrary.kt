@@ -28,6 +28,7 @@ import org.phioster.glyphsmith.effects.JpegGlitchParams
 import org.phioster.glyphsmith.effects.PostProcessingParams
 import org.phioster.glyphsmith.effects.GrainKind
 import org.phioster.glyphsmith.effects.NeoGlowParams
+import org.phioster.glyphsmith.effects.PaintStrokesParams
 import org.phioster.glyphsmith.render.LightOrbsParams
 import org.phioster.glyphsmith.render.FeatherPattern
 import org.phioster.glyphsmith.render.ShapeLayout
@@ -1445,6 +1446,22 @@ object PresetLibrary {
                         grainKind = GrainKind.FILM,
                         vignette = 25,
                     ),
+                ),
+            ),
+        ),
+        pixel(
+            "oil study",
+            PresetStore.CATEGORY_CLASSIC,
+            // A fine colour dither repainted in brush strokes: the strokes mix its dots back
+            // into tones, turn along the edges and stop at them. Two passes, the second with a
+            // smaller brush for the detail the first one lost.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                effects = EffectStack(
+                    paintStrokes = PaintStrokesParams(enabled = true, brushSize = 16, passes = 2),
                 ),
             ),
         ),

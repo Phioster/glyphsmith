@@ -373,15 +373,15 @@ A preset is a saved configuration of available providers — not executable code
 implementation. It always stores the *complete* `RenderSettings`, effects, animation, temporal
 and layers included, so applying one is a single action.
 
-The shipped library is **112 presets**:
+The shipped library is **113 presets**:
 
-- **106 curated**, filed by mechanism across 11 categories — Classic Dither (6), Error
+- **107 curated**, filed by mechanism across 11 categories — Classic Dither (7), Error
   Diffusion (6), Ordered Dither (6), Pattern (15), Print (7), Geometry (12), Color (5), Glitch
   (8), Motion (28), Layered (2), Glyph Art (11).
 - **6 Algorithm Lab**, kept off the curated shelves and counted separately: one preset per
   kernel at otherwise identical settings.
 
-The curated split is **88 Pixel Dither, 11 Glyph Art and 7 Shape Shifter** — 83 %, 10 % and
+The curated split is **89 Pixel Dither, 11 Glyph Art and 7 Shape Shifter** — 83 %, 10 % and
 7 %. Shape Shifter is a small third shelf, capped at 10 % and filed under Geometry. Built-in presets name their mode explicitly via the `pixel()`, `glyph()` and `shapes()` helpers,
 so they depend on neither of the two defaults below.
 
