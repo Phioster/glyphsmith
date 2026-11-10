@@ -111,6 +111,8 @@ class PresetLibraryTest {
         bad signal|MOTION|PurePixel|NONE
         static storm|MOTION|PurePixel|NONE
         rolling glow|MOTION|PurePixel|NONE
+        phosphor relief|MOTION|PurePixel|MOD_LINES
+        drifting orbs|MOTION|PurePixel|MOD_ORB
         modulation lines|MOTION|PurePixel|MOD_LINES
         waveform glitch|MOTION|PurePixel|MOD_WAVE
         cyberpunk|MOTION|PurePixel|NONE
@@ -134,6 +136,7 @@ class PresetLibraryTest {
         offset plates|LAYERED|PurePixel|FLOYD_STEINBERG
         terminal|GLYPH|GlyphMatrix|NONE
         phosphor|GLYPH|GlyphMatrix|NONE
+        tube glyphs|GLYPH|GlyphMatrix|NONE
         braille|GLYPH|GlyphMatrix|NONE
         matrix|GLYPH|GlyphMatrix|NONE
         monogram|GLYPH|GlyphMatrix|NONE
@@ -246,8 +249,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 97, presets.size)
-        assertEquals("curated presets", 91, curated.size)
+        assertEquals("built-in presets", 100, presets.size)
+        assertEquals("curated presets", 94, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 
