@@ -86,21 +86,8 @@ fun ColorPanel(
             }
         }
 
-        when (params.colorMode) {
-            ColorMode.SINGLE -> HexColorField(
-                label = "ink colour",
-                color = params.inkColor,
-                onColorChange = { onChange(params.copy(inkColor = it)) },
-            )
-
-            ColorMode.SOURCE -> Text(
-                "glyphs take the average colour of the pixels they replace",
-                color = Term.InkFaint,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(vertical = 6.dp),
-            )
-
-            ColorMode.PALETTE -> PaletteSection(
+        val paletteSection: @Composable () -> Unit = {
+            PaletteSection(
                 params = params,
                 onChange = onChange,
                 onExtractPalette = onExtractPalette,
@@ -124,6 +111,37 @@ fun ColorPanel(
                 },
                 palettes = palettes,
             )
+        }
+
+        when (params.colorMode) {
+            ColorMode.SINGLE -> HexColorField(
+                label = "ink colour",
+                color = params.inkColor,
+                onColorChange = { onChange(params.copy(inkColor = it)) },
+            )
+
+            ColorMode.SOURCE -> if (params.renderMode.isGlyph) {
+                Text(
+                    "glyphs take the average colour of the pixels they replace",
+                    color = Term.InkFaint,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(vertical = 6.dp),
+                )
+            } else {
+                // The pixel path dithers the picture's own colours *into this palette*, so the
+                // palette decides how colourful the result is. It used to be hidden in this mode,
+                // which left a grey palette quietly turning every colour photo grey.
+                Text(
+                    "the picture's own colours are dithered into the palette below — a grey " +
+                        "palette gives grey. extract one from the image for its real colours",
+                    color = Term.InkFaint,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(vertical = 6.dp),
+                )
+                paletteSection()
+            }
+
+            ColorMode.PALETTE -> paletteSection()
         }
 
         SectionHeader("background")
