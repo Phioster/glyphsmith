@@ -201,6 +201,9 @@ class PresetLibraryTest {
      *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
      *
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
+     * - **Light orbs** (2026-11-10): every preset gains a switched-off `"lightOrbs"` block and one
+     *   more disabled track. Checked in CI: with both stripped the library hashed to the previous
+     *   digest exactly.
      * - **Grain kind** (2026-11-10): every post-processing block gains `"grainKind": "UNIFORM"`.
      *   Checked in CI: with it stripped the library hashed to the previous digest exactly.
      * - **Temporal angle** (2026-11-10): every temporal block gains `"angle": 45` and every
@@ -217,7 +220,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "7c12bc879de2c8ad7c1c9dc1bb1cdc3e9b4ab9d8fc70ee61ff2f7796f601b505"
+    private val digest = "8a42557288483dae5b184f31a2e1017cb1d6269120a21d2b063488bda4edd4f2"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
