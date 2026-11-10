@@ -115,6 +115,9 @@ object AnimTargets {
         },
         // Unclamped like the glow direction: the lattice angle wraps by itself.
         AnimTargetProvider(AnimTarget.ORB_DIRECTION, 19) { p, v -> p.copy(orbDirection = v) },
+        AnimTargetProvider(AnimTarget.TEMPORAL_ANGLE, 20) { p, v ->
+            p.copy(temporal = p.temporal.copy(angle = Math.floorMod(v, 360)))
+        },
     )
 
     /**

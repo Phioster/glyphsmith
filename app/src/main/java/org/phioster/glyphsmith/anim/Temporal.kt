@@ -4,15 +4,16 @@ import kotlinx.serialization.Serializable
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.sin
 
 /**
- * The nine noise patterns.
+ * The ten noise patterns.
  *
  * The reference app's temporal variation advertises nine controllable noise patterns but
- * publishes none of their names or maths. These nine are this app's own set, named after
+ * publishes none of their names or maths. These ten are this app's own set, named after
  * what they do rather than after anything of theirs.
  */
 enum class TemporalPattern(val label: String) {
@@ -25,6 +26,9 @@ enum class TemporalPattern(val label: String) {
     VORTEX("Vortex"),
     RIPPLE("Ripple"),
     BANDS("Bands"),
+
+    /** Soft stripes at [TemporalParams.angle], sliding across the picture along their normal. */
+    DIAGONAL("Diagonal"),
 }
 
 @Serializable
@@ -38,6 +42,8 @@ data class TemporalParams(
     /** 0..100 — how far the pattern pushes the dither threshold. */
     val amount: Int = 40,
     val seed: Int = 1,
+    /** 0..359 degrees — the direction of the stripes for [TemporalPattern.DIAGONAL]. */
+    val angle: Int = 45,
     /**
      * Normalised loop position, written per frame by [Animator.paramsAt] and left at 0 for
      * a still. It lives here rather than as an argument so that a frame's parameters remain
@@ -71,7 +77,7 @@ object Temporal {
         if (!params.enabled || params.amount == 0) return 0f
         val scale = params.scale.coerceAtLeast(1).toFloat()
         val t = params.time * params.speed.coerceAtLeast(1)
-        return sample(params.pattern, x / scale, y / scale, t, params.seed) *
+        return sample(params.pattern, x / scale, y / scale, t, params.seed, params.angle) *
             (params.amount / 100f)
     }
 
@@ -82,6 +88,7 @@ object Temporal {
         v: Float,
         time: Float,
         seed: Int,
+        angle: Int = 45,
     ): Float = when (pattern) {
         // Fresh hash per whole step of time; between steps it holds, which is what makes it
         // read as a frame-rate rather than as a smear.
@@ -142,6 +149,14 @@ object Temporal {
         TemporalPattern.BANDS -> {
             val step = floor(frac(u * 0.5f + time) * 4f)
             step / 1.5f - 1f
+        }
+
+        // A triangle wave along the stripes' normal: soft-edged bands, one per scale unit, that
+        // move one band per loop — so the loop closes for any angle.
+        TemporalPattern.DIAGONAL -> {
+            val r = Math.toRadians(angle.toDouble())
+            val across = (u * cos(r) + v * sin(r)).toFloat()
+            (1f - abs(2f * frac(across - time) - 1f)) * 2f - 1f
         }
     }
 
