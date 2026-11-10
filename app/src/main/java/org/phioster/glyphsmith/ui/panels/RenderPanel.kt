@@ -96,6 +96,7 @@ fun RenderPanel(
                     RenderMode.PurePixel -> "levels become palette colours"
                     RenderMode.GlyphMatrix -> "levels become characters from the ramp"
                     RenderMode.PixelThenGlyph -> "dither to the palette first, then read glyphs off it"
+                    RenderMode.ShapeShifter -> "tones become vector shapes on a grid"
                 }
             },
         )
@@ -114,6 +115,9 @@ fun RenderPanel(
         // both of them.
         if (params.renderMode.ditherFirst) {
             PixelModeControls(params, onChange)
+        }
+        if (params.renderMode == RenderMode.ShapeShifter) {
+            ShapeShifterSection(params, onChange)
         }
         if (!glyphMode) return@Column
 

@@ -3,6 +3,7 @@ package org.phioster.glyphsmith.ui.panels
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
 import org.phioster.glyphsmith.effects.EffectId
+import org.phioster.glyphsmith.render.RenderMode
 
 /**
  * What the preset list is narrowed to.
@@ -116,7 +117,12 @@ object PresetFilters {
             if (p.lightOrbs.enabled) "light orbs" else "",
             if (p.temporal.enabled) "temporal ${p.temporal.pattern.label}" else "",
             if (p.animation.enabled) "animated motion" else "",
-            if (p.renderMode.isGlyph) "glyph ascii" else "pixel",
+            when {
+                p.renderMode.isGlyph -> "glyph ascii"
+                p.renderMode == RenderMode.ShapeShifter ->
+                    "shape shifter shapes vector " + p.shapeShifter.bands.joinToString(" ") { it.shape.label }
+                else -> "pixel"
+            },
         ).joinToString(" ").lowercase()
     }
 }

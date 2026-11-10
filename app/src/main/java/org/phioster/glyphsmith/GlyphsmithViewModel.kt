@@ -4,6 +4,8 @@ import org.phioster.glyphsmith.render.PixelDitherRenderer
 import org.phioster.glyphsmith.render.QuantisePass
 import org.phioster.glyphsmith.render.CellSampler
 import org.phioster.glyphsmith.render.PixelVector
+import org.phioster.glyphsmith.render.ShapeVector
+import org.phioster.glyphsmith.render.ShapeShifter
 import org.phioster.glyphsmith.effects.PixelOps
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.dither.ScreenImport
@@ -609,10 +611,15 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             val grid = CellSampler.sample(
                 pixels, current.width, current.height, params, cell, cell,
             )
-            val indexed = QuantisePass.run(params, grid, PixelDitherRenderer.levelsFor(params))
-            val colours = PixelDitherRenderer.colorsFor(indexed, params)
-            val blocks = PixelVector.merge(colours, indexed.cols, indexed.rows)
-            PixelVector.svg(blocks, indexed.cols, indexed.rows, cell) to blocks.size
+            if (params.renderMode == RenderMode.ShapeShifter) {
+                // Real outlines, one per cell, from the same field the preview draws.
+                ShapeVector.svg(ShapeShifter.field(grid, params), cell, params)
+            } else {
+                val indexed = QuantisePass.run(params, grid, PixelDitherRenderer.levelsFor(params))
+                val colours = PixelDitherRenderer.colorsFor(indexed, params)
+                val blocks = PixelVector.merge(colours, indexed.cols, indexed.rows)
+                PixelVector.svg(blocks, indexed.cols, indexed.rows, cell) to blocks.size
+            }
         }
         withContext(Dispatchers.IO) { exports.pixelSvg(pair.first, pair.second) }
     }

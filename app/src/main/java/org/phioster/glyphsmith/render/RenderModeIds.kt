@@ -18,6 +18,7 @@ object RenderModeIds : WireIdSerializer<RenderMode>(
             RenderMode.GlyphMatrix -> "render.glyph-art"
             RenderMode.PurePixel -> "render.pixel-dither"
             RenderMode.PixelThenGlyph -> "render.pixel-then-glyph"
+            RenderMode.ShapeShifter -> "render.shape-shifter"
         }
     },
 )

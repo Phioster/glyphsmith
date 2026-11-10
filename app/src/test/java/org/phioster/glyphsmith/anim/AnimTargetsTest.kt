@@ -56,6 +56,8 @@ class AnimTargetsTest {
             AnimTarget.TEMPORAL_ANGLE to 20,
             AnimTarget.LIGHT_ORB_DRIFT to 21,
             AnimTarget.NEO_GLOW_OFFSET to 22,
+            AnimTarget.SHAPE_ROTATION to 23,
+            AnimTarget.SHAPE_SIZE to 24,
         )
 
         expected.forEach { (target, salt) ->

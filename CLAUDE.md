@@ -58,12 +58,14 @@ General-purpose presets must not enable Glyph Art.
 
 ## Render modes
 
-Glyphsmith currently has three output modes:
+Glyphsmith currently has four output modes:
 
 1. Pixel Dither (`render.pixel-dither`) — the default, general-purpose mode
 2. Glyph Art (`render.glyph-art`)
 3. Pixel Dither → Glyphs (`render.pixel-then-glyph`) — the chained mode: a
    palette dither runs first, and the glyph stage reads its result
+4. Shape Shifter (`render.shape-shifter`) — tones become vector shapes on a
+   grid; bands of the tonal range each name a shape and a size
 
 Glyph Art maps quantised levels onto character ramps. It is a specialized
 render module and must not own shared concepts such as palettes, dithering,
@@ -211,10 +213,10 @@ The target distribution for built-in presets is approximately:
 - 80 to 90 percent Pixel Dither
 - 10 to 20 percent Glyph Art
 
-The curated library currently holds 99 presets, 88 Pixel Dither to 11 Glyph
-Art, which is 89 percent — near the top of the target band. Ten more pixel
-presets fit (99 to 11); the eleventh needs a glyph one beside it. Adding glyph presets is the direction with room in
-it; adding pixel ones narrows that margin.
+The curated library currently holds 104 presets: 88 Pixel Dither, 11 Glyph
+Art and 5 Shape Shifter — 85, 11 and 5 percent. Shape Shifter presets are a
+small third shelf (at most 10 percent, all filed under Geometry) and count
+towards neither of the two targets.
 
 Algorithm-comparison presets live in the Algorithm Lab, which is counted
 separately from the curated library — 6 presets, one per kernel at otherwise

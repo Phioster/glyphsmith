@@ -94,6 +94,11 @@ class PresetLibraryTest {
         camouflage|GEOMETRY|PurePixel|CAMO
         tile floor|GEOMETRY|PurePixel|SQUARE_MOSAIC
         dot grid|GEOMETRY|PurePixel|CIRCLE_GRID
+        bubble grid|GEOMETRY|ShapeShifter|NONE
+        star field|GEOMETRY|ShapeShifter|NONE
+        cross stitch|GEOMETRY|ShapeShifter|NONE
+        ring halftone|GEOMETRY|ShapeShifter|NONE
+        turning stars|GEOMETRY|ShapeShifter|NONE
         gameboy|COLOR|PurePixel|NONE
         c64 lores|COLOR|PurePixel|BAYER_4
         vapour wash|COLOR|PurePixel|FLOYD_STEINBERG
@@ -206,6 +211,10 @@ class PresetLibraryTest {
      *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
      *
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
+     * - **Shape shifter** (2026-11-10): five presets in the new render mode (`bubble grid`,
+     *   `star field`, `cross stitch`, `ring halftone`, `turning stars`); every preset gains a
+     *   `"shapeShifter"` block and two disabled tracks. Checked locally: without the five, the
+     *   block and the tracks, the library hashed to the previous digest exactly.
      * - **Neo glow reveal** (2026-11-10): neo glow gains `reveal` (one key per block) and
      *   `matrix reveal` switches it on. Checked locally: with reveal off and the key stripped, the
      *   library hashed to the previous digest exactly.
@@ -236,7 +245,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "884a46a6050c05090c0d6ba9ebc17be27c261a533f3f38b3721c3a3d4f8c27de"
+    private val digest = "fcdcee97c7001e09a104e95391898abeaaba779e3013635d57ac8edec59adc8b"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -276,8 +285,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 105, presets.size)
-        assertEquals("curated presets", 99, curated.size)
+        assertEquals("built-in presets", 110, presets.size)
+        assertEquals("curated presets", 104, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 
@@ -322,8 +331,12 @@ class PresetLibraryTest {
     fun `the curated library is pixel dither first`() {
         val pixel = curated.count { it.params.renderMode == RenderMode.PurePixel }
         val glyph = curated.count { it.params.renderMode == RenderMode.GlyphMatrix }
+        // Shape shifter is a third, small shelf: neither a dither nor glyphs, and kept from
+        // crowding either of them.
+        val shapes = curated.count { it.params.renderMode == RenderMode.ShapeShifter }
 
-        assertEquals("every curated preset is one or the other", curated.size, pixel + glyph)
+        assertEquals("every curated preset is one of the three", curated.size, pixel + glyph + shapes)
+        assertTrue("$shapes of ${curated.size} presets are shape shifter, which is over 10 %", shapes * 10 <= curated.size)
         assertTrue(
             "$pixel of ${curated.size} presets are pixel dithers, which is not 80-92 %",
             pixel * 100 >= curated.size * 80 && pixel * 100 <= curated.size * 92,
@@ -334,10 +347,15 @@ class PresetLibraryTest {
         )
     }
 
-    /** A general-purpose preset is a pixel dither. Glyph Art is reached through its own shelf. */
+    /**
+     * A general-purpose preset is a pixel dither. Glyph Art is reached through its own shelf,
+     * and shape shifter presets all sit together under Geometry.
+     */
     @Test
     fun `every general preset is a pixel dither`() {
-        (curated - glyphArt.toSet()).forEach { preset ->
+        val shapes = curated.filter { it.params.renderMode == RenderMode.ShapeShifter }
+        shapes.forEach { assertEquals("${it.name} is a shape preset", PresetStore.CATEGORY_GEOMETRY, it.category) }
+        (curated - glyphArt.toSet() - shapes.toSet()).forEach { preset ->
             assertEquals(
                 "${preset.name} is filed under ${preset.category} but renders as glyph art",
                 RenderMode.PurePixel,

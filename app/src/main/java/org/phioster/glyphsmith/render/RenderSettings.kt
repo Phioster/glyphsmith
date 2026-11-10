@@ -194,6 +194,8 @@ data class RenderSettings(
     val temporal: TemporalParams = TemporalParams(),
     /** Soft light added before the dither, so the dither draws it — see [LightOrbs]. */
     val lightOrbs: LightOrbsParams = LightOrbsParams(),
+    /** Bands, grid and feather of [RenderMode.ShapeShifter]; ignored by the other modes. */
+    val shapeShifter: ShapeShifterParams = ShapeShifterParams(),
     /**
      * Extra renderings stacked over this one. Empty by default, so nothing changes for
      * anything that has never touched them.
