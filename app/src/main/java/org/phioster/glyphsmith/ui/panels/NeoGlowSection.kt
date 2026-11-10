@@ -3,6 +3,7 @@ package org.phioster.glyphsmith.ui.panels
 import androidx.compose.runtime.Composable
 import org.phioster.glyphsmith.effects.NeoGlowParams
 import org.phioster.glyphsmith.ui.TerminalSlider
+import org.phioster.glyphsmith.ui.TerminalToggle
 
 /** The travelling runs of light; offset is the one to animate. */
 @Composable
@@ -42,6 +43,37 @@ internal fun NeoGlowSection(params: NeoGlowParams, move: MoveHandler, onChange: 
             "direction", params.direction.toFloat(), 0f..359f,
             { onChange(params.copy(direction = it.toInt())) },
             valueText = "${params.direction}°",
+        )
+        TerminalSlider(
+            "runs per lane", params.runs.toFloat(), 1f..8f,
+            { onChange(params.copy(runs = it.toInt())) },
+            steps = 6,
+            valueText = "${params.runs}",
+        )
+        TerminalSlider(
+            "length variation", params.vary.toFloat(), 0f..100f,
+            { onChange(params.copy(vary = it.toInt())) },
+            valueText = "${params.vary}%",
+        )
+        TerminalSlider(
+            "falloff", params.falloff.toFloat(), 0f..100f,
+            { onChange(params.copy(falloff = it.toInt())) },
+            valueText = "${params.falloff}/100",
+        )
+        TerminalSlider(
+            "white head", params.head.toFloat(), 0f..100f,
+            { onChange(params.copy(head = it.toInt())) },
+            valueText = "${params.head}%",
+        )
+        TerminalSlider(
+            "gamma", params.gamma.toFloat(), 0f..100f,
+            { onChange(params.copy(gamma = it.toInt())) },
+            valueText = "${params.gamma}/100",
+        )
+        TerminalToggle(
+            label = "mirror",
+            checked = params.mirror,
+            onCheckedChange = { onChange(params.copy(mirror = it)) },
         )
     }
 }

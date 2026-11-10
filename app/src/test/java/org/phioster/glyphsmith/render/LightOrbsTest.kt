@@ -39,6 +39,13 @@ class LightOrbsTest {
     }
 
     @Test
+    fun `a full drift sweep closes in a slanted direction too`() {
+        val start = LightOrbs.field(on.copy(drift = -100, direction = 250), 40, 30)
+        val end = LightOrbs.field(on.copy(drift = 100, direction = 250), 40, 30)
+        assertArrayEquals(start, end, 1e-4f)
+    }
+
+    @Test
     fun `colour cells brighten with the luminance`() {
         val colors = IntArray(40 * 30) { 0xFF202020.toInt() }
         LightOrbs.apply(on, 40, 30, FloatArray(40 * 30) { 0.1f }, colors)

@@ -3,6 +3,8 @@ package org.phioster.glyphsmith.render
 import kotlinx.serialization.Serializable
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.round
+import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.floor
 import kotlin.math.max
@@ -59,8 +61,13 @@ object LightOrbs {
         val strength = params.intensity.coerceIn(0, 100) / 100f
         val jitter = params.random.coerceIn(0, 100) / 100f
         val radians = params.direction * PI / 180.0
-        val shiftX = (cos(radians) * params.drift / 100.0).toFloat()
-        val shiftY = (sin(radians) * params.drift / 100.0).toFloat()
+        // The way is snapped to steps of half a picture per axis, so a full drift sweep (-100..100,
+        // two units) always lands back where it began and the drift loops without a seam.
+        val c = cos(radians)
+        val s = sin(radians)
+        val m = max(abs(c), abs(s))
+        val shiftX = (round(c / m * 2.0) / 2.0 * params.drift / 100.0).toFloat()
+        val shiftY = (round(s / m * 2.0) / 2.0 * params.drift / 100.0).toFloat()
 
         for (n in 0 until params.count.coerceIn(1, 200)) {
             val u = frac(hash(n, 0, params.seed) + shiftX)

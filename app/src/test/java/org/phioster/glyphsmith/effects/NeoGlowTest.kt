@@ -40,4 +40,28 @@ class NeoGlowTest {
         val b = NeoGlow.apply(grey(120), NeoGlowParams(enabled = true, offset = 100)).data
         assertTrue(a.contentEquals(b))
     }
+
+    @Test
+    fun `more runs light more of a lane at once`() {
+        fun litCount(runs: Int) = NeoGlow.apply(grey(120), NeoGlowParams(enabled = true, rest = 0, length = 15, runs = runs))
+            .data.count { PixelOps.redOf(it) > 0 }
+        assertTrue(litCount(4) > litCount(1))
+    }
+
+    @Test
+    fun `a white head turns a coloured light pale at the tip`() {
+        val green = 0xFF00FF00.toInt()
+        val plain = NeoGlow.apply(grey(200), NeoGlowParams(enabled = true, color = green, stagger = 0, offset = 50))
+        val headed = NeoGlow.apply(grey(200), NeoGlowParams(enabled = true, color = green, stagger = 0, offset = 50, head = 100))
+        assertTrue(headed.data.max { PixelOps.blueOf(it) } > plain.data.max { PixelOps.blueOf(it) })
+    }
+
+    @Test
+    fun `a low gamma lights faint drawing but leaves black black`() {
+        val faint = NeoGlow.apply(grey(40), NeoGlowParams(enabled = true, gamma = 0, rest = 100, intensity = 400))
+        val linear = NeoGlow.apply(grey(40), NeoGlowParams(enabled = true, gamma = 50, rest = 100, intensity = 400))
+        assertTrue(faint.data.max { PixelOps.redOf(it) } > linear.data.max { PixelOps.redOf(it) })
+        val black = NeoGlow.apply(grey(5), NeoGlowParams(enabled = true, gamma = 0, rest = 100, intensity = 400))
+        assertTrue(black.data.all { PixelOps.redOf(it) == 5 })
+    }
 }
