@@ -117,6 +117,9 @@ enum class AnimTarget(
 
     /** How far the pre-dither light orbs have drifted — swept, they float through the picture. */
     LIGHT_ORB_DRIFT("anim.light-orb-drift", "Light Orb Drift", -100, 100),
+
+    /** Where the neo glow runs are; a sawtooth over 0..100 sends them through once and loops. */
+    NEO_GLOW_OFFSET("anim.neo-glow-offset", "Neo Glow Offset", 0, 100, cyclic = true),
 }
 
 /**

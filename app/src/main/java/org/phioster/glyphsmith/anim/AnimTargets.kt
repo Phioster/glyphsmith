@@ -121,6 +121,10 @@ object AnimTargets {
         AnimTargetProvider(AnimTarget.LIGHT_ORB_DRIFT, 21) { p, v ->
             p.copy(lightOrbs = p.lightOrbs.copy(drift = v.coerceIn(-100, 100)))
         },
+        // Unclamped: the offset wraps inside the pass, so a run keeps travelling past 100.
+        AnimTargetProvider(AnimTarget.NEO_GLOW_OFFSET, 22) { p, v ->
+            p.copy(effects = p.effects.copy(neoGlow = p.effects.neoGlow.copy(offset = v)))
+        },
     )
 
     /**
