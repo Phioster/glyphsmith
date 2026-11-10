@@ -201,6 +201,9 @@ class PresetLibraryTest {
      *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
      *
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
+     * - **Temporal angle** (2026-11-10): every temporal block gains `"angle": 45` and every
+     *   preset one more disabled track. Checked in CI: with both stripped the library hashed to
+     *   the previous digest exactly.
      * - **`phosphor relief`, `drifting orbs`, `tube glyphs`** (2026-11-10), the two Studio AAA
      *   tutorial looks plus a glyph partner. Checked in CI: the library without these three
      *   names hashed to the previous digest exactly.
@@ -212,7 +215,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "61719895be8d1ade6cef3a6e92ee0c8dd4cf8c224c18676de8fcc93e6af3941a"
+    private val digest = "7fb38e871f641150dcc18fe133c33239da7ea43fd643de71ebf1ad52be421c24"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
