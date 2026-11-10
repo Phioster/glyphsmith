@@ -51,6 +51,8 @@ class AnimTargetsTest {
             AnimTarget.WARP_CURVATURE to 15,
             AnimTarget.HALFTONE_ANGLE to 16,
             AnimTarget.SOURCE_BRIGHTNESS to 17,
+            AnimTarget.ORB_OFFSET to 18,
+            AnimTarget.ORB_DIRECTION to 19,
         )
 
         expected.forEach { (target, salt) ->
@@ -212,5 +214,16 @@ class AnimTargetsTest {
         assertEquals(base.effects.copy(glow = moved.effects.glow), moved.effects)
         assertNotEquals(base.effects.glow, moved.effects.glow)
         assertEquals(base.copy(effects = moved.effects), moved)
+    }
+
+    @Test
+    fun `the orb lattice can be driven, so the orbs drift`() {
+        val offset = AnimTargets.of(AnimTarget.ORB_OFFSET)
+        assertEquals(-100, offset.write(base, -250).orbOffset)
+        assertEquals(40, offset.write(base, 40).orbOffset)
+        assertEquals(100, offset.write(base, 250).orbOffset)
+        assertEquals(200, AnimTargets.of(AnimTarget.ORB_DIRECTION).write(base, 200).orbDirection)
+        assertEquals("anim.orb-offset", AnimTarget.ORB_OFFSET.wireId)
+        assertEquals("anim.orb-direction", AnimTarget.ORB_DIRECTION.wireId)
     }
 }

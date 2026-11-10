@@ -26,6 +26,16 @@ enum class TextureKind(val label: String) {
     SCANNER_STREAKS("Scanner Streaks"),
     STATIC("Static"),
     VHS_BANDS("VHS Bands"),
+
+    // The three below colour each channel separately: phosphor stripes, a slot mask, and colour
+    // noise. They bring red, green and blue into a monochrome dither the way a tube does.
+    RGB_TRIAD("RGB Triad"),
+    RGB_SLOT_MASK("RGB Slot Mask"),
+    RGB_NOISE("RGB Noise"),
+    ;
+
+    /** Whether this texture has its own value per colour channel rather than one for all. */
+    val perChannel: Boolean get() = this == RGB_TRIAD || this == RGB_SLOT_MASK || this == RGB_NOISE
 }
 
 enum class BlendMode(val label: String) {
@@ -96,10 +106,15 @@ object Subtexture {
                 val u = (dx * c + dy * s) / scale
                 val v = (-dx * s + dy * c) / scale
 
+                val pixel = source.data[index]
+                if (params.kind.perChannel) {
+                    val at = Spot(u, v, x, y, detail?.get(index))
+                    source.data[index] = blendRgb(pixel, params, at, amount)
+                    continue
+                }
                 var value = texture(params.kind, u, v, x, y, params.seed)
                 if (detail != null) value = 0.5f + (value - 0.5f) * detail[index]
 
-                val pixel = source.data[index]
                 source.data[index] = PixelOps.argb(
                     PixelOps.alphaOf(pixel),
                     blendChannel(PixelOps.redOf(pixel), value, params.blend, amount),
@@ -130,6 +145,62 @@ object Subtexture {
             out[i] = (difference * 4f).coerceIn(0f, 1f)
         }
         return out
+    }
+
+    // A lit phosphor and an unlit one. Their mean sits a little under neutral 0.5, so the
+    // stripes colour the picture without the whole of it brightening under Multiply.
+    private const val LIT = 0.85f
+    private const val DARK = 0.2f
+
+    /** Where a pixel sits in texture space, and the source's local detail there if it is used. */
+    private class Spot(val u: Float, val v: Float, val x: Int, val y: Int, val detail: Float?)
+
+    private fun blendRgb(pixel: Int, params: SubtextureParams, at: Spot, amount: Float): Int =
+        PixelOps.argb(
+            PixelOps.alphaOf(pixel),
+            blendChannel(PixelOps.redOf(pixel), channelValue(params, at, 0), params.blend, amount),
+            blendChannel(PixelOps.greenOf(pixel), channelValue(params, at, 1), params.blend, amount),
+            blendChannel(PixelOps.blueOf(pixel), channelValue(params, at, 2), params.blend, amount),
+        )
+
+    private fun channelValue(params: SubtextureParams, at: Spot, channel: Int): Float {
+        val value = rgbTexture(params.kind, at.u, at.v, at.x, at.y, params.seed, channel)
+        return if (at.detail == null) value else 0.5f + (value - 0.5f) * at.detail
+    }
+
+    /**
+     * One channel's value of a per-channel texture. A triad is one [SubtextureParams.scale]
+     * wide: red, green and blue thirds side by side.
+     */
+    @Suppress("LongParameterList")
+    internal fun rgbTexture(
+        kind: TextureKind,
+        u: Float,
+        v: Float,
+        x: Int,
+        y: Int,
+        seed: Int,
+        channel: Int,
+    ): Float {
+        val third = Math.floorMod(floor(u * 3f).toInt(), 3)
+        return when (kind) {
+            TextureKind.RGB_TRIAD -> if (third == channel) LIT else DARK
+
+            // Triads broken into slots by a dark gap, every other triad half a slot lower,
+            // the way the mask of a consumer tube is cut.
+            TextureKind.RGB_SLOT_MASK -> {
+                val column = floor(u).toInt()
+                val shifted = v + if (Math.floorMod(column, 2) == 0) 0f else 0.5f
+                if (frac(shifted) > 0.8f) DARK else if (third == channel) LIT else DARK
+            }
+
+            TextureKind.RGB_NOISE -> {
+                val cell = hash(floor(u).toInt(), floor(v).toInt(), seed * 3 + channel)
+                0.5f + (cell - 0.5f) * 0.9f
+            }
+
+            else -> texture(kind, u, v, x, y, seed)
+        }
     }
 
     /** Texture value in 0..1, where 0.5 is neutral for every blend mode below. */
@@ -183,6 +254,11 @@ object Subtexture {
         }
 
         // Wide soft bands with a faint wobble, the way a worn tape breathes.
+        // Seen as one value — only when something asks for a single channel — a per-channel
+        // texture is its mean, which is a flat, slightly dark grey.
+        TextureKind.RGB_TRIAD, TextureKind.RGB_SLOT_MASK -> (LIT + 2f * DARK) / 3f
+        TextureKind.RGB_NOISE -> hash(floor(u).toInt(), floor(v).toInt(), seed * 3)
+
         TextureKind.VHS_BANDS -> {
             val band = 0.5f + 0.5f * sin(TAU * v * 0.25f).toFloat()
             val wobble = 0.5f + 0.5f * sin(TAU * (v * 0.03f + u * 0.01f)).toFloat()

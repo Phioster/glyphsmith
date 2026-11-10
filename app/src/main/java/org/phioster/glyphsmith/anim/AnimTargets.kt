@@ -110,6 +110,11 @@ object AnimTargets {
         AnimTargetProvider(AnimTarget.SOURCE_BRIGHTNESS, 17) { p, v ->
             p.copy(brightness = (v / 100f).coerceIn(-1f, 1f))
         },
+        AnimTargetProvider(AnimTarget.ORB_OFFSET, 18) { p, v ->
+            p.copy(orbOffset = v.coerceIn(-100, 100))
+        },
+        // Unclamped like the glow direction: the lattice angle wraps by itself.
+        AnimTargetProvider(AnimTarget.ORB_DIRECTION, 19) { p, v -> p.copy(orbDirection = v) },
     )
 
     /**

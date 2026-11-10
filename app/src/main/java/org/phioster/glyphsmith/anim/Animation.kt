@@ -102,6 +102,15 @@ enum class AnimTarget(
      * the same percentage convention the rest of the app uses.
      */
     SOURCE_BRIGHTNESS("anim.source-brightness", "Source Brightness", -100, 100),
+
+    /**
+     * The sideways shift of alternate orb rows. Swept from one end to the other the lattice
+     * shears through itself and the orbs appear to drift — the moving-orbs look.
+     */
+    ORB_OFFSET("anim.orb-offset", "Orb Offset", -100, 100),
+
+    /** The orb lattice's own rotation, independent of the pattern angle. */
+    ORB_DIRECTION("anim.orb-direction", "Orb Direction", 0, 359, cyclic = true),
 }
 
 /**
