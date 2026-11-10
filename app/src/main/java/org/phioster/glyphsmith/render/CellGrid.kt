@@ -63,7 +63,11 @@ object CellSampler {
 
         averagePass(pixels, width, height, cellW, cellH, cols, rows, params, luma, colors)
 
-        return CellGrid(cols, rows, neighbourhoodPass(params, cols, rows, luma, colors), colors)
+        val smoothed = neighbourhoodPass(params, cols, rows, luma, colors)
+        // After the smoothing, so a blur does not wash the orbs out; before the quantiser, so
+        // they are dithered like everything else in the picture.
+        LightOrbs.apply(params.lightOrbs, cols, rows, smoothed, colors)
+        return CellGrid(cols, rows, smoothed, colors)
     }
 
     /**
