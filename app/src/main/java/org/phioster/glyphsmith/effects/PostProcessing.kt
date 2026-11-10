@@ -70,7 +70,15 @@ object PostProcessing {
                 }
 
                 if (grain > 0f) {
-                    val noise = (random.nextFloat() - 0.5f) * 255f * grain
+                    // The uniform draw stays first and unconditional, so an existing render
+                    // keeps its exact noise sequence.
+                    val uniform = random.nextFloat() - 0.5f
+                    val shape = if (params.grainKind == GrainKind.FILM) {
+                        filmGrain(x, y, params.seed, r, g, b)
+                    } else {
+                        uniform
+                    }
+                    val noise = shape * 255f * grain
                     r += noise
                     g += noise
                     b += noise
@@ -93,5 +101,26 @@ object PostProcessing {
             }
         }
         return source
+    }
+
+    /**
+     * Film grain in -0.5..0.5 for one pixel: fine noise mixed with a coarser clump, so it reads
+     * as silver grains rather than as sensor noise, and weighted towards the mid-tones — film
+     * has little grain left in a crushed black or a blown highlight.
+     */
+    @Suppress("LongParameterList")
+    internal fun filmGrain(x: Int, y: Int, seed: Int, r: Float, g: Float, b: Float): Float {
+        val fine = hash(x, y, seed) - 0.5f
+        val clump = hash(x shr 1, y shr 1, seed + 101) - 0.5f
+        val lum = ((0.2126f * r + 0.7152f * g + 0.0722f * b) / 255f).coerceIn(0f, 1f)
+        val fromMid = 2f * lum - 1f
+        val weight = 1f - 0.8f * fromMid * fromMid
+        return (fine * 0.55f + clump * 0.75f).coerceIn(-0.5f, 0.5f) * weight
+    }
+
+    private fun hash(x: Int, y: Int, seed: Int): Float {
+        var h = x * 374761393 + y * 668265263 + seed * 1274126177
+        h = (h xor (h shr 13)) * 1274126177
+        return ((h xor (h shr 16)) and 0x7FFFFFFF) / 0x7FFFFFFF.toFloat()
     }
 }

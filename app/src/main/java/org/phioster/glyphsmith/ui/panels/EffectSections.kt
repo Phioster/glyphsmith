@@ -37,6 +37,7 @@ import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.effects.BlueNoiseDitherParams
 import org.phioster.glyphsmith.effects.ColorDepthParams
 import org.phioster.glyphsmith.effects.CrtWarpParams
+import org.phioster.glyphsmith.effects.GrainKind
 import org.phioster.glyphsmith.effects.ModulationColorMode
 import org.phioster.glyphsmith.effects.ModulationLinesParams
 import org.phioster.glyphsmith.effects.SpotColorPrintParams
@@ -73,6 +74,15 @@ internal fun PostProcessingSection(
             { onChange(params.copy(grain = it.toInt())) },
             valueText = "${params.grain}/100",
         )
+        if (params.grain > 0) {
+            StepperDropdown(
+                label = "grain kind",
+                items = GrainKind.entries.toList(),
+                selectedIndex = GrainKind.entries.indexOf(params.grainKind),
+                onSelect = { onChange(params.copy(grainKind = GrainKind.entries[it])) },
+                itemLabel = { it.label },
+            )
+        }
         TerminalSlider(
             "vignette", params.vignette.toFloat(), 0f..100f,
             { onChange(params.copy(vignette = it.toInt())) },
