@@ -193,6 +193,16 @@ internal object ModulationSurfaces {
         (min(a, b) * 2f).coerceIn(0f, 1f)
     }
 
+    // Each period split into three columns with thresholds a third apart, the order rotating
+    // by row and by triad, and a dark gap under every row. Mid-tones light one or two columns of
+    // each three — the shape a chromatic shift then turns into red, green and blue.
+    val TRIAD_GRID = Modulation(periodLabel = "triad size") {
+        val column = floor(u + phase).toInt()
+        val row = floor(v).toInt()
+        val third = floor(frac(u + phase) * 3f).toInt()
+        if (frac(v) > 0.8f) 0.95f else (Math.floorMod(third + row + column, 3) + 0.5f) / 3f
+    }
+
     // A threshold rolled once per block. Bigger blocks read as torn paper, single cells as film
     // grain — which is why Noise below rolls per cell instead.
     val RANDOM_ORDERED = Modulation(periodLabel = "block size") {

@@ -70,6 +70,7 @@ internal object DitherAlgorithms {
         // The third mechanism: the surface and the kernel are the real ones, asked rather than
         // reimplemented, so each behaves exactly as it does on its own.
         DitherMode.CUSTOM_SCREEN -> ModulationSurfaces.CUSTOM_SCREEN
+        DitherMode.TRIAD_GRID -> ModulationSurfaces.TRIAD_GRID
 
         DitherMode.WAVE_DIFFUSE ->
             ModulatedDiffusion(ModulationSurfaces.MOD_WAVE, DiffusionKernels.DIFFUSE_Y)
