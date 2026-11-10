@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -68,6 +69,7 @@ fun PresetPanel(
 ) {
     var name by remember { mutableStateOf("") }
     var chosenFilter by remember { mutableStateOf<PresetFilter>(PresetFilter.All) }
+    var query by remember { mutableStateOf("") }
     // Exports are plain JSON, but pickers and file managers label them inconsistently, so
     // text/* and */* are accepted too rather than hiding the file the user just exported.
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -95,10 +97,20 @@ fun PresetPanel(
         // The row is derived from the library on every draw, so a shelf appears when it holds
         // something and goes when it does not — and `resolve` makes sure the list can never stay
         // narrowed by a chip that is no longer there.
+        PresetSearchField(query) { query = it }
+
         val filter = PresetFilters.resolve(presets, chosenFilter)
         FilterRow(presets, filter) { chosenFilter = it }
 
-        val visible = PresetFilters.apply(presets, filter)
+        val visible = PresetFilters.search(PresetFilters.apply(presets, filter), query)
+        if (visible.isEmpty() && query.isNotBlank()) {
+            Text(
+                "nothing matches \"$query\" here — try fewer words, or the all chip",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(vertical = 6.dp),
+            )
+        }
 
         // Favourites first, then by the shipped category order, then by name. Sorting rather
         // than a separate section keeps one list to scroll instead of two.
@@ -350,6 +362,45 @@ private fun FilterRow(
                 // Tapping the chosen shelf again clears it, so the way out is where the way in
                 // was — no separate "clear" control to find.
                 onClick = { onSelect(if (chip == selected) PresetFilter.All else chip) },
+            )
+        }
+    }
+}
+
+/** One line to type into; it narrows the list below as you type, and × clears it. */
+@Composable
+private fun PresetSearchField(query: String, onChange: (String) -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp)
+            .border(1.dp, Term.InkDim, RectangleShape)
+            .background(Term.SurfaceHigh),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 9.dp)) {
+            if (query.isEmpty()) {
+                Text(
+                    "search presets — name, effect, style…",
+                    color = Term.InkFaint,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            BasicTextField(
+                value = query,
+                onValueChange = onChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Term.Ink),
+                cursorBrush = SolidColor(Term.Ink),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (query.isNotEmpty()) {
+            Text(
+                "×",
+                color = Term.Ink,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.clickable { onChange("") }.padding(horizontal = 12.dp, vertical = 8.dp),
             )
         }
     }

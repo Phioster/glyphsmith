@@ -2,6 +2,7 @@ package org.phioster.glyphsmith.ui.panels
 
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PresetStore
+import org.phioster.glyphsmith.effects.EffectId
 
 /**
  * What the preset list is narrowed to.
@@ -86,4 +87,36 @@ object PresetFilters {
 
     /** How many presets a chip would select, for the count beside its label. */
     fun count(presets: List<Preset>, filter: PresetFilter): Int = apply(presets, filter).size
+
+    /**
+     * [presets] whose words contain every word of [query], in any order and any case.
+     *
+     * A preset's words are more than its name: its description, its shelf, its dither style and
+     * the effects it switches on, so "glow" finds every preset that glows and "crt motion" the
+     * moving tube looks — at a hundred-odd presets, nobody remembers what each one is called.
+     */
+    fun search(presets: List<Preset>, query: String): List<Preset> {
+        val words = query.lowercase().split(' ', ',').filter { it.isNotBlank() }
+        if (words.isEmpty()) return presets
+        return presets.filter { preset ->
+            val haystack = searchText(preset)
+            words.all { it in haystack }
+        }
+    }
+
+    internal fun searchText(preset: Preset): String {
+        val p = preset.params
+        val effects = EffectId.entries.filter { p.effects.enabledOf(it) }.joinToString(" ") { it.label }
+        return listOf(
+            preset.name,
+            preset.description,
+            PresetStore.label(preset.category),
+            p.ditherMode.label,
+            effects,
+            if (p.lightOrbs.enabled) "light orbs" else "",
+            if (p.temporal.enabled) "temporal ${p.temporal.pattern.label}" else "",
+            if (p.animation.enabled) "animated motion" else "",
+            if (p.renderMode.isGlyph) "glyph ascii" else "pixel",
+        ).joinToString(" ").lowercase()
+    }
 }
