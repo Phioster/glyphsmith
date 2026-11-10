@@ -195,6 +195,7 @@ enum class EffectId(val wireId: String, val label: String) {
     DITHER("effect.blue-noise-dither", "blue noise"),
     GLOW("effect.glow", "glow"),
     WARP("effect.crt-warp", "crt warp"),
+    NEO_GLOW("effect.neo-glow", "neo glow"),
 }
 
 /**
@@ -228,6 +229,7 @@ data class EffectStack(
     val colorDepth: ColorDepthParams = ColorDepthParams(),
     val blueNoise: BlueNoiseDitherParams = BlueNoiseDitherParams(),
     val crtWarp: CrtWarpParams = CrtWarpParams(),
+    val neoGlow: NeoGlowParams = NeoGlowParams(),
     val order: List<EffectId> = EffectId.entries.toList(),
 ) {
     /**

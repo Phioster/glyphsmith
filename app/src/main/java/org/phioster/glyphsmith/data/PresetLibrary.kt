@@ -26,6 +26,9 @@ import org.phioster.glyphsmith.effects.EffectStack
 import org.phioster.glyphsmith.effects.GlowParams
 import org.phioster.glyphsmith.effects.JpegGlitchParams
 import org.phioster.glyphsmith.effects.PostProcessingParams
+import org.phioster.glyphsmith.effects.GrainKind
+import org.phioster.glyphsmith.effects.NeoGlowParams
+import org.phioster.glyphsmith.render.LightOrbsParams
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.effects.CrtWarpParams
@@ -1234,6 +1237,94 @@ object PresetLibrary {
             ),
         ),
         pixel(
+            "triad tube",
+            PresetStore.CATEGORY_MOTION,
+            // Phosphor triads built by the dither itself: a fine triad grid, its channels pulled
+            // apart by a small chromatic shift (red out, blue in), glow last. The convergence
+            // breathes and a faint random walk keeps the dots alive without moving the picture.
+            RenderSettings(
+                cellSize = 2,
+                depth = 3,
+                ditherMode = DitherMode.TRIAD_GRID,
+                modScale = 3,
+                temporal = TemporalParams(
+                    enabled = true,
+                    pattern = TemporalPattern.RANDOM_WALK,
+                    scale = 24,
+                    speed = 1,
+                    amount = 6,
+                ),
+                effects = EffectStack(
+                    chromatic = ChromaticParams(
+                        enabled = true,
+                        maxDisplace = 3,
+                        redChannel = 100,
+                        greenChannel = 30,
+                        blueChannel = 0,
+                    ),
+                    glow = GlowParams(enabled = true, threshold = 10, radius = 60, intensity = 400),
+                ),
+                animation = animation(sweep(AnimTarget.CHROMATIC_OFFSET, 1, 6), frames = 36),
+            ),
+        ),
+        pixel(
+            "floating lights",
+            PresetStore.CATEGORY_MOTION,
+            // Light added before the dither, so the orbs are drawn in the Bayer pattern itself
+            // rather than laid over it — and drift slowly through the frame.
+            RenderSettings(
+                cellSize = 3,
+                depth = 3,
+                ditherMode = DitherMode.BAYER_8,
+                brightness = -0.15f,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.ember",
+                lightOrbs = LightOrbsParams(enabled = true, count = 35, size = 25, intensity = 55, random = 50),
+                animation = animation(sweep(AnimTarget.LIGHT_ORB_DRIFT, -100, 100), frames = 48),
+            ),
+        ),
+        pixel(
+            "diagonal drift",
+            PresetStore.CATEGORY_MOTION,
+            // Soft slanted stripes slide under an Atkinson dither, kept faint on purpose: the
+            // dots only lean as the stripes pass, the picture does not move.
+            RenderSettings(
+                cellSize = 3,
+                depth = 3,
+                ditherMode = DitherMode.ATKINSON,
+                temporal = TemporalParams(
+                    enabled = true,
+                    pattern = TemporalPattern.DIAGONAL,
+                    scale = 12,
+                    speed = 1,
+                    amount = 14,
+                    angle = 35,
+                ),
+                // The stripes sway a little as they pass, which is the one motion this look needs.
+                animation = animation(sweep(AnimTarget.TEMPORAL_ANGLE, 25, 45), frames = 36),
+            ),
+        ),
+        pixel(
+            "silver halide",
+            PresetStore.CATEGORY_CLASSIC,
+            // Floyd-Steinberg at several levels with film grain over it: the clumped kind, which
+            // sits in the mid-tones and leaves the blacks and whites clean.
+            RenderSettings(
+                cellSize = 2,
+                depth = 6,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(
+                        enabled = true,
+                        contrast = 110,
+                        grain = 35,
+                        grainKind = GrainKind.FILM,
+                        vignette = 25,
+                    ),
+                ),
+            ),
+        ),
+        pixel(
             "modulation lines",
             PresetStore.CATEGORY_MOTION,
             RenderSettings(
@@ -1783,6 +1874,31 @@ object PresetLibrary {
                         intensity = 45,
                     ),
                 ),
+            ),
+        ),
+        glyph(
+            "matrix reveal",
+            PresetStore.CATEGORY_GLYPH,
+            // Katakana that stay where they are while runs of green light fall through them —
+            // neo glow lighting only what is drawn, swept once per loop.
+            RenderSettings(
+                charSetId = "lang-katakana",
+                cellSize = 8,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.phosphor",
+                contrast = 1.4f,
+                effects = EffectStack(
+                    neoGlow = NeoGlowParams(
+                        enabled = true,
+                        length = 35,
+                        stagger = 90,
+                        intensity = 250,
+                        rest = 45,
+                        lane = 8,
+                        color = 0xFF9CFF5A.toInt(),
+                    ),
+                ),
+                animation = animation(sweep(AnimTarget.NEO_GLOW_OFFSET, 0, 100, AnimCurve.SAWTOOTH), frames = 40),
             ),
         ),
         glyph(

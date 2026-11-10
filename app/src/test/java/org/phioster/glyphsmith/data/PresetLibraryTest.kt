@@ -113,6 +113,10 @@ class PresetLibraryTest {
         rolling glow|MOTION|PurePixel|NONE
         phosphor relief|MOTION|PurePixel|MOD_LINES
         drifting orbs|MOTION|PurePixel|MOD_ORB
+        triad tube|MOTION|PurePixel|TRIAD_GRID
+        floating lights|MOTION|PurePixel|BAYER_8
+        diagonal drift|MOTION|PurePixel|ATKINSON
+        silver halide|CLASSIC|PurePixel|FLOYD_STEINBERG
         modulation lines|MOTION|PurePixel|MOD_LINES
         waveform glitch|MOTION|PurePixel|MOD_WAVE
         cyberpunk|MOTION|PurePixel|NONE
@@ -137,6 +141,7 @@ class PresetLibraryTest {
         terminal|GLYPH|GlyphMatrix|NONE
         phosphor|GLYPH|GlyphMatrix|NONE
         tube glyphs|GLYPH|GlyphMatrix|NONE
+        matrix reveal|GLYPH|GlyphMatrix|NONE
         braille|GLYPH|GlyphMatrix|NONE
         matrix|GLYPH|GlyphMatrix|NONE
         monogram|GLYPH|GlyphMatrix|NONE
@@ -201,6 +206,10 @@ class PresetLibraryTest {
      *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
      *
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
+     * - **Neo glow + five presets** (2026-11-10): `triad tube`, `floating lights`, `diagonal
+     *   drift`, `silver halide`, `matrix reveal`; every preset gains a switched-off `"neoGlow"`
+     *   block, the slot in its order and one disabled track. Checked in CI: without the five names
+     *   and with the rest stripped, the library hashed to the previous digest exactly.
      * - **Light orbs** (2026-11-10): every preset gains a switched-off `"lightOrbs"` block and one
      *   more disabled track. Checked in CI: with both stripped the library hashed to the previous
      *   digest exactly.
@@ -220,7 +229,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "8a42557288483dae5b184f31a2e1017cb1d6269120a21d2b063488bda4edd4f2"
+    private val digest = "c340751c75553f5c672725d694763ffc42c88ded88a15c837aaf717f76b0b964"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -260,8 +269,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 100, presets.size)
-        assertEquals("curated presets", 94, curated.size)
+        assertEquals("built-in presets", 105, presets.size)
+        assertEquals("curated presets", 99, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 

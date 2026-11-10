@@ -52,5 +52,6 @@ internal object EffectPasses {
         EffectId.DITHER -> BlueNoiseDither.pass
         EffectId.GLOW -> EpsilonGlow.pass
         EffectId.WARP -> CrtWarp.pass
+        EffectId.NEO_GLOW -> NeoGlow.pass
     }
 }
