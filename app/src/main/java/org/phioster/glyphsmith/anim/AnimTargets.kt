@@ -118,6 +118,9 @@ object AnimTargets {
         AnimTargetProvider(AnimTarget.TEMPORAL_ANGLE, 20) { p, v ->
             p.copy(temporal = p.temporal.copy(angle = Math.floorMod(v, 360)))
         },
+        AnimTargetProvider(AnimTarget.LIGHT_ORB_DRIFT, 21) { p, v ->
+            p.copy(lightOrbs = p.lightOrbs.copy(drift = v.coerceIn(-100, 100)))
+        },
     )
 
     /**

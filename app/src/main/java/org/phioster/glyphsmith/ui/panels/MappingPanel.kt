@@ -164,6 +164,8 @@ private fun DitherMappingSection(
         modifier = Modifier.padding(top = 6.dp),
     )
 
+    LightOrbsSection(params.lightOrbs) { onChange(params.copy(lightOrbs = it)) }
+
     SectionHeader("dither")
 
     StylePicker(

@@ -114,6 +114,9 @@ enum class AnimTarget(
 
     /** The direction the diagonal temporal stripes run — turned with the orbs, they move as one. */
     TEMPORAL_ANGLE("anim.temporal-angle", "Temporal Angle", 0, 359, cyclic = true),
+
+    /** How far the pre-dither light orbs have drifted — swept, they float through the picture. */
+    LIGHT_ORB_DRIFT("anim.light-orb-drift", "Light Orb Drift", -100, 100),
 }
 
 /**

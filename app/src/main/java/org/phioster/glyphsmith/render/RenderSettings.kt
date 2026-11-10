@@ -192,6 +192,8 @@ data class RenderSettings(
     val animation: AnimationParams = AnimationParams(),
     /** Animated noise added to the dither threshold — works with every dither mode. */
     val temporal: TemporalParams = TemporalParams(),
+    /** Soft light added before the dither, so the dither draws it — see [LightOrbs]. */
+    val lightOrbs: LightOrbsParams = LightOrbsParams(),
     /**
      * Extra renderings stacked over this one. Empty by default, so nothing changes for
      * anything that has never touched them.
