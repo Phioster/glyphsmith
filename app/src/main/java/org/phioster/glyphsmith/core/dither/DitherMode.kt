@@ -115,6 +115,9 @@ enum class DitherMode {
 
     /** A screen the document carries, imported from a picture. */
     CUSTOM_SCREEN,
+
+    /** Groups of three columns, like a tube's phosphor triads; split by a chromatic shift. */
+    TRIAD_GRID,
     ;
 
     val label: String
@@ -144,6 +147,7 @@ enum class DitherMode {
             BLUE_NOISE_32 -> "Blue Noise 32×32"
             MOD_LINES -> "Modulation Lines"
             CUSTOM_SCREEN -> "Custom Screen"
+            TRIAD_GRID -> "Triad Grid"
             WAVE_DIFFUSE -> "Wave Diffuse"
             ORB_DIFFUSE -> "Orb Diffuse"
             MOD_WAVE -> "Modulation Wave"
@@ -227,7 +231,7 @@ enum class DitherMode {
 
             MOD_LINES, UNIFORM_MODULATION, HEART_GRID, POP_TONE,
             CHECKERS, DIAMOND, CROSSHATCH, STIPPLING, BIT_TONE, BLOCK_TONE, PRINT_PATTERN,
-            GRIDLOCK,
+            GRIDLOCK, TRIAD_GRID,
             // Filed by mechanism rather than by name: a threshold rolled per block is a
             // pattern, whatever "ordered" suggests. ORDERED here means a matrix, and a test
             // holds it to that.

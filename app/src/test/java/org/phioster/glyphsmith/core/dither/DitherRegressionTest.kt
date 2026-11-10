@@ -155,6 +155,7 @@ class DitherRegressionTest {
         DitherMode.CUSTOM_SCREEN to "8c09f44764b5c186",
         DitherMode.WAVE_DIFFUSE to "f92721283ea89bd0",
         DitherMode.ORB_DIFFUSE to "8eb16b35408f32fd",
+        DitherMode.TRIAD_GRID to "pin-on-first-build",
     )
 
     @Test
