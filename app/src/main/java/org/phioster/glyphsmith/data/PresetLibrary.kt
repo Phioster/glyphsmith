@@ -1300,7 +1300,8 @@ object PresetLibrary {
                     amount = 14,
                     angle = 35,
                 ),
-                animation = animation(frames = 36),
+                // The stripes sway a little as they pass, which is the one motion this look needs.
+                animation = animation(sweep(AnimTarget.TEMPORAL_ANGLE, 25, 45), frames = 36),
             ),
         ),
         pixel(
