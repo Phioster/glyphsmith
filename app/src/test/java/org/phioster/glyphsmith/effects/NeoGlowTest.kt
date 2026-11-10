@@ -53,14 +53,14 @@ class NeoGlowTest {
         val green = 0xFF00FF00.toInt()
         val plain = NeoGlow.apply(grey(200), NeoGlowParams(enabled = true, color = green, stagger = 0, offset = 50))
         val headed = NeoGlow.apply(grey(200), NeoGlowParams(enabled = true, color = green, stagger = 0, offset = 50, head = 100))
-        assertTrue(headed.data.max { PixelOps.blueOf(it) } > plain.data.max { PixelOps.blueOf(it) })
+        assertTrue(headed.data.maxOf { PixelOps.blueOf(it) } > plain.data.maxOf { PixelOps.blueOf(it) })
     }
 
     @Test
     fun `a low gamma lights faint drawing but leaves black black`() {
         val faint = NeoGlow.apply(grey(40), NeoGlowParams(enabled = true, gamma = 0, rest = 100, intensity = 400))
         val linear = NeoGlow.apply(grey(40), NeoGlowParams(enabled = true, gamma = 50, rest = 100, intensity = 400))
-        assertTrue(faint.data.max { PixelOps.redOf(it) } > linear.data.max { PixelOps.redOf(it) })
+        assertTrue(faint.data.maxOf { PixelOps.redOf(it) } > linear.data.maxOf { PixelOps.redOf(it) })
         val black = NeoGlow.apply(grey(5), NeoGlowParams(enabled = true, gamma = 0, rest = 100, intensity = 400))
         assertTrue(black.data.all { PixelOps.redOf(it) == 5 })
     }
