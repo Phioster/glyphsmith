@@ -41,6 +41,7 @@ object RenderModules : Registry<RenderModuleProvider>(
         RenderModuleProvider(RenderMode.GlyphMatrix, "glyph art"),
         RenderModuleProvider(RenderMode.PurePixel, "pixel dither"),
         RenderModuleProvider(RenderMode.PixelThenGlyph, "pixel dither → glyphs"),
+        RenderModuleProvider(RenderMode.ShapeShifter, "shape shifter"),
     ),
 ) {
     private val byMode = all.associateBy { it.mode }

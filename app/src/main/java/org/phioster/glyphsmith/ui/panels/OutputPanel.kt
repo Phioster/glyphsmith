@@ -24,6 +24,7 @@ import org.phioster.glyphsmith.ui.TerminalButton
 import org.phioster.glyphsmith.ui.TerminalSlider
 import org.phioster.glyphsmith.ui.TerminalToggle
 import org.phioster.glyphsmith.ui.theme.Term
+import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.render.RenderModules
 
 /**
@@ -169,7 +170,9 @@ fun OutputPanel(
         SectionHeader("vector")
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            TerminalButton("svg blocks", onExportPixelSvg, Modifier.weight(1f), enabled)
+            // In shape shifter the same export writes the shapes themselves, as true outlines.
+            val shapes = state.params.renderMode == RenderMode.ShapeShifter
+            TerminalButton(if (shapes) "svg shapes" else "svg blocks", onExportPixelSvg, Modifier.weight(1f), enabled)
             TerminalButton(
                 "svg text", { onExportSvg(SvgMode.TEXT) }, Modifier.weight(1f), textEnabled,
             )

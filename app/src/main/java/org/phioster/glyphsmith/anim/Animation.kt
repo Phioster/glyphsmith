@@ -121,6 +121,10 @@ enum class AnimTarget(
 
     /** Where the neo glow runs are; a sawtooth over 0..100 sends them through once and loops. */
     NEO_GLOW_OFFSET("anim.neo-glow-offset", "Neo Glow Offset", 0, 100, cyclic = true),
+
+    /** Every shape of the shape shifter turning; a full turn closes on itself. */
+    SHAPE_ROTATION("anim.shape-rotation", "Shape Rotation", 0, 359, cyclic = true),
+    SHAPE_SIZE("anim.shape-size", "Shape Size", 10, 200),
 }
 
 /**

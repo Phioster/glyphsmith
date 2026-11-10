@@ -21,8 +21,9 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
 
 ## Current headline numbers
 
-- **Render modes: 3.** `GlyphMatrix` (`render.glyph-art`), `PurePixel` (`render.pixel-dither`)
-  and `PixelThenGlyph` (`render.pixel-then-glyph`). `PurePixel` is what new sessions start in;
+- **Render modes: 4.** `GlyphMatrix` (`render.glyph-art`), `PurePixel` (`render.pixel-dither`),
+  `PixelThenGlyph` (`render.pixel-then-glyph`) and `ShapeShifter` (`render.shape-shifter`, tones as
+  vector shapes on a grid, with a band editor and a true-outline SVG export). `PurePixel` is what new sessions start in;
   `PixelThenGlyph` is the chained mode, dithering to a palette first and reading the result as
   glyphs.
 - **Dither styles: 83 `DitherMode` entries — 82 algorithms plus `NONE`.** `NONE` is not an
@@ -35,7 +36,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
 - **Character sets: 48** across 11 categories (Glyph Art only).
 - **Themes: 7** — Matrix, Amber CRT, Ice, Handheld and Rose are dark; Parchment and Medieval
   are light.
-- **Built-in presets: 105** — 99 curated (88 Pixel Dither to 11 Glyph Art) plus 6 Algorithm Lab
+- **Built-in presets: 110** — 104 curated (88 Pixel Dither, 11 Glyph Art, 5 Shape Shifter) plus 6 Algorithm Lab
   presets, which are counted separately.
 - **Tests: 684 test methods across 69 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and

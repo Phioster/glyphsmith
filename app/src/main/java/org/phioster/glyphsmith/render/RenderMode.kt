@@ -43,6 +43,9 @@ enum class RenderMode {
      * is the only way to get a paletted dither *and* a `.txt` out of the same render.
      */
     PixelThenGlyph,
+
+    /** The picture as a grid of vector shapes chosen by tone — see [ShapeShifter]. */
+    ShapeShifter,
     ;
 
     /**
@@ -58,14 +61,14 @@ enum class RenderMode {
     val isGlyph: Boolean
         get() = when (this) {
             GlyphMatrix, PixelThenGlyph -> true
-            PurePixel -> false
+            PurePixel, ShapeShifter -> false
         }
 
     /** True when a palette dither runs before anything else looks at the image. */
     val ditherFirst: Boolean
         get() = when (this) {
             PurePixel, PixelThenGlyph -> true
-            GlyphMatrix -> false
+            GlyphMatrix, ShapeShifter -> false
         }
 
     companion object {

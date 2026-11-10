@@ -2,6 +2,7 @@ package org.phioster.glyphsmith.data
 
 import android.content.Context
 import kotlinx.serialization.Serializable
+import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.render.RenderSettings
 import java.io.File
 import org.phioster.glyphsmith.core.dither.DitherCategory
@@ -241,6 +242,9 @@ class PresetStore(context: Context) {
             // Whatever produced the levels, a render that ends in characters is glyph art, and
             // that is the shelf someone will look on for it.
             params.renderMode.isGlyph -> CATEGORY_GLYPH
+
+            // Shapes on a grid are geometry whatever else the preset does with them.
+            params.renderMode == RenderMode.ShapeShifter -> CATEGORY_GEOMETRY
 
             // Stacked renders and animation are what the preset *is*, and both are visible in
             // the picker in a way the kernel is not. Layers first: an animated stack is still

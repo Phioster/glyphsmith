@@ -6,6 +6,7 @@ import org.phioster.glyphsmith.render.PixelDitherModule
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.render.RenderModule
 import org.phioster.glyphsmith.render.RenderModuleSet
+import org.phioster.glyphsmith.render.ShapeShifterModule
 
 /**
  * Which module this build renders each mode with.
@@ -28,5 +29,6 @@ object AppRenderModules : RenderModuleSet {
         RenderMode.GlyphMatrix -> GlyphMatrixModule
         RenderMode.PurePixel -> PixelDitherModule
         RenderMode.PixelThenGlyph -> PixelThenGlyphModule
+        RenderMode.ShapeShifter -> ShapeShifterModule
     }
 }

@@ -43,17 +43,23 @@ identically was three chances to drift on the order.
 
 ## Render Modules
 
-Three modules ship, one per `RenderMode`:
+Four modules ship, one per `RenderMode`:
 
 | Mode constant | Stable id | Display name | Produces glyphs | Dithers first |
 | --- | --- | --- | --- | --- |
 | `GlyphMatrix` | `render.glyph-art` | glyph art | yes | no |
 | `PurePixel` | `render.pixel-dither` | pixel dither | no | yes |
 | `PixelThenGlyph` | `render.pixel-then-glyph` | pixel dither → glyphs | yes | yes |
+| `ShapeShifter` | `render.shape-shifter` | shape shifter | no | no |
 
 `PurePixel` is the default for new sessions. `PixelThenGlyph` is the chained mode: the image
 is dithered to a palette first and the glyph stage then reads the result as an ordinary
 image, which is the only way to get a paletted dither *and* a `.txt` out of one render.
+
+`ShapeShifter` has no dither stage: `ShapeShifter.field` turns the sampled grid into one
+placement per cell (the cell's tone picks a band, the band names a shape and a size), and that
+one field is drawn by the rasteriser for preview and export and written out by `ShapeVector`
+as true outlines. The outlines themselves live once, in `Shapes`.
 
 `RenderMode.isGlyph` and `RenderMode.ditherFirst` are exhaustive `when` expressions rather
 than negations, so a fourth mode does not compile until somebody has said what it produces.
@@ -367,16 +373,16 @@ A preset is a saved configuration of available providers — not executable code
 implementation. It always stores the *complete* `RenderSettings`, effects, animation, temporal
 and layers included, so applying one is a single action.
 
-The shipped library is **105 presets**:
+The shipped library is **110 presets**:
 
-- **99 curated**, filed by mechanism across 11 categories — Classic Dither (6), Error
-  Diffusion (6), Ordered Dither (6), Pattern (15), Print (7), Geometry (5), Color (5), Glitch
+- **104 curated**, filed by mechanism across 11 categories — Classic Dither (6), Error
+  Diffusion (6), Ordered Dither (6), Pattern (15), Print (7), Geometry (10), Color (5), Glitch
   (8), Motion (28), Layered (2), Glyph Art (11).
 - **6 Algorithm Lab**, kept off the curated shelves and counted separately: one preset per
   kernel at otherwise identical settings.
 
-The curated split is **88 Pixel Dither to 11 Glyph Art** — 89 % to 11 %, near the top of the
-80–90 / 10–20 target. Ten more pixel presets fit (99 to 11); the eleventh needs a glyph one beside it. Built-in presets name their mode explicitly via the `pixel()` and `glyph()` helpers,
+The curated split is **88 Pixel Dither, 11 Glyph Art and 5 Shape Shifter** — 85 %, 11 % and
+5 %. Shape Shifter is a small third shelf, capped at 10 % and filed under Geometry. Built-in presets name their mode explicitly via the `pixel()`, `glyph()` and `shapes()` helpers,
 so they depend on neither of the two defaults below.
 
 ## Compatibility

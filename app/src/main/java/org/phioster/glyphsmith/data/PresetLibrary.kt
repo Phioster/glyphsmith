@@ -29,6 +29,10 @@ import org.phioster.glyphsmith.effects.PostProcessingParams
 import org.phioster.glyphsmith.effects.GrainKind
 import org.phioster.glyphsmith.effects.NeoGlowParams
 import org.phioster.glyphsmith.render.LightOrbsParams
+import org.phioster.glyphsmith.render.FeatherPattern
+import org.phioster.glyphsmith.render.ShapeLayout
+import org.phioster.glyphsmith.render.ShapeSets
+import org.phioster.glyphsmith.render.ShapeShifterParams
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.effects.CrtWarpParams
@@ -71,6 +75,10 @@ object PresetLibrary {
     /** A Glyph Art preset: the render module, chosen deliberately. */
     private fun glyph(name: String, category: String, params: RenderSettings) =
         Preset(name, params.copy(renderMode = RenderMode.GlyphMatrix), category)
+
+    /** A Shape Shifter preset: tones drawn as vector shapes on a grid. */
+    private fun shapes(name: String, category: String, params: RenderSettings) =
+        Preset(name, params.copy(renderMode = RenderMode.ShapeShifter), category)
 
     /** A track that sweeps one parameter across a whole loop and closes seamlessly. */
     private fun sweep(
@@ -848,6 +856,83 @@ object PresetLibrary {
                 patternDensity = 70,
                 colorMode = ColorMode.PALETTE,
                 paletteId = "palette.ice",
+            ),
+        ),
+        shapes(
+            "bubble grid",
+            PresetStore.CATEGORY_GEOMETRY,
+            // Circles in the picture's own colours, larger where it is brighter and big enough
+            // to overlap — bright shapes are drawn last, so highlights pile up on top.
+            RenderSettings(
+                cellSize = 16,
+                colorMode = ColorMode.SOURCE,
+                backgroundColor = 0xFF000000.toInt(),
+                shapeShifter = ShapeShifterParams(bands = ShapeSets.named("circles"), shapeSize = 160, feather = 40),
+            ),
+        ),
+        shapes(
+            "star field",
+            PresetStore.CATEGORY_GEOMETRY,
+            // Plus signs in the shadows opening into four-point stars, with a glow over them.
+            RenderSettings(
+                cellSize = 14,
+                colorMode = ColorMode.SOURCE,
+                backgroundColor = 0xFF000000.toInt(),
+                shapeShifter = ShapeShifterParams(bands = ShapeSets.named("4-point stars"), shapeSize = 110),
+                effects = EffectStack(
+                    glow = GlowParams(enabled = true, threshold = 40, radius = 60, intensity = 300),
+                ),
+            ),
+        ),
+        shapes(
+            "cross stitch",
+            PresetStore.CATEGORY_GEOMETRY,
+            // Crosses for the dark half, pluses for the bright one, scattered where they meet
+            // and coloured by tone from the palette.
+            RenderSettings(
+                cellSize = 14,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.ember",
+                shapeShifter = ShapeShifterParams(
+                    bands = ShapeSets.named("plus and cross"),
+                    shapeSize = 100,
+                    feather = 60,
+                    featherPattern = FeatherPattern.SCATTER,
+                ),
+            ),
+        ),
+        shapes(
+            "ring halftone",
+            PresetStore.CATEGORY_GEOMETRY,
+            // Ink on paper: inverted so the dark tones get the big shapes, on an offset grid
+            // like a printed screen.
+            RenderSettings(
+                cellSize = 12,
+                invert = true,
+                colorMode = ColorMode.SINGLE,
+                inkColor = 0xFF14110F.toInt(),
+                backgroundColor = 0xFFF2EEE3.toInt(),
+                shapeShifter = ShapeShifterParams(
+                    bands = ShapeSets.named("rings"),
+                    shapeSize = 105,
+                    layout = ShapeLayout.OFFSET,
+                ),
+            ),
+        ),
+        shapes(
+            "turning stars",
+            PresetStore.CATEGORY_GEOMETRY,
+            // Five-point stars in the picture's colours, all turning together; a full turn
+            // lands on the frame it started from.
+            RenderSettings(
+                cellSize = 16,
+                colorMode = ColorMode.SOURCE,
+                backgroundColor = 0xFF000000.toInt(),
+                shapeShifter = ShapeShifterParams(bands = ShapeSets.named("stars"), shapeSize = 105),
+                animation = animation(
+                    sweep(AnimTarget.SHAPE_ROTATION, 0, 359, AnimCurve.SAWTOOTH),
+                    frames = 48,
+                ),
             ),
         ),
 

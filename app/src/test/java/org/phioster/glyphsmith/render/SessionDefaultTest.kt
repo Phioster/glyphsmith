@@ -56,7 +56,7 @@ class SessionDefaultTest {
     fun `the shipped library names its modes rather than inheriting one`() {
         val modes = PresetLibrary.builtIns.map { it.params.renderMode }.toSet()
 
-        assertEquals(setOf(RenderMode.PurePixel, RenderMode.GlyphMatrix), modes)
+        assertEquals(setOf(RenderMode.PurePixel, RenderMode.GlyphMatrix, RenderMode.ShapeShifter), modes)
     }
 
     /**

@@ -125,6 +125,12 @@ object AnimTargets {
         AnimTargetProvider(AnimTarget.NEO_GLOW_OFFSET, 22) { p, v ->
             p.copy(effects = p.effects.copy(neoGlow = p.effects.neoGlow.copy(offset = v)))
         },
+        AnimTargetProvider(AnimTarget.SHAPE_ROTATION, 23) { p, v ->
+            p.copy(shapeShifter = p.shapeShifter.copy(rotation = Math.floorMod(v, 360)))
+        },
+        AnimTargetProvider(AnimTarget.SHAPE_SIZE, 24) { p, v ->
+            p.copy(shapeShifter = p.shapeShifter.copy(shapeSize = v.coerceIn(10, 200)))
+        },
     )
 
     /**

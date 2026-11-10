@@ -4,11 +4,12 @@ An Android dithering and retro-effect tool. Load an image, a video or the camera
 to a palette as pixels, or onto a character grid as glyphs — and export the render as a PNG,
 JPG, WEBP, GIF, MP4 or SVG, or the grid itself as a `.txt`.
 
-Three render modes share one engine. The 79 dither algorithms quantise into *levels*, and a
+Four render modes share one engine. The 79 dither algorithms quantise into *levels*, and a
 level becomes a colour or a character depending on the mode; nothing below that seam knows
 which one it is feeding. Pixel dithering is the default; glyph art is the optional half; the
 third mode chains them, dithering to a palette first and reading the *result* as glyphs, which
-is the only way to get a paletted dither and a `.txt` out of one render.
+is the only way to get a paletted dither and a `.txt` out of one render. A fourth mode, Shape
+Shifter, skips the dither and draws each cell as a vector shape chosen by its tone.
 
 It began by rebuilding the feature set of **Script Slayer** — the glyph module inside Studio
 AAA's Dither Boy — and has since grown past it into the dithering half: the same vocabulary
