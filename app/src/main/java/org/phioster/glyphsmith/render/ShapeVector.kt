@@ -16,7 +16,9 @@ object ShapeVector {
         val text = buildString {
             append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"").append(width)
             append("\" height=\"").append(height)
-            append("\" viewBox=\"0 0 ").append(width).append(' ').append(height).append("\">\n<defs>")
+            append("\" viewBox=\"0 0 ").append(width).append(' ').append(height).append('"')
+            if (field.crisp) append(" shape-rendering=\"crispEdges\"")
+            append(">\n<defs>")
             field.shape.distinct().filter { it != ShapeKind.EMPTY }.forEach { kind ->
                 append("<path id=\"s").append(kind.ordinal).append("\" fill-rule=\"evenodd\" d=\"")
                 append(Shapes.pathData(kind)).append("\"/>")
@@ -33,7 +35,7 @@ object ShapeVector {
                 append("<use href=\"#s").append(field.shape[i].ordinal)
                 append("\" transform=\"translate(").append(round(field.x[i] * cell)).append(' ')
                 append(round(field.y[i] * cell)).append(')')
-                if (field.rotation != 0) append(" rotate(").append(field.rotation).append(')')
+                if (field.rotation[i] != 0) append(" rotate(").append(field.rotation[i]).append(')')
                 append(" scale(").append(round(radius)).append(")\" fill=\"")
                 append(hex(field.color[i])).append("\"/>\n")
             }

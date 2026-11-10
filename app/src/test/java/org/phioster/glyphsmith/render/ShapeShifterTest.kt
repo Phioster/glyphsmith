@@ -103,4 +103,32 @@ class ShapeShifterTest {
         assertTrue(svg.contains("translate(15.0 5.0) scale(5.0)"))
         assertTrue(svg.contains("fill=\"#ffffff\""))
     }
+
+    @Test
+    fun `colour per band overrides the colour mode`() {
+        val red = 0xFFFF0000.toInt()
+        val bands = listOf(ShapeBand(ShapeKind.SQUARE, color = red))
+        val own = ShapeShifter.field(flat(0.5f), settings(ShapeShifterParams(bands = bands, perBandColor = true)))
+        assertEquals(red, own.color[0])
+        val shared = ShapeShifter.field(flat(0.5f), settings(ShapeShifterParams(bands = bands)))
+        assertEquals(0xFFFFFFFF.toInt(), shared.color[0])
+    }
+
+    @Test
+    fun `rotation jitter turns cells apart in whole steps and none leaves them alike`() {
+        val still = ShapeShifter.field(flat(0.9f, 8, 8), settings(ShapeShifterParams(bands = two, rotation = 30)))
+        assertEquals(setOf(30), still.rotation.toSet())
+        val loose = ShapeShifter.field(flat(0.9f, 8, 8), settings(ShapeShifterParams(bands = two, rotationJitter = 100)))
+        assertTrue(loose.rotation.toSet().size > 4)
+        assertTrue(loose.rotation.all { it % 6 == 0 && it in 0..359 })
+    }
+
+    @Test
+    fun `crisp edges leave only full and empty pixels`() {
+        val crisp = settings(ShapeShifterParams(bands = two, crispEdges = true))
+        val out = ShapeShifter.render(ShapeShifter.field(flat(0.9f), crisp), 12, crisp)
+        assertEquals(setOf(black, 0xFFFFFFFF.toInt()), out.data.toSet())
+        val soft = ShapeShifter.render(ShapeShifter.field(flat(0.9f), settings()), 12, settings())
+        assertTrue(soft.data.toSet().size > 2)
+    }
 }

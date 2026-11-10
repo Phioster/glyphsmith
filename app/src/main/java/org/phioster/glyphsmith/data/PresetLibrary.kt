@@ -935,6 +935,34 @@ object PresetLibrary {
                 ),
             ),
         ),
+        shapes(
+            "custom bayer",
+            PresetStore.CATEGORY_GEOMETRY,
+            // A dither assembled from bands: Bayer tiles of rising density in one ink, so the
+            // steps read as tone. Crisp, because a dither's pixels should not be smoothed.
+            RenderSettings(
+                cellSize = 8,
+                colorMode = ColorMode.SINGLE,
+                inkColor = 0xFF46FF7A.toInt(),
+                backgroundColor = 0xFF050B06.toInt(),
+                shapeShifter = ShapeShifterParams(bands = ShapeSets.named("bayer tiles"), crispEdges = true),
+            ),
+        ),
+        shapes(
+            "red hearts",
+            PresetStore.CATEGORY_GEOMETRY,
+            // Each band in a colour of its own: grey dots growing into pale ones, and the
+            // brightest tones turned into red pixel hearts.
+            RenderSettings(
+                cellSize = 14,
+                backgroundColor = 0xFF000000.toInt(),
+                shapeShifter = ShapeShifterParams(
+                    bands = ShapeSets.named("red hearts"),
+                    perBandColor = true,
+                    feather = 35,
+                ),
+            ),
+        ),
 
         // --- colour --------------------------------------------------------------
         // Palette work: a fixed set of inks, and the dither doing the mixing. In pixel

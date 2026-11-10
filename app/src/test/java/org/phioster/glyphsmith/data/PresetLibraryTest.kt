@@ -99,6 +99,8 @@ class PresetLibraryTest {
         cross stitch|GEOMETRY|ShapeShifter|NONE
         ring halftone|GEOMETRY|ShapeShifter|NONE
         turning stars|GEOMETRY|ShapeShifter|NONE
+        custom bayer|GEOMETRY|ShapeShifter|NONE
+        red hearts|GEOMETRY|ShapeShifter|NONE
         gameboy|COLOR|PurePixel|NONE
         c64 lores|COLOR|PurePixel|BAYER_4
         vapour wash|COLOR|PurePixel|FLOYD_STEINBERG
@@ -211,6 +213,9 @@ class PresetLibraryTest {
      *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
      *
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
+     * - **Shape shifter bands** (2026-11-11): bands gain a colour, the block gains perBandColor,
+     *   rotationJitter and crispEdges; presets `custom bayer` and `red hearts`. Checked locally:
+     *   without the two and the four keys, the library hashed to the previous digest exactly.
      * - **Shape shifter** (2026-11-10): five presets in the new render mode (`bubble grid`,
      *   `star field`, `cross stitch`, `ring halftone`, `turning stars`); every preset gains a
      *   `"shapeShifter"` block and two disabled tracks. Checked locally: without the five, the
@@ -245,7 +250,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "fcdcee97c7001e09a104e95391898abeaaba779e3013635d57ac8edec59adc8b"
+    private val digest = "13fd5a71a90c0b581f01c3b0e100aa3569ae73bbcb558fcd74f585c4c9025e65"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -285,8 +290,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 110, presets.size)
-        assertEquals("curated presets", 104, curated.size)
+        assertEquals("built-in presets", 112, presets.size)
+        assertEquals("curated presets", 106, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 

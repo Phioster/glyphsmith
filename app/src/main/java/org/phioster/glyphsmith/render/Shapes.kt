@@ -18,6 +18,21 @@ enum class ShapeKind(val label: String) {
     STAR5("5-point star"),
     HEART("heart"),
     BAR("bar"),
+    ROUNDED_SQUARE("rounded square"),
+    HEXAGON("hexagon"),
+    OCTAGON("octagon"),
+    SQUARE_RING("square ring"),
+    TRIANGLE_DOWN("triangle down"),
+    TRIANGLE_LEFT("triangle left"),
+    TRIANGLE_RIGHT("triangle right"),
+    LINES("lines"),
+    DOTS("four dots"),
+    PIXEL_HEART("pixel heart"),
+
+    /** Bayer 4×4 tiles: stack them across the bands and the bands become a dither of your own. */
+    BAYER_13("bayer 13%"),
+    BAYER_38("bayer 38%"),
+    BAYER_63("bayer 63%"),
 }
 
 /**
@@ -33,7 +48,8 @@ object Shapes {
     private const val ARM = 0.3f
     private const val SQUARE_HALF = 0.88f
 
-    private val all = ShapeKind.entries.associateWith { build(it) }
+    // Lazy, because the outlines are built from tables declared further down this object.
+    private val all by lazy { ShapeKind.entries.associateWith { build(it) } }
 
     fun contours(kind: ShapeKind): List<FloatArray> = all.getValue(kind)
 
@@ -77,14 +93,74 @@ object Shapes {
         ShapeKind.RING -> listOf(round(1f), round(0.6f))
         ShapeKind.SQUARE -> listOf(box(SQUARE_HALF, SQUARE_HALF))
         ShapeKind.DIAMOND -> listOf(floatArrayOf(0f, -1f, 1f, 0f, 0f, 1f, -1f, 0f))
-        ShapeKind.TRIANGLE -> listOf(floatArrayOf(0f, -1f, 0.94f, 0.8f, -0.94f, 0.8f))
+        ShapeKind.TRIANGLE -> listOf(TRIANGLE)
         ShapeKind.PLUS -> listOf(plus())
         ShapeKind.CROSS -> listOf(turned(plus(), PI / 4))
         ShapeKind.STAR4 -> listOf(star(4, 0.32f))
         ShapeKind.STAR5 -> listOf(star(5, 0.42f))
         ShapeKind.HEART -> listOf(heart())
         ShapeKind.BAR -> listOf(box(1f, 0.28f))
+        ShapeKind.ROUNDED_SQUARE -> listOf(roundedSquare())
+        ShapeKind.HEXAGON -> listOf(regular(6, -PI / 2))
+        ShapeKind.OCTAGON -> listOf(regular(8, PI / 8))
+        ShapeKind.SQUARE_RING -> listOf(box(SQUARE_HALF, SQUARE_HALF), box(0.5f, 0.5f))
+        ShapeKind.TRIANGLE_DOWN -> listOf(turned(TRIANGLE, PI))
+        ShapeKind.TRIANGLE_LEFT -> listOf(turned(TRIANGLE, -PI / 2))
+        ShapeKind.TRIANGLE_RIGHT -> listOf(turned(TRIANGLE, PI / 2))
+        ShapeKind.LINES -> listOf(-0.66f, 0f, 0.66f).map { moved(box(1f, 0.17f), 0f, it) }
+        ShapeKind.DOTS -> listOf(-0.5f, 0.5f).flatMap { y -> listOf(-0.5f, 0.5f).map { x -> moved(round(0.3f), x, y) } }
+        ShapeKind.PIXEL_HEART -> tiles(HEART_PIXELS)
+        ShapeKind.BAYER_13 -> bayerTile(2)
+        ShapeKind.BAYER_38 -> bayerTile(6)
+        ShapeKind.BAYER_63 -> bayerTile(10)
     }
+
+    private val TRIANGLE = floatArrayOf(0f, -1f, 0.94f, 0.8f, -0.94f, 0.8f)
+    private val HEART_PIXELS = listOf(".XX.XX.", "XXXXXXX", "XXXXXXX", ".XXXXX.", "..XXX..", "...X...")
+    private val BAYER = intArrayOf(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5)
+
+    private fun regular(sides: Int, start: Double) = FloatArray(sides * 2) { i ->
+        val angle = start + 2.0 * PI * (i / 2) / sides
+        (if (i % 2 == 0) cos(angle) else sin(angle)).toFloat()
+    }
+
+    /** A square whose corners are quarter circles a third of its half-width across. */
+    private fun roundedSquare(): FloatArray {
+        val steps = 6
+        val bend = 0.3f
+        val reach = SQUARE_HALF - bend
+        val out = ArrayList<Float>()
+        for (corner in 0 until 4) {
+            val cx = if (corner == 0 || corner == 3) reach else -reach
+            val cy = if (corner < 2) reach else -reach
+            for (k in 0..steps) {
+                val angle = corner * PI / 2 + k * PI / 2 / steps
+                out += cx + bend * cos(angle).toFloat()
+                out += cy + bend * sin(angle).toFloat()
+            }
+        }
+        return out.toFloatArray()
+    }
+
+    private fun moved(points: FloatArray, dx: Float, dy: Float) =
+        FloatArray(points.size) { i -> points[i] + if (i % 2 == 0) dx else dy }
+
+    /** One square per X in [rows], the picture centred and fitted to the box by its longer side. */
+    private fun tiles(rows: List<String>): List<FloatArray> {
+        val cols = rows.maxOf { it.length }
+        val step = 2f / maxOf(cols, rows.size)
+        val left = -cols * step / 2f
+        val top = -rows.size * step / 2f
+        return rows.flatMapIndexed { r, line ->
+            line.indices.filter { line[it] == 'X' }.map { c ->
+                moved(box(step / 2f, step / 2f), left + (c + 0.5f) * step, top + (r + 0.5f) * step)
+            }
+        }
+    }
+
+    /** The cells of a 4×4 Bayer matrix that are on below [level], as squares filling the box. */
+    private fun bayerTile(level: Int): List<FloatArray> =
+        tiles((0 until 4).map { r -> (0 until 4).joinToString("") { c -> if (BAYER[r * 4 + c] < level) "X" else "." } })
 
     private fun box(halfW: Float, halfH: Float) =
         floatArrayOf(-halfW, -halfH, halfW, -halfH, halfW, halfH, -halfW, halfH)
