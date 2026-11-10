@@ -376,7 +376,7 @@ The shipped library is **100 presets**:
   kernel at otherwise identical settings.
 
 The curated split is **84 Pixel Dither to 10 Glyph Art** — 89 % to 11 %, near the top of the
-80–90 / 10–20 target. Two more pixel presets fit; the third needs a glyph one beside it. Built-in presets name their mode explicitly via the `pixel()` and `glyph()` helpers,
+80–90 / 10–20 target. Six more pixel presets fit (90 to 10); the seventh needs a glyph one beside it. Built-in presets name their mode explicitly via the `pixel()` and `glyph()` helpers,
 so they depend on neither of the two defaults below.
 
 ## Compatibility
