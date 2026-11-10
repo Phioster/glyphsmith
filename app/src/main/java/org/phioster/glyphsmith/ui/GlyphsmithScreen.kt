@@ -10,6 +10,10 @@ import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -126,6 +130,7 @@ fun GlyphsmithScreen(
     onScrubbing: (Boolean) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
+    var fullView by remember { mutableStateOf(false) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(onPickImage)
     }
@@ -238,7 +243,9 @@ fun GlyphsmithScreen(
 
         Preview(state, Modifier.weight(1f))
 
-        StatusLine(state)
+        StatusLine(state) { fullView = true }
+
+        if (fullView) FullView(state) { fullView = false }
 
         PresetBar(
             presets = state.presets,
@@ -400,7 +407,7 @@ private fun Header(
  * preview of a 200-column grid shows none of it.
  */
 @Composable
-private fun Preview(state: UiState, modifier: Modifier = Modifier) {
+private fun Preview(state: UiState, modifier: Modifier = Modifier, framed: Boolean = true) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
@@ -410,12 +417,13 @@ private fun Preview(state: UiState, modifier: Modifier = Modifier) {
         offsetY += panChange.y
     }
 
+    val frame = if (framed) {
+        Modifier.heightIn(min = 180.dp).border(1.dp, Term.InkFaint, RectangleShape).background(Term.Surface)
+    } else {
+        Modifier
+    }
     Box(
-        modifier
-            .fillMaxWidth()
-            .heightIn(min = 180.dp)
-            .border(1.dp, Term.InkFaint, RectangleShape)
-            .background(Term.Surface),
+        modifier.fillMaxWidth().then(frame),
         contentAlignment = Alignment.Center,
     ) {
         val preview = state.preview
@@ -445,21 +453,59 @@ private fun Preview(state: UiState, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun StatusLine(state: UiState) {
+private fun StatusLine(state: UiState, onFullView: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             "> ${state.status}",
             color = if (state.working) Term.Amber else Term.InkDim,
             style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
         )
+        if (state.preview != null) {
+            Text(
+                "[full view]",
+                color = Term.Ink,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.clickable(onClick = onFullView).padding(horizontal = 10.dp, vertical = 4.dp),
+            )
+        }
         Text(
             if (state.working) "busy" else "idle",
             color = if (state.working) Term.Amber else Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
         )
+    }
+}
+
+/**
+ * The picture on the whole screen, with the same pinch and pan as the preview.
+ *
+ * The working layout shares the screen with the controls, which leaves a portrait image small;
+ * this is the look-at-it view. It reads the same state, so an animation keeps playing in it.
+ */
+@Composable
+private fun FullView(state: UiState, onClose: () -> Unit) {
+    Dialog(
+        onDismissRequest = onClose,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(Modifier.fillMaxSize().background(Color.Black)) {
+            Preview(state, Modifier.fillMaxSize(), framed = false)
+            Text(
+                "[close]",
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .background(Color.Black.copy(alpha = 0.6f))
+                    .clickable(onClick = onClose)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            )
+        }
     }
 }
 
