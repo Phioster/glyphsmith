@@ -31,14 +31,32 @@ class PresetStore(context: Context) {
 
     private val file = File(context.filesDir, "presets.json")
 
+    /** Names of the built-ins this library has been offered, one per line. See [BuiltInArrivals]. */
+    private val offeredFile = File(context.filesDir, "presets_offered.txt")
+
     fun load(): List<Preset> {
         if (!file.exists()) return PresetLibrary.builtIns
         val text = runCatching { file.readText() }.getOrNull() ?: return PresetLibrary.builtIns
-        return PresetSchema.decode(text).ifEmpty { PresetLibrary.builtIns }
+        val stored = PresetSchema.decode(text).ifEmpty { return PresetLibrary.builtIns }
+        val offered = runCatching { offeredFile.readLines().filter { it.isNotBlank() }.toSet() }
+            .getOrNull()
+            .takeIf { offeredFile.exists() }
+        val result = BuiltInArrivals.merge(stored, offered, PresetLibrary.builtIns)
+        if (result.added > 0) save(result.presets)
+        if (result.offered != offered) {
+            runCatching { offeredFile.writeText(result.offered.sorted().joinToString("\n")) }
+        }
+        return result.presets
     }
 
     fun save(presets: List<Preset>) {
         runCatching { file.writeText(PresetSchema.encode(presets)) }
+        // A library this build writes has been offered everything this build ships; only a
+        // file from before the record existed needs the arrivals worked out on load.
+        if (!offeredFile.exists()) {
+            val all = BuiltInArrivals.allOffered(PresetLibrary.builtIns)
+            runCatching { offeredFile.writeText(all.sorted().joinToString("\n")) }
+        }
     }
 
     fun exportJson(): String = PresetSchema.encode(load())
@@ -121,6 +139,7 @@ class PresetStore(context: Context) {
      */
     fun reset(): List<Preset> {
         runCatching { file.delete() }
+        runCatching { offeredFile.delete() }
         return PresetLibrary.builtIns
     }
 
