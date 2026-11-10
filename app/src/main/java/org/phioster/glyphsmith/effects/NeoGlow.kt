@@ -5,6 +5,7 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.floor
+import kotlin.math.pow
 import kotlin.math.sin
 import org.phioster.glyphsmith.core.image.Pixels
 
@@ -34,6 +35,18 @@ data class NeoGlowParams(
     /** The light's colour, or 0 to brighten each pixel in its own colour. */
     val color: Int = 0,
     val seed: Int = 1,
+    /** 1..8 — runs travelling down each lane at once, so a lane reads as rain, not one drop. */
+    val runs: Int = 1,
+    /** 0..100 — how unevenly long the runs are; 0 makes every tail [length]. */
+    val vary: Int = 0,
+    /** 0..100 — how fast a tail fades: 50 is linear, higher keeps the light near the head. */
+    val falloff: Int = 50,
+    /** 0..100 — how far a run's head turns towards white, the bright tip of falling code. */
+    val head: Int = 0,
+    /** 0..100 — how much dim drawing still catches the light: below 50 faint glyphs light up too. */
+    val gamma: Int = 50,
+    /** Every other lane runs the opposite way. */
+    val mirror: Boolean = false,
 )
 
 object NeoGlow {
@@ -73,12 +86,37 @@ object NeoGlow {
                 val dy = y - cy
                 val t = dx * c + dy * s + along / 2f            // 0..along, the way the runs go
                 val laneIndex = floor((-dx * s + dy * c) / lane).toInt()
-                val glow = runAt(t, laneIndex, along, tail, phase, params)
+                val way = if (params.mirror && Math.floorMod(laneIndex, 2) == 1) along - t else t
+                val glow = brightest(way, laneIndex, along, tail, phase, params)
                 val index = y * source.width + x
-                source.data[index] = light(source.data[index], rest + (1f - rest) * glow, boost * glow, params.color)
+                source.data[index] = light(source.data[index], rest + (1f - rest) * glow, boost * glow, params, glow)
             }
         }
         return source
+    }
+
+    /** The strongest of this lane's runs at [t]; each run starts at its own point in the loop. */
+    @Suppress("LongParameterList")
+    internal fun brightest(t: Float, lane: Int, along: Float, tail: Float, phase: Float, params: NeoGlowParams): Float {
+        val runs = params.runs.coerceIn(1, 8)
+        val vary = params.vary.coerceIn(0, 100) / 100f
+        var best = 0f
+        for (run in 0 until runs) {
+            // Runs share the loop evenly, then each lane and run is nudged so lanes do not march in step.
+            val spread = run.toFloat() / runs
+            val ownTail = tail * (1f - vary * 0.7f * hash(lane * 31 + run, params.seed + 7))
+            val glow = runAt(t, lane * 8 + run, along, ownTail, phase + spread, params)
+            if (glow > best) best = glow
+        }
+        return shape(best, params.falloff)
+    }
+
+    /** Falloff 50 leaves the tail linear; 100 cubes it, 0 takes its cube root. */
+    private fun shape(glow: Float, falloff: Int): Float {
+        if (glow <= 0f) return 0f
+        val f = falloff.coerceIn(0, 100)
+        val exponent = if (f >= 50) 1f + (f - 50) / 25f else 1f / (1f + (50 - f) / 25f)
+        return glow.toDouble().pow(exponent.toDouble()).toFloat()
     }
 
     /** 0..1: 1 at the head of this lane's run, falling to 0 at the end of its tail. */
@@ -92,23 +130,39 @@ object NeoGlow {
         return 1f - behind / tail
     }
 
-    private fun light(pixel: Int, keep: Float, add: Float, color: Int): Int {
+    @Suppress("LongParameterList")
+    private fun light(pixel: Int, keep: Float, add: Float, params: NeoGlowParams, glow: Float): Int {
+        val color = params.color
         val r = PixelOps.redOf(pixel)
         val g = PixelOps.greenOf(pixel)
         val b = PixelOps.blueOf(pixel)
-        // Light only lands where something is drawn: a pixel's own brightness gates it.
-        val lit = (0.2126f * r + 0.7152f * g + 0.0722f * b) / 255f
-        val gate = add * lit
-        val tr = if (color == 0) r else PixelOps.redOf(color)
-        val tg = if (color == 0) g else PixelOps.greenOf(color)
-        val tb = if (color == 0) b else PixelOps.blueOf(color)
+        // Light only lands where something is drawn: a pixel's own brightness gates it. The knee
+        // keeps a near-black background dark however low the gamma goes.
+        val luma = (0.2126f * r + 0.7152f * g + 0.0722f * b) / 255f
+        val lit = ((luma - KNEE) / (1f - KNEE)).coerceAtLeast(0f)
+        val gate = add * lit.toDouble().pow(gammaExponent(params.gamma).toDouble()).toFloat()
+        // The head of a run turns towards white; the tail keeps the light's own colour.
+        val white = params.head.coerceIn(0, 100) / 100f * glow * glow
+        val tr = mixWhite(if (color == 0) r else PixelOps.redOf(color), white)
+        val tg = mixWhite(if (color == 0) g else PixelOps.greenOf(color), white)
+        val tb = mixWhite(if (color == 0) b else PixelOps.blueOf(color), white)
         return PixelOps.argb(
             PixelOps.alphaOf(pixel),
-            (r * keep + tr * gate).toInt(),
-            (g * keep + tg * gate).toInt(),
-            (b * keep + tb * gate).toInt(),
+            (r * keep + tr * gate).toInt().coerceIn(0, 255),
+            (g * keep + tg * gate).toInt().coerceIn(0, 255),
+            (b * keep + tb * gate).toInt().coerceIn(0, 255),
         )
     }
+
+    private const val KNEE = 0.06f
+
+    /** Gamma 50 is linear; lower reaches into faint drawing, higher keeps the light to the brightest. */
+    private fun gammaExponent(gamma: Int): Float {
+        val g = gamma.coerceIn(0, 100)
+        return if (g >= 50) 1f + (g - 50) / 25f else 0.2f + 0.8f * g / 50f
+    }
+
+    private fun mixWhite(channel: Int, amount: Float): Float = channel + (255 - channel) * amount
 
     private fun frac(value: Float): Float = value - floor(value)
 

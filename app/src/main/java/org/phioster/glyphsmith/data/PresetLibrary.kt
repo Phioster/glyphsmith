@@ -1270,8 +1270,8 @@ object PresetLibrary {
         pixel(
             "floating lights",
             PresetStore.CATEGORY_MOTION,
-            // Light added before the dither, so the orbs are drawn in the Bayer pattern itself
-            // rather than laid over it — and drift slowly through the frame.
+            // Light added before the dither, so the specks are drawn in the Bayer pattern itself:
+            // many small faint ones, like dust in a beam, rising slowly one way and looping.
             RenderSettings(
                 cellSize = 3,
                 depth = 3,
@@ -1279,8 +1279,19 @@ object PresetLibrary {
                 brightness = -0.15f,
                 colorMode = ColorMode.PALETTE,
                 paletteId = "palette.ember",
-                lightOrbs = LightOrbsParams(enabled = true, count = 35, size = 25, intensity = 55, random = 50),
-                animation = animation(sweep(AnimTarget.LIGHT_ORB_DRIFT, -100, 100), frames = 48),
+                lightOrbs = LightOrbsParams(
+                    enabled = true,
+                    count = 90,
+                    size = 6,
+                    intensity = 35,
+                    random = 70,
+                    direction = 250,
+                ),
+                animation = animation(
+                    sweep(AnimTarget.LIGHT_ORB_DRIFT, -100, 100, AnimCurve.SAWTOOTH),
+                    frames = 120,
+                    fps = 10,
+                ),
             ),
         ),
         pixel(
@@ -1890,13 +1901,22 @@ object PresetLibrary {
                 effects = EffectStack(
                     neoGlow = NeoGlowParams(
                         enabled = true,
-                        length = 35,
-                        stagger = 90,
-                        intensity = 250,
-                        rest = 45,
+                        length = 22,
+                        stagger = 100,
+                        intensity = 320,
+                        rest = 30,
                         lane = 8,
                         color = 0xFF9CFF5A.toInt(),
+                        runs = 3,
+                        vary = 60,
+                        falloff = 70,
+                        head = 75,
+                        gamma = 20,
                     ),
+                    glow = GlowParams(enabled = true, threshold = 55, radius = 40, intensity = 350),
+                    // Neo glow before glow, so the bright heads are what blooms.
+                    order = EffectId.entries.filter { it != EffectId.NEO_GLOW && it != EffectId.GLOW } +
+                        EffectId.NEO_GLOW + EffectId.GLOW,
                 ),
                 animation = animation(sweep(AnimTarget.NEO_GLOW_OFFSET, 0, 100, AnimCurve.SAWTOOTH), frames = 40),
             ),

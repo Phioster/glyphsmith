@@ -206,6 +206,10 @@ class PresetLibraryTest {
      *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
      *
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
+     * - **Neo glow rain** (2026-11-10): neo glow gains runs, vary, falloff, head, gamma and mirror
+     *   (every preset's block grows by six keys); `floating lights` and `matrix reveal` re-tuned
+     *   from the tutorial videos. Checked in CI: with the two rebuilt as they were and the six
+     *   keys stripped from each neoGlow block, the library hashed to the previous digest exactly.
      * - **Neo glow + five presets** (2026-11-10): `triad tube`, `floating lights`, `diagonal
      *   drift`, `silver halide`, `matrix reveal`; every preset gains a switched-off `"neoGlow"`
      *   block, the slot in its order and one disabled track. Checked in CI: without the five names
@@ -229,7 +233,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "c340751c75553f5c672725d694763ffc42c88ded88a15c837aaf717f76b0b964"
+    private val digest = "b143d606381ebf6696cd4fb693bd52230027a638b4e43a9db23236699b7bf9b6"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
