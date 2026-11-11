@@ -1,7 +1,11 @@
 name: Build APK
 
+# Not on every branch push: a draft goes to a branch and through the Probe workflow first, which
+# cannot fail and so cannot send a failure mail. This runs once the draft is a pull request.
 on:
   push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 jobs:
