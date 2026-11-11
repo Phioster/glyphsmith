@@ -322,6 +322,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * Adds a picture as a layer of its own, on top, drawn with the settings in force. Normal
      * blend rather than the usual screen: a cut-out is meant to cover what is under it.
      */
+    /** A picture shared from another app: a layer over the open picture, or the picture itself. */
+    fun receiveShared(uri: Uri) {
+        if (_state.value.hasImage) addLayerPicture(uri) else loadImage(uri)
+    }
+
     fun addLayerPicture(uri: Uri) = runExport("layer picture") {
         val id = withContext(Dispatchers.IO) { layerImages.adopt(uri) }
             ?: return@runExport "could not read that picture"

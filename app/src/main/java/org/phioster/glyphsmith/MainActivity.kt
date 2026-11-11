@@ -1,6 +1,10 @@
 package org.phioster.glyphsmith
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import androidx.activity.viewModels
+import androidx.core.content.IntentCompat
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -17,8 +21,24 @@ import org.phioster.glyphsmith.ui.theme.Term
 
 class MainActivity : ComponentActivity() {
 
+    private val model: GlyphsmithViewModel by viewModels()
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        receive(intent)
+    }
+
+    /** Takes a picture another app shared. */
+    private fun receive(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND) return
+        val uri = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java) ?: return
+        model.receiveShared(uri)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Not after a rotation: the intent is still there then, and would be taken twice.
+        if (savedInstanceState == null) receive(intent)
         setContent {
             GlyphsmithTheme {
                 val viewModel: GlyphsmithViewModel = viewModel()
