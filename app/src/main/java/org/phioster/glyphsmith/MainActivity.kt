@@ -23,6 +23,10 @@ class MainActivity : ComponentActivity() {
 
     private val model: GlyphsmithViewModel by viewModels()
 
+    private companion object {
+        const val EXTRA_BASE = "org.phioster.glyphsmith.extra.BASE"
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         receive(intent)
@@ -32,7 +36,9 @@ class MainActivity : ComponentActivity() {
     private fun receive(intent: Intent?) {
         if (intent?.action != Intent.ACTION_SEND) return
         val uri = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java) ?: return
-        model.receiveShared(uri)
+        // A sender that knows Glyphsmith may name the picture its layer belongs on.
+        val base = IntentCompat.getParcelableExtra(intent, EXTRA_BASE, Uri::class.java)
+        model.receiveShared(uri, base)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

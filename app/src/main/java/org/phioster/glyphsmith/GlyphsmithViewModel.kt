@@ -46,6 +46,7 @@ import org.phioster.glyphsmith.glyph.CharacterSets
 import org.phioster.glyphsmith.state.RandomLook
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.render.ColorMode
+import org.phioster.glyphsmith.pipeline.onBlack
 import org.phioster.glyphsmith.pipeline.RenderPipeline
 import org.phioster.glyphsmith.glyph.GlyphCoverage
 import org.phioster.glyphsmith.data.CameraCapture
@@ -323,13 +324,27 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * blend rather than the usual screen: a cut-out is meant to cover what is under it.
      */
     /** A picture shared from another app: a layer over the open picture, or the picture itself. */
-    fun receiveShared(uri: Uri) {
-        if (_state.value.hasImage) addLayerPicture(uri) else loadImage(uri)
+    /**
+     * A picture shared from another app: a layer over the open picture. With nothing open, the
+     * sender's [base] is loaded first if it gave one; otherwise the shared picture is the picture.
+     */
+    fun receiveShared(uri: Uri, base: Uri?) {
+        when {
+            _state.value.hasImage -> addLayerPicture(uri)
+            base == null -> loadImage(uri)
+            else -> viewModelScope.launch {
+                if (!loadStill(base)) return@launch
+                val message = runCatching { addPictureLayer(uri) }.getOrElse { "layer picture failed: ${it.message}" }
+                _state.value = _state.value.copy(status = message)
+            }
+        }
     }
 
-    fun addLayerPicture(uri: Uri) = runExport("layer picture") {
+    fun addLayerPicture(uri: Uri) = runExport("layer picture") { addPictureLayer(uri) }
+
+    private suspend fun addPictureLayer(uri: Uri): String {
         val id = withContext(Dispatchers.IO) { layerImages.adopt(uri) }
-            ?: return@runExport "could not read that picture"
+            ?: return "could not read that picture"
         val params = _state.value.params
         val layer = Layer(
             name = "picture ${params.layers.count { it.image.isNotEmpty() } + 1}",
@@ -338,7 +353,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             image = id,
         )
         updateParams(params.copy(layers = params.layers + layer))
-        "picture added as a layer"
+        return "picture added as a layer"
     }
 
     /** Writes the shape shifter's bands to their own file. */
@@ -504,14 +519,19 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun loadImage(uri: Uri) {
-        viewModelScope.launch {
+        viewModelScope.launch { loadStill(uri) }
+    }
+
+    /** Loads [uri] as the picture; false when it could not be read. */
+    private suspend fun loadStill(uri: Uri): Boolean {
+        run {
             _state.value = _state.value.copy(working = true, status = "decoding…")
             val loaded = withContext(Dispatchers.IO) { ImageLoader.load(context, uri) }
             if (loaded == null) {
                 _state.value = _state.value.copy(working = false, status = "could not decode that image")
-                return@launch
+                return false
             }
-            val pixels = withContext(Dispatchers.Default) { ImageLoader.pixelsOf(loaded) }
+            val pixels = withContext(Dispatchers.Default) { onBlack(ImageLoader.pixelsOf(loaded)) }
             // Read the size before recycling — a recycled bitmap's dimensions are not
             // something to rely on.
             val width = loaded.width
@@ -527,6 +547,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             rebuild(_state.value.params)
             renderThumbs()
         }
+        return true
     }
 
     /**
