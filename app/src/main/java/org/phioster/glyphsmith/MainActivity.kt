@@ -77,6 +77,8 @@ class MainActivity : ComponentActivity() {
                         onResetPresets = viewModel::resetPresets,
                         onExportPalette = viewModel::exportPalette,
                         onImportPalette = viewModel::importPalette,
+                        onExportShapeSet = viewModel::exportShapeSet,
+                        onImportShapeSet = viewModel::importShapeSet,
                         onApplyPalette = viewModel::applyPalette,
                         onForgetPalette = viewModel::forgetPalette,
                         onImportScreen = viewModel::importScreen,

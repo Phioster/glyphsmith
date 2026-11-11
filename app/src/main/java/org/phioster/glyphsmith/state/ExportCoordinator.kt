@@ -69,6 +69,14 @@ class ExportCoordinator(private val exports: Exports) {
             SAVE_FAILED
         }
 
+    /** The shape shifter's bands, as their own file. */
+    fun shapeSet(json: String): String =
+        if (exports.saveJson(json, named("json", SHAPE_SET)) != null) {
+            "shape set saved to $DOWNLOAD"
+        } else {
+            SAVE_FAILED
+        }
+
     /** A rendered animation, as whatever bytes its encoder produced. */
     fun animation(bytes: ByteArray, format: AnimationFormat): String {
         val name = Exporter.timestampedName(format.extension)
@@ -178,5 +186,6 @@ class ExportCoordinator(private val exports: Exports) {
         /** What every exported file is called before anything else is said about it. */
         const val PREFIX = "glyphsmith-"
         const val PALETTE = "palette"
+        const val SHAPE_SET = "shapes"
     }
 }

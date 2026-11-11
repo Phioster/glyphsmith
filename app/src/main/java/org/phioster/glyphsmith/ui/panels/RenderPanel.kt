@@ -63,6 +63,8 @@ fun RenderPanel(
     missingGlyphs: String,
     rampCoverage: List<Float>,
     onAutoOrder: () -> Unit,
+    onExportShapeSet: () -> Unit,
+    onImportShapeSet: (android.net.Uri) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val categories = remember { listOf(CATEGORY_ALL) + CharacterSets.categories }
@@ -117,7 +119,7 @@ fun RenderPanel(
             PixelModeControls(params, onChange)
         }
         if (params.renderMode == RenderMode.ShapeShifter) {
-            ShapeShifterSection(params, onChange)
+            ShapeShifterSection(params, onChange, onExportShapeSet, onImportShapeSet)
         }
         if (!glyphMode) return@Column
 
