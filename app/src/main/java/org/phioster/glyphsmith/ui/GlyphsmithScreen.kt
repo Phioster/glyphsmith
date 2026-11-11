@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.ui.graphics.RectangleShape
@@ -133,6 +135,7 @@ fun GlyphsmithScreen(
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     var fullView by remember { mutableStateOf(false) }
+    var compact by remember { mutableStateOf(true) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(onPickImage)
     }
@@ -243,9 +246,14 @@ fun GlyphsmithScreen(
             }
         }
 
-        Preview(state, Modifier.weight(1f))
-
-        StatusLine(state) { fullView = true }
+        // Small by default, so the controls get the height: on a phone the picture and a list
+        // of sliders cannot both be large, and it is the list that needs scrolling.
+        if (compact) {
+            CompactPreview(state, onFullView = { fullView = true }, onGrow = { compact = false })
+        } else {
+            Preview(state, Modifier.weight(1f))
+            StatusLine(state, onShrink = { compact = true }) { fullView = true }
+        }
 
         if (fullView) FullView(state) { fullView = false }
 
@@ -424,8 +432,68 @@ private fun Preview(state: UiState, modifier: Modifier = Modifier, framed: Boole
     }
 }
 
+/**
+ * The picture as a thumbnail in a fixed place, with the status beside it. A tap shows it on the
+ * whole screen; [onGrow] brings back the large preview that shares the height with the controls.
+ */
 @Composable
-private fun StatusLine(state: UiState, onFullView: () -> Unit) {
+private fun CompactPreview(state: UiState, onFullView: () -> Unit, onGrow: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .width(COMPACT_WIDTH.dp)
+                .height(COMPACT_HEIGHT.dp)
+                .border(1.dp, Term.InkFaint, RectangleShape)
+                .background(Term.Surface)
+                .clickable(enabled = state.preview != null, onClick = onFullView),
+            contentAlignment = Alignment.Center,
+        ) {
+            val preview = state.preview
+            if (preview != null) {
+                Image(
+                    bitmap = preview.asImageBitmap(),
+                    contentDescription = "render preview",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            } else {
+                Text(
+                    if (state.hasImage) "rendering…" else "no image",
+                    color = Term.InkDim,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+        Column(Modifier.weight(1f).padding(start = 10.dp)) {
+            Text(
+                "> ${state.status}",
+                color = if (state.working) Term.Amber else Term.InkDim,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                if (state.working) "busy" else "idle",
+                color = if (state.working) Term.Amber else Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+            Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                TerminalButton(label = "full view", onClick = onFullView, enabled = state.preview != null)
+                TerminalButton(label = "large", onClick = onGrow)
+            }
+        }
+    }
+}
+
+private const val COMPACT_WIDTH = 150
+private const val COMPACT_HEIGHT = 125
+
+@Composable
+private fun StatusLine(state: UiState, onShrink: () -> Unit, onFullView: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -445,6 +513,12 @@ private fun StatusLine(state: UiState, onFullView: () -> Unit) {
                 modifier = Modifier.clickable(onClick = onFullView).padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
+        Text(
+            "[small]",
+            color = Term.Ink,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.clickable(onClick = onShrink).padding(end = 10.dp, top = 4.dp, bottom = 4.dp),
+        )
         Text(
             if (state.working) "busy" else "idle",
             color = if (state.working) Term.Amber else Term.InkFaint,
