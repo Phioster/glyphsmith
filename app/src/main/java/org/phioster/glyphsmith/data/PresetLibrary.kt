@@ -102,6 +102,14 @@ object PresetLibrary {
         0xFF1C7A24, 0xFF0C4A1C, 0xFFFFF4B0, 0xFFFFD86A, 0xFFF0A8C8, 0xFFD06A4A, 0xFF8C5A3C, 0xFF6C7884,
     ).map { it.toInt() }
 
+    /**
+     * Chrome as a run of tones: it does not rise evenly from dark to light but breaks back to a
+     * mid blue after its first white, which is the horizon mirrored in polished metal.
+     */
+    private val CHROME = listOf(
+        0xFF02040C, 0xFF14245C, 0xFF3C6CC8, 0xFFE8F4FF, 0xFF5C7CB8, 0xFFB8CCE8, 0xFFFFFFFF,
+    ).map { it.toInt() }
+
     /** A flow ASCII preset: rows of characters or hairs that follow the picture's forms. */
     private fun flow(name: String, params: RenderSettings) =
         Preset(name, params.copy(renderMode = RenderMode.FlowAscii), PresetStore.CATEGORY_GLYPH)
@@ -1514,6 +1522,47 @@ object PresetLibrary {
             ),
         ),
         pixel(
+            "y2k chrome",
+            PresetStore.CATEGORY_COLOR,
+            // Blue chrome off a 2000s CD cover: tones mapped onto polished metal, with a hard
+            // four-point star on everything that shines.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.oxide",
+                paletteOverride = CHROME,
+                contrast = 1.3f,
+                effects = EffectStack(
+                    stars = DiffractionStarsParams(enabled = true, threshold = 82, rays = 4, length = 50, intensity = 600),
+                    glow = GlowParams(enabled = true, threshold = 75, radius = 30, intensity = 350),
+                ),
+            ),
+        ),
+        pixel(
+            "vhs night",
+            PresetStore.CATEGORY_GLITCH,
+            // A party filmed on tape: soft, grainy, on scan lines, the colours pulled apart, the
+            // odd line torn, and every lamp smeared sideways into a trail.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = PAINT_BOX,
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(
+                        enabled = true, saturation = 80, grain = 22, grainKind = GrainKind.FILM,
+                        vignette = 30, scanlines = 40, scanlineSpacing = 3,
+                    ),
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = 5),
+                    glow = GlowParams(enabled = true, threshold = 65, radius = 90, intensity = 450, aspectRatio = 320),
+                    blurSharpen = BlurSharpenParams(enabled = true, amount = 25, radius = 2),
+                    interlace = InterlaceParams(enabled = true, shift = 2, density = 25, tearColor = 40),
+                ),
+            ),
+        ),
+        pixel(
             "frutiger aero",
             PresetStore.CATEGORY_COLOR,
             // Glyphsmith's half of the look: saturated colour dithered into sky, water and grass,
@@ -2070,6 +2119,24 @@ object PresetLibrary {
                 flowAscii = FlowAsciiParams(outline = true, blackBelow = 8),
                 effects = EffectStack(
                     glow = GlowParams(enabled = true, threshold = 55, radius = 40, intensity = 380),
+                ),
+            ),
+        ),
+        flow(
+            "terminal hologram",
+            // A projection rather than a print: cyan characters that glow, on scan lines, with
+            // the colour fringing and the odd torn line of a signal that is not quite locked.
+            RenderSettings(
+                colorMode = ColorMode.SINGLE,
+                inkColor = 0xFF5CF4FF.toInt(),
+                backgroundColor = 0xFF020B10.toInt(),
+                contrast = 1.2f,
+                flowAscii = FlowAsciiParams(liftDarks = 25, blackBelow = 6),
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(enabled = true, scanlines = 45, scanlineSpacing = 3),
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = 2),
+                    glow = GlowParams(enabled = true, threshold = 35, radius = 60, intensity = 520),
+                    interlace = InterlaceParams(enabled = true, shift = 1, density = 12, tearColor = 20),
                 ),
             ),
         ),
