@@ -42,6 +42,8 @@ import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
 import org.phioster.glyphsmith.render.edited
 import org.phioster.glyphsmith.render.withEdited
+import org.phioster.glyphsmith.render.animationShown
+import org.phioster.glyphsmith.render.withAnimationEdited
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import android.Manifest
@@ -322,8 +324,17 @@ fun GlyphsmithScreen(
                 Tab.EFFECTS -> EffectsPanel(shown, changeShown)
                 Tab.LAYERS -> LayerPanel(state.params, onParamsChange, onAddLayerPicture)
                 Tab.ANIM -> AnimPanel(
-                    state = state,
-                    onChange = onParamsChange,
+                    // On a layer: the picture's clock with the layer's own tracks.
+                    state = if (editing >= 0) {
+                        state.copy(params = shown.copy(animation = state.params.animationShown(editing)))
+                    } else {
+                        state
+                    },
+                    onChange = { changed ->
+                        onParamsChange(
+                            if (editing >= 0) state.params.withAnimationEdited(editing, changed.animation) else changed,
+                        )
+                    },
                     onPlay = onPlayAnimation,
                     onStop = onStopAnimation,
                     onExportGif = onExportGif,
@@ -334,6 +345,9 @@ fun GlyphsmithScreen(
                 Tab.OUTPUT -> OutputPanel(
                     state = state,
                     onChange = onParamsChange,
+                    // Canvas and export belong to the whole picture; the glyph size is a look.
+                    glyphSize = shown.fontSizePx,
+                    onGlyphSize = { size -> changeShown(shown.copy(fontSizePx = size)) },
                     onFormatChange = onFormatChange,
                     onExportPng = onExportPng,
                     onExportTxt = onExportTxt,

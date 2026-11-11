@@ -35,6 +35,8 @@ import org.phioster.glyphsmith.render.RenderModules
 fun OutputPanel(
     state: UiState,
     onChange: (RenderSettings) -> Unit,
+    glyphSize: Int,
+    onGlyphSize: (Int) -> Unit,
     onFormatChange: (ImageFormat) -> Unit,
     onExportPng: () -> Unit,
     onExportTxt: () -> Unit,
@@ -97,11 +99,11 @@ fun OutputPanel(
         if (!params.canvasEnabled) {
             TerminalSlider(
                 label = "glyph size",
-                value = params.fontSizePx.toFloat(),
+                value = glyphSize.toFloat(),
                 range = RenderSettings.FONT_SIZE_RANGE.first.toFloat()..RenderSettings.FONT_SIZE_RANGE.last.toFloat(),
                 steps = RenderSettings.FONT_SIZE_RANGE.count() - 2,
-                valueText = "${params.fontSizePx}px",
-                onValueChange = { onChange(params.copy(fontSizePx = it.toInt())) },
+                valueText = "${glyphSize}px",
+                onValueChange = { onGlyphSize(it.toInt()) },
             )
         }
 

@@ -892,7 +892,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             // The clock is set here rather than in paramsAt, so temporal noise still moves
             // over a video whose parameter tracks are all switched off.
             val frameParams = Animator.paramsAt(base, animation, frame)
-                .let { it.copy(temporal = it.temporal.copy(time = position)) }
+                .let { Animator.clocked(it, position) }
             // A still hands back the same buffer every time; a video decodes this position.
             val pixels = source.pixelsAt(position)
             val rendered = RenderPipeline.run(
