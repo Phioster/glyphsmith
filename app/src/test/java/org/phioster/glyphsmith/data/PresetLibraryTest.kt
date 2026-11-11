@@ -126,6 +126,7 @@ class PresetLibraryTest {
         silver halide|CLASSIC|PurePixel|FLOYD_STEINBERG
         oil study|CLASSIC|PurePixel|FLOYD_STEINBERG
         flaking fresco|CLASSIC|PurePixel|FLOYD_STEINBERG
+        frutiger aero|COLOR|PurePixel|FLOYD_STEINBERG
         modulation lines|MOTION|PurePixel|MOD_LINES
         waveform glitch|MOTION|PurePixel|MOD_WAVE
         cyberpunk|MOTION|PurePixel|NONE
