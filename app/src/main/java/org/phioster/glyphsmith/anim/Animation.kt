@@ -292,21 +292,46 @@ object Animator {
      */
     fun paramsAt(base: RenderSettings, animation: AnimationParams, frame: Int): RenderSettings {
         if (!animation.enabled) return base
+        val moved = move(base, animation, frame, animation.frames)
+        // Layers run on the picture's clock, each by its own tracks: one loop, however many
+        // things move in it.
+        if (moved.layers.none { moves(it.params.animation) }) return moved
+        return moved.copy(
+            layers = moved.layers.map { layer ->
+                val own = layer.params.animation
+                if (moves(own)) layer.copy(params = move(layer.params, own, frame, animation.frames)) else layer
+            },
+        )
+    }
+
+    private fun moves(animation: AnimationParams): Boolean =
+        animation.enabled && (animation.tracks.any { it.enabled } || animation.segments.isNotEmpty())
+
+    /** [base] with [animation]'s tracks and segments applied at [frame] of a [frames]-long loop. */
+    private fun move(base: RenderSettings, animation: AnimationParams, frame: Int, frames: Int): RenderSettings {
         var params = base
         animation.tracks.filter { it.enabled }.forEach { track ->
-            val value = valueAt(track, frame, animation.frames)
+            val value = valueAt(track, frame, frames)
             params = apply(params, track.target, value)
         }
 
         // Segments run after the tracks and win where they cover, because a segment is an
         // explicit statement about one stretch of time and a track is a standing rule.
-        val position = if (animation.frames <= 0) 0f else frame.toFloat() / animation.frames
+        val position = if (frames <= 0) 0f else frame.toFloat() / frames
         animation.segments.forEach { segment ->
             val value = valueIn(segment, position) ?: return@forEach
             params = apply(params, segment.target, value)
         }
         return params
     }
+
+    /** [params] with the temporal clock at [position], in the picture and in every layer. */
+    fun clocked(params: RenderSettings, position: Float): RenderSettings = params.copy(
+        temporal = params.temporal.copy(time = position),
+        layers = params.layers.map { layer ->
+            layer.copy(params = layer.params.copy(temporal = layer.params.temporal.copy(time = position)))
+        },
+    )
 
     /**
      * A curve evaluated across a segment, on 0..1, **without wrapping**.

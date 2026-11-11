@@ -1,6 +1,7 @@
 package org.phioster.glyphsmith.render
 
 import kotlinx.serialization.Serializable
+import org.phioster.glyphsmith.anim.AnimationParams
 
 /** How a layer is combined with what is already underneath it. */
 enum class LayerBlend(val label: String) {
@@ -72,3 +73,20 @@ fun RenderSettings.withEdited(index: Int, changed: RenderSettings): RenderSettin
     } else {
         changed
     }
+
+/**
+ * The animation the panel shows while layer [index] is edited: the picture's clock — one loop
+ * for everything — with the layer's own tracks and segments on it.
+ */
+fun RenderSettings.animationShown(index: Int): AnimationParams {
+    val own = layers.getOrNull(index)?.params?.animation ?: return animation
+    return animation.copy(tracks = own.tracks, segments = own.segments)
+}
+
+/** [changed] taken apart again: its clock goes to the picture, its tracks to layer [index]. */
+fun RenderSettings.withAnimationEdited(index: Int, changed: AnimationParams): RenderSettings {
+    val layer = layers.getOrNull(index) ?: return copy(animation = changed)
+    val clock = changed.copy(tracks = animation.tracks, segments = animation.segments)
+    val own = layer.params.animation.copy(enabled = true, tracks = changed.tracks, segments = changed.segments)
+    return copy(animation = clock).withEdited(index, layer.params.copy(animation = own))
+}
