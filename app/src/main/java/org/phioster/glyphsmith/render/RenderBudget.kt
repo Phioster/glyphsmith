@@ -2,6 +2,8 @@ package org.phioster.glyphsmith.render
 
 import kotlin.math.ceil
 import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sqrt
 
 /**
  * How large a render may get, and how coarse it has to be to stay inside that.
@@ -17,6 +19,13 @@ object RenderBudget {
 
     /** Hard ceiling on either output dimension — beyond this a bitmap allocation fails. */
     const val MAX_OUTPUT_SIDE = 8192
+
+    /**
+     * Ceiling on a dithered picture's pixel count. The side limit alone lets a tall photo reach
+     * forty megapixels, and every effect after the dither needs a copy or two of it: that is
+     * what ran saving out of memory. Nine megapixels leaves room for those copies.
+     */
+    const val MAX_OUTPUT_PIXELS = 9_000_000L
 
     /**
      * The cell size actually used, which may be coarser than asked for.
@@ -42,7 +51,9 @@ object RenderBudget {
      * ignored it would stop being a preview.
      */
     fun blockFor(params: RenderSettings, cols: Int, rows: Int, maxSide: Int): Int {
-        val fill = (maxSide / max(cols, rows)).coerceAtLeast(1)
+        val bySide = maxSide / max(cols, rows)
+        val byArea = sqrt(MAX_OUTPUT_PIXELS.toDouble() / (cols.toLong() * rows).coerceAtLeast(1L)).toInt()
+        val fill = min(bySide, byArea).coerceAtLeast(1)
         val pinned = params.pixelBlock
         return if (pinned <= 0) fill else pinned.coerceIn(1, fill.coerceAtLeast(1))
     }

@@ -131,11 +131,12 @@ fun GlyphsmithScreen(
     onToggleFavouritePalette: (String) -> Unit,
     onToggleFavouriteStyle: (String) -> Unit,
     onLoopedChange: (Boolean) -> Unit,
+    onCompactPreviewChange: (Boolean) -> Unit,
     onScrubbing: (Boolean) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     var fullView by remember { mutableStateOf(false) }
-    var compact by remember { mutableStateOf(true) }
+    val compact = state.compactPreview
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(onPickImage)
     }
@@ -249,10 +250,10 @@ fun GlyphsmithScreen(
         // Small by default, so the controls get the height: on a phone the picture and a list
         // of sliders cannot both be large, and it is the list that needs scrolling.
         if (compact) {
-            CompactPreview(state, onFullView = { fullView = true }, onGrow = { compact = false })
+            CompactPreview(state, onFullView = { fullView = true }, onGrow = { onCompactPreviewChange(false) })
         } else {
             Preview(state, Modifier.weight(1f))
-            StatusLine(state, onShrink = { compact = true }) { fullView = true }
+            StatusLine(state, onShrink = { onCompactPreviewChange(true) }) { fullView = true }
         }
 
         if (fullView) FullView(state) { fullView = false }

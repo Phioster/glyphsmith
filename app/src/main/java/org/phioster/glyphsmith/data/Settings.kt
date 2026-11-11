@@ -80,7 +80,13 @@ class Settings(context: Context) {
         get() = prefs.getBoolean(KEY_LOOPED, true)
         set(value) = prefs.edit().putBoolean(KEY_LOOPED, value).apply()
 
+    /** Whether the picture sits small beside the status, leaving the height to the controls. */
+    var compactPreview: Boolean
+        get() = prefs.getBoolean(KEY_COMPACT, true)
+        set(value) = prefs.edit().putBoolean(KEY_COMPACT, value).apply()
+
     private companion object {
+        const val KEY_COMPACT = "compactPreview"
         const val KEY_THEME = "theme"
         const val KEY_QUALITY = "previewQuality"
         const val KEY_LOOPED = "looped"

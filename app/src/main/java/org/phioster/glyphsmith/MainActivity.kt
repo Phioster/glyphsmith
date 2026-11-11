@@ -87,6 +87,7 @@ class MainActivity : ComponentActivity() {
                         onToggleFavouritePalette = viewModel::toggleFavouritePalette,
                         onToggleFavouriteStyle = viewModel::toggleFavouriteStyle,
                         onLoopedChange = viewModel::setLooped,
+                        onCompactPreviewChange = viewModel::setCompactPreview,
                         onScrubbing = viewModel::setScrubbing,
                     )
                 }
