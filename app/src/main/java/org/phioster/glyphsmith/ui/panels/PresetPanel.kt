@@ -1,5 +1,8 @@
 package org.phioster.glyphsmith.ui.panels
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.ui.graphics.FilterQuality
 import org.phioster.glyphsmith.ui.TerminalChip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
@@ -94,106 +97,6 @@ fun PresetPanel(
             )
         }
 
-        // The row is derived from the library on every draw, so a shelf appears when it holds
-        // something and goes when it does not — and `resolve` makes sure the list can never stay
-        // narrowed by a chip that is no longer there.
-        PresetSearchField(query) { query = it }
-
-        val filter = PresetFilters.resolve(presets, chosenFilter)
-        FilterRow(presets, filter) { chosenFilter = it }
-
-        val visible = PresetFilters.search(PresetFilters.apply(presets, filter), query)
-        if (visible.isEmpty() && query.isNotBlank()) {
-            Text(
-                "nothing matches \"$query\" here — try fewer words, or the all chip",
-                color = Term.InkFaint,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(vertical = 6.dp),
-            )
-        }
-
-        // Favourites first, then by the shipped category order, then by name. Sorting rather
-        // than a separate section keeps one list to scroll instead of two.
-        val ordered = visible.sortedWith(
-            compareByDescending<Preset> { it.favourite }
-                .thenBy { PresetStore.categories.indexOf(it.category).let { i -> if (i < 0) 99 else i } }
-                .thenBy { it.name },
-        )
-        var lastShelf: Shelf? = null
-
-        ordered.forEach { preset ->
-            val shelf = Shelf.of(preset)
-            if (shelf != lastShelf) {
-                SectionHeader(shelf.label)
-                lastShelf = shelf
-            }
-
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 3.dp)
-                    .border(1.dp, Term.InkFaint, RectangleShape)
-                    .background(Term.SurfaceHigh),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                val thumb = thumbs[preset.name]
-                if (thumb != null) {
-                    Image(
-                        bitmap = thumb.asImageBitmap(),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(46.dp)
-                            .border(1.dp, Term.InkFaint, RectangleShape)
-                            .clickable { onApply(preset) },
-                    )
-                }
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .clickable { onApply(preset) }
-                        .padding(horizontal = 8.dp, vertical = 7.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(preset.name, color = Term.Ink, style = MaterialTheme.typography.bodyMedium)
-                        if (preset.params.animation.enabled) {
-                            Text(
-                                "  ▶",
-                                color = Term.Amber,
-                                style = MaterialTheme.typography.labelSmall,
-                            )
-                        }
-                    }
-                    Text(
-                        buildString {
-                            append(CharacterSets.byId(preset.params.charSetId).name)
-                            append(" · cell ${preset.params.cellSize}")
-                            val fx = preset.params.effects.activeCount
-                            if (fx > 0) append(" · $fx fx")
-                            if (preset.params.animation.enabled) {
-                                append(" · ${preset.params.animation.frames}f")
-                            }
-                        },
-                        color = Term.InkFaint,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                TerminalButton(
-                    label = if (preset.favourite) "★" else "☆",
-                    accent = if (preset.favourite) Term.Amber else Term.InkDim,
-                    onClick = { onToggleFavourite(preset.name) },
-                )
-                TerminalButton(
-                    label = "del",
-                    accent = Term.Amber,
-                    onClick = { onDelete(preset.name) },
-                    modifier = Modifier.padding(start = 4.dp, end = 4.dp),
-                )
-            }
-        }
-
         SectionHeader("save current")
 
         Row(
@@ -221,6 +124,56 @@ fun PresetPanel(
                     name = ""
                 },
             )
+        }
+
+        // The row is derived from the library on every draw, so a shelf appears when it holds
+        // something and goes when it does not — and `resolve` makes sure the list can never stay
+        // narrowed by a chip that is no longer there.
+        PresetSearchField(query) { query = it }
+
+        val filter = PresetFilters.resolve(presets, chosenFilter)
+        FilterRow(presets, filter) { chosenFilter = it }
+
+        val visible = PresetFilters.search(PresetFilters.apply(presets, filter), query)
+        if (visible.isEmpty() && query.isNotBlank()) {
+            Text(
+                "nothing matches \"$query\" here — try fewer words, or the all chip",
+                color = Term.InkFaint,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(vertical = 6.dp),
+            )
+        }
+
+        // Favourites first, then by the shipped category order, then by name. Sorting rather
+        // than a separate section keeps one list to scroll instead of two.
+        val ordered = visible.sortedWith(
+            compareByDescending<Preset> { it.favourite }
+                .thenBy { PresetStore.categories.indexOf(it.category).let { i -> if (i < 0) 99 else i } }
+                .thenBy { it.name },
+        )
+        // Runs of one shelf, each under its header, two presets to a row.
+        val runs = mutableListOf<Pair<Shelf, MutableList<Preset>>>()
+        ordered.forEach { preset ->
+            val shelf = Shelf.of(preset)
+            if (runs.isEmpty() || runs.last().first != shelf) runs.add(shelf to mutableListOf())
+            runs.last().second.add(preset)
+        }
+        runs.forEach { (shelf, members) ->
+            SectionHeader(shelf.label)
+            members.chunked(2).forEach { pair ->
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    pair.forEach { preset ->
+                        PresetCard(
+                            preset, thumbs[preset.name], Modifier.weight(1f),
+                            onApply, onToggleFavourite, onDelete,
+                        )
+                    }
+                    if (pair.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
         }
 
         SectionHeader("transfer")
@@ -405,3 +358,78 @@ private fun PresetSearchField(query: String, onChange: (String) -> Unit) {
         }
     }
 }
+
+/** One preset as a tile: its picture large, its name and what it is made of underneath. */
+@Composable
+private fun PresetCard(
+    preset: Preset,
+    thumb: android.graphics.Bitmap?,
+    modifier: Modifier,
+    onApply: (Preset) -> Unit,
+    onToggleFavourite: (String) -> Unit,
+    onDelete: (String) -> Unit,
+) {
+    Column(
+        modifier
+            .border(1.dp, Term.InkFaint, RectangleShape)
+            .background(Term.SurfaceHigh),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(CARD_ASPECT)
+                .background(Term.Surface)
+                .clickable { onApply(preset) },
+        ) {
+            if (thumb != null) {
+                Image(
+                    bitmap = thumb.asImageBitmap(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    // Unsmoothed, so a dither's pixels stay pixels at this size.
+                    filterQuality = FilterQuality.None,
+                    modifier = Modifier.fillMaxWidth().aspectRatio(CARD_ASPECT),
+                )
+            }
+        }
+        Text(
+            if (preset.params.animation.enabled) "${preset.name} ▶" else preset.name,
+            color = Term.Ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.clickable { onApply(preset) }.padding(start = 8.dp, end = 8.dp, top = 6.dp),
+        )
+        Row(
+            Modifier.fillMaxWidth().padding(start = 8.dp, end = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                buildString {
+                    append("cell ${preset.params.cellSize}")
+                    val fx = preset.params.effects.activeCount
+                    if (fx > 0) append(" · $fx fx")
+                    if (preset.params.animation.enabled) append(" · ${preset.params.animation.frames}f")
+                },
+                color = Term.InkFaint,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f),
+            )
+            TerminalButton(
+                label = if (preset.favourite) "★" else "☆",
+                accent = if (preset.favourite) Term.Amber else Term.InkDim,
+                onClick = { onToggleFavourite(preset.name) },
+            )
+            TerminalButton(
+                label = "del",
+                accent = Term.Amber,
+                onClick = { onDelete(preset.name) },
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        }
+    }
+}
+
+private const val CARD_ASPECT = 1.2f

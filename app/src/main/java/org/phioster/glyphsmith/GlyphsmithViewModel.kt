@@ -1040,7 +1040,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     /**
      * Renders one small preview per preset from the current source.
      *
-     * Effects work in absolute pixels, so a glow radius of 200 covers a 160px thumbnail
+     * Effects work in absolute pixels, so a glow radius of 200 covers a 220px thumbnail
      * entirely while barely showing at export size. The thumbnail is there to show a
      * preset's *character*, not to predict its output — the live preview has the same
      * limitation at [PreviewQuality.FULL], this one is just further along the same scale.
@@ -1083,7 +1083,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
          * for the same reason: it is the size at which a full chain still keeps up with input.
          */
         const val SCRUB_MAX_SIDE = 480
-        const val THUMB_MAX_SIDE = 160
+        const val THUMB_MAX_SIDE = 220
         const val ANIM_EXPORT_MAX_SIDE = 1080
 
         /**
