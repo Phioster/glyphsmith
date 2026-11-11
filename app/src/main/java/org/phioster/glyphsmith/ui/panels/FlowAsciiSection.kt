@@ -85,5 +85,12 @@ internal fun FlowAsciiSection(params: RenderSettings, onChange: (RenderSettings)
         steps = 39,
         valueText = "${flow.blackBelow}%",
     )
+    TerminalSlider(
+        label = "lift darks",
+        value = flow.liftDarks.toFloat(),
+        range = 0f..100f,
+        onValueChange = { set(flow.copy(liftDarks = it.toInt())) },
+        valueText = "${flow.liftDarks}%",
+    )
     TerminalToggle("outline strong edges", flow.outline, { set(flow.copy(outline = it)) })
 }

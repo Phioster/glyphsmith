@@ -34,6 +34,7 @@ class FlowField(
         private const val SMOOTH_SHARE = 1f / 120f
         private const val MIN_SMOOTH = 2f
         private const val TOP_SHARE = 0.99f
+        private const val WIDE_SHARE = 1f / 14f
 
         fun of(luma: FloatArray, cols: Int, rows: Int): FlowField {
             val n = cols * rows
@@ -71,13 +72,30 @@ class FlowField(
                 ((coherence - 0.25f) / 0.35f).coerceIn(0f, 1f) * ((energy[i] - 0.06f) / 0.14f).coerceIn(0f, 1f)
             }
             val calm = blur(sure, cols, rows, smooth * 0.66f)
+
+            // A second, much wider look. Inside a plain form — a black cat, a bare wall — the
+            // fine look finds nothing, and rows that then lie flat read as ruled lines. The wide
+            // look still feels the form's outline from far inside it, so the rows bend with the
+            // body instead.
+            val wide = max(smooth * 2f, min(cols, rows) * WIDE_SHARE)
+            val wxx = blur(jxx, cols, rows, wide)
+            val wxy = blur(jxy, cols, rows, wide)
+            val wyy = blur(jyy, cols, rows, wide)
+            val wideEnergy = FloatArray(n) { sqrt(max(0f, wxx[it] + wyy[it])) }
+            scaleToTop(wideEnergy, TOP_SHARE)
             val angle = FloatArray(n) { i ->
                 // Along the edge, not across it — hence the quarter turn, which doubled is a half.
                 val along = atan2(2f * jxy[i], jxx[i] - jyy[i]) + PI
-                // Mixed with "flat" as doubled angles: directions without an arrowhead cannot
-                // be averaged any other way.
-                val c = calm[i] * cos(along) + (1f - calm[i])
-                val s = calm[i] * sin(along)
+                val wideAlong = atan2(2f * wxy[i], wxx[i] - wyy[i]) + PI
+                val spread = sqrt((wxx[i] - wyy[i]) * (wxx[i] - wyy[i]) + 4f * wxy[i] * wxy[i])
+                val wideSure = ((spread / (max(0f, wxx[i] + wyy[i]) + 1e-9f) - 0.08f) / 0.25f).coerceIn(0f, 1f) *
+                    ((wideEnergy[i] - 0.01f) / 0.05f).coerceIn(0f, 1f)
+                // Mixed as doubled angles: directions without an arrowhead cannot be averaged
+                // any other way. Fine first, wide where fine is unsure, flat where both are.
+                val fine = calm[i]
+                val far = (1f - fine) * wideSure
+                val c = fine * cos(along) + far * cos(wideAlong) + (1f - fine - far)
+                val s = fine * sin(along) + far * sin(wideAlong)
                 0.5f * atan2(s, c)
             }
             val tilt = blur(edge, cols, rows, smooth * 0.5f)

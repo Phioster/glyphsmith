@@ -30,6 +30,8 @@ data class FlowAsciiParams(
     val hairLength: Int = 100,
     /** Redraws strong edges with line characters on the upright grid. */
     val outline: Boolean = false,
+    /** 0..100 — how far dark areas are raised, so a black coat is still drawn rather than lost. */
+    val liftDarks: Int = 0,
 )
 
 /**
@@ -93,25 +95,33 @@ object FlowAscii {
         if (flow.style == FlowStyle.FUR) {
             val lines = Streamlines.trace(field, FUR_SEP * spacing, FUR_STEP)
             val reach = flow.hairLength.coerceIn(25, 300) / 100f
+            val lift = flow.liftDarks.coerceIn(0, 100) / 100f
             for (i in 0 until lines.count) {
                 val at = field.index(lines.x[i], lines.y[i])
                 val tone = grid.luma[at].coerceIn(0f, 1f)
                 if (tone < dark) continue
-                // A hair is never quite in line: a little off, and its own length and shade.
-                val turn = (hash(i, 1) - 0.5f) * 0.7f
-                val length = (0.9f + 2.6f * tone) * (0.6f + 0.7f * hash(i, 2)) * reach
+                // A hair is never quite in line: a little off, and its own length and shade. Where
+                // the picture gives no direction of its own they scatter more, or a plain coat
+                // would come out combed flat.
+                val turn = (hash(i, 1) - 0.5f) * (0.7f + 0.6f * (1f - field.sure[at]))
+                // Dark fur is still fur: the hairs of a black animal can be lifted out of the black.
+                val lit = lifted(tone, lift)
+                val length = (0.9f + 2.6f * lit) * (0.6f + 0.7f * hash(i, 2)) * reach
                 out.add(
                     lines.x[i] + (hash(i, 3) - 0.5f) * 1.6f, lines.y[i] + (hash(i, 4) - 0.5f) * 1.6f,
                     lines.angle[i] + turn, FlowMarks.HAIR, length,
-                    shaded(colourOf(at, tone, grid, params, palette), 0.7f + 0.45f * hash(i, 5)),
+                    shaded(colourOf(at, tone, grid, params, palette), (0.7f + 0.45f * hash(i, 5)) * lit / max(tone, 0.02f)),
                 )
             }
         } else {
             val lines = Streamlines.trace(field, size * ROW_SHARE * spacing, size * STEP_SHARE)
+            val lift = flow.liftDarks.coerceIn(0, 100) / 100f
             for (i in 0 until lines.count) {
                 val at = field.index(lines.x[i], lines.y[i])
-                val tone = grid.luma[at].coerceIn(0f, 1f)
-                if (tone < dark) continue
+                val seen = grid.luma[at].coerceIn(0f, 1f)
+                if (seen < dark) continue
+                // The lifted tone picks the character too, or a raised coat would be all dots.
+                val tone = lifted(seen, lift)
                 val ramp = when {
                     !flow.byTilt -> FACING
                     field.tilt[at] > GRAZING_FROM -> GRAZING
@@ -120,7 +130,8 @@ object FlowAscii {
                 }
                 val glyph = ramp[min(ramp.length - 1, (tone * ramp.length).toInt())]
                 if (glyph == ' ') continue
-                out.add(lines.x[i], lines.y[i], lines.angle[i], glyph, 0f, colourOf(at, tone, grid, params, palette))
+                val colour = colourOf(at, tone, grid, params, palette)
+                out.add(lines.x[i], lines.y[i], lines.angle[i], glyph, 0f, if (lift <= 0f) colour else shaded(colour, tone / max(seen, 0.02f)))
             }
         }
         if (flow.outline) outline(field, grid, params, palette, size, out)
@@ -158,6 +169,13 @@ object FlowAscii {
         }
         return colour or OPAQUE
     }
+
+    /** Brightness with the darks raised, so a hair set in shadow can still be seen. */
+    private fun lifted(tone: Float, lift: Float): Float =
+        if (lift <= 0f) tone else min(1f, max(tone, Math.pow(tone.toDouble(), 1.0 - LIFT_REACH * lift).toFloat()))
+
+    /** At full lift a tone is raised to this much less than the power of one. */
+    private const val LIFT_REACH = 0.6
 
     private fun shaded(color: Int, by: Float): Int {
         fun ch(shift: Int) = min(255, ((color shr shift and 0xFF) * by).toInt())
