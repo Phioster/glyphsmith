@@ -249,13 +249,6 @@ fun GlyphsmithScreen(
 
         if (fullView) FullView(state) { fullView = false }
 
-        PresetBar(
-            presets = state.presets,
-            onApply = onApplyPreset,
-            onSave = onSavePreset,
-            onImport = onImportPresets,
-        )
-
         TabRow(tab) { tab = it }
 
         Column(
@@ -360,49 +353,24 @@ private fun Header(
     live: Boolean,
     onLive: () -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp)) {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                // maxLines matters here: squeezed narrow, an unconstrained title wraps
-                // character by character and drags the whole header ten lines tall.
-                Text(
-                    "GLYPHSMITH",
-                    color = Term.Ink,
-                    maxLines = 1,
-                    overflow = TextOverflow.Clip,
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Text(
-                    "dither forge",
-                    color = Term.InkFaint,
-                    maxLines = 1,
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            }
-            TerminalButton(label = "↶", onClick = onUndo, enabled = canUndo)
-            TerminalButton(label = "↷", onClick = onRedo, enabled = canRedo)
-        }
-
-        // The four sources get their own row. Six buttons beside the title left it no width
-        // at all on a phone, which is what broke the layout when the camera arrived.
-        Row(
-            Modifier.fillMaxWidth().padding(top = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            TerminalButton(label = "img", onClick = onLoad, modifier = Modifier.weight(1f))
-            TerminalButton(label = "vid", onClick = onLoadVideo, modifier = Modifier.weight(1f))
-            TerminalButton(label = "cam", onClick = onCapture, modifier = Modifier.weight(1f))
-            TerminalButton(
-                label = if (live) "live ■" else "live",
-                accent = if (live) Term.Amber else Term.Ink,
-                onClick = onLive,
-                modifier = Modifier.weight(1f),
-            )
-        }
+    // One row for everything: the title used to take a third of the header and said nothing
+    // the user did not know.
+    Row(
+        Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TerminalButton(label = "img", onClick = onLoad, modifier = Modifier.weight(1f))
+        TerminalButton(label = "vid", onClick = onLoadVideo, modifier = Modifier.weight(1f))
+        TerminalButton(label = "cam", onClick = onCapture, modifier = Modifier.weight(1f))
+        TerminalButton(
+            label = if (live) "live ■" else "live",
+            accent = if (live) Term.Amber else Term.Ink,
+            onClick = onLive,
+            modifier = Modifier.weight(1f),
+        )
+        TerminalButton(label = "↶", onClick = onUndo, enabled = canUndo)
+        TerminalButton(label = "↷", onClick = onRedo, enabled = canRedo)
     }
 }
 
@@ -536,148 +504,4 @@ private fun TabRow(selected: Tab, onSelect: (Tab) -> Unit) {
             )
         }
     }
-}
-
-/**
- * Presets within reach of the picture, rather than four tabs away.
- *
- * A preset is the one control people reach for while *looking* at the image, and having to leave
- * the preview to find it is what made the PRE tab feel like a filing cabinet. This is the short
- * version: filter by category, tap to apply, and the two transfer actions. The tab keeps
- * everything the bar cannot fit — thumbnails, favourites, delete, rename, appearance.
- *
- * Collapsed by default so it costs one line until it is wanted.
- */
-@Composable
-private fun PresetBar(
-    presets: List<Preset>,
-    onApply: (Preset) -> Unit,
-    onSave: (String) -> Unit,
-    onImport: (android.net.Uri) -> Unit,
-) {
-    var open by remember { mutableStateOf(false) }
-    var category by remember { mutableStateOf<PresetFilter>(PresetFilter.All) }
-    var name by remember { mutableStateOf("") }
-
-    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let(onImport)
-    }
-
-    // Only the categories that actually have presets — an empty filter chip is a dead end.
-    val available = remember(presets) {
-        listOf(PresetFilter.All) +
-            PresetStore.categories
-                .filter { c -> presets.any { it.category == c } }
-                .map { PresetFilter.Category(it) }
-    }
-    val shown = remember(presets, category) {
-        val matching = when (val active = category) {
-            PresetFilter.All -> presets
-            is PresetFilter.Category -> presets.filter { it.category == active.id }
-        }
-        matching.sortedWith(compareByDescending<Preset> { it.favourite }.thenBy { it.name })
-    }
-
-    Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TerminalButton(
-                label = if (open) "presets ▾" else "presets ▸",
-                onClick = { open = !open },
-            )
-            Text(
-                text = "${presets.size} saved",
-                color = Term.InkFaint,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
-
-        if (!open) return@Column
-
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            available.forEach { entry ->
-                TerminalChip(
-                    // The chip carries the category's name, not the string it is stored as.
-                    label = entry.label,
-                    selected = entry == category,
-                    onClick = { category = entry },
-                )
-            }
-        }
-
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            shown.forEach { preset ->
-                TerminalChip(
-                    label = if (preset.favourite) "★ ${preset.name}" else preset.name,
-                    selected = false,
-                    onClick = { onApply(preset) },
-                )
-            }
-        }
-
-        Row(
-            Modifier.fillMaxWidth().padding(top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            BasicTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Term.Ink),
-                cursorBrush = SolidColor(Term.Ink),
-                modifier = Modifier
-                    .weight(1f)
-                    .border(1.dp, Term.InkDim, RectangleShape)
-                    .background(Term.SurfaceHigh)
-                    .padding(horizontal = 8.dp, vertical = 9.dp),
-            )
-            TerminalButton(
-                label = "save",
-                enabled = name.isNotBlank(),
-                onClick = {
-                    onSave(name)
-                    name = ""
-                },
-            )
-            TerminalButton(
-                label = "import",
-                onClick = { importer.launch(arrayOf("application/json", "text/plain", "*/*")) },
-            )
-        }
-    }
-}
-
-/**
- * What the preset bar is filtered to.
- *
- * "All" is not a category, and spelling it as the string "ALL" put it in the same namespace as
- * the stored category tokens: a preset filed under that word would have been shadowed by the
- * show-everything chip and unreachable through the filter. Typed, the two cannot be confused.
- */
-private sealed interface PresetFilter {
-
-    data object All : PresetFilter
-
-    /** A stored category token — see [PresetStore.categories]. */
-    data class Category(val id: String) : PresetFilter
-
-    /** Lower case because the bar's chips are set that way; [PresetStore.label] supplies the words. */
-    val label: String
-        get() = when (this) {
-            All -> "all"
-            is Category -> PresetStore.label(id).lowercase()
-        }
 }
