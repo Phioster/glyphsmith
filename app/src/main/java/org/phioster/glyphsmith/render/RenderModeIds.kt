@@ -19,6 +19,7 @@ object RenderModeIds : WireIdSerializer<RenderMode>(
             RenderMode.PurePixel -> "render.pixel-dither"
             RenderMode.PixelThenGlyph -> "render.pixel-then-glyph"
             RenderMode.ShapeShifter -> "render.shape-shifter"
+            RenderMode.FlowAscii -> "render.flow-ascii"
         }
     },
 )

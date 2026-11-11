@@ -148,6 +148,9 @@ class PresetLibraryTest {
         forming|MOTION|PurePixel|FLOYD_STEINBERG
         two pass screen|LAYERED|PurePixel|CLUSTER_8
         offset plates|LAYERED|PurePixel|FLOYD_STEINBERG
+        flow ascii|GLYPH|FlowAscii|NONE
+        ascii fur|GLYPH|FlowAscii|NONE
+        moonlit ascii|GLYPH|FlowAscii|NONE
         terminal|GLYPH|GlyphMatrix|NONE
         phosphor|GLYPH|GlyphMatrix|NONE
         tube glyphs|GLYPH|GlyphMatrix|NONE
@@ -264,12 +267,15 @@ class PresetLibraryTest {
      *   hashed to the previous digest exactly, and none of the new tracks is switched on.
      * - "frutiger aero" joined the library. Checked locally: without it, the library hashed to
      *   the previous digest exactly.
+     * - **Flow ASCII** (2026-11-11): the mode, its `"flowAscii"` block in every preset, and the
+     *   presets `flow ascii`, `ascii fur` and `moonlit ascii`. Checked locally: without the three
+     *   and the block, the library hashed to the previous digest exactly.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "51326fb11a66328aea343f3fde5411ba35636e57ce4c8c5647570fe6e79727b2"
+    private val digest = "720a48be0c517c55f286cc7dc330179cf2d80dc4070fb490e093cac66db25c57"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -309,8 +315,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 115, presets.size)
-        assertEquals("curated presets", 109, curated.size)
+        assertEquals("built-in presets", 118, presets.size)
+        assertEquals("curated presets", 112, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 
@@ -358,8 +364,11 @@ class PresetLibraryTest {
         // Shape shifter is a third, small shelf: neither a dither nor glyphs, and kept from
         // crowding either of them.
         val shapes = curated.count { it.params.renderMode == RenderMode.ShapeShifter }
+        // Flow ASCII is a fourth, smaller still.
+        val flow = curated.count { it.params.renderMode == RenderMode.FlowAscii }
 
-        assertEquals("every curated preset is one of the three", curated.size, pixel + glyph + shapes)
+        assertEquals("every curated preset is one of the four", curated.size, pixel + glyph + shapes + flow)
+        assertTrue("$flow of ${curated.size} presets are flow ascii, which is over 10 %", flow * 10 <= curated.size)
         assertTrue("$shapes of ${curated.size} presets are shape shifter, which is over 10 %", shapes * 10 <= curated.size)
         assertTrue(
             "$pixel of ${curated.size} presets are pixel dithers, which is not 80-92 %",
@@ -391,11 +400,13 @@ class PresetLibraryTest {
     @Test
     fun `every glyph art preset asks for glyph art`() {
         assertTrue("the glyph art shelf is empty", glyphArt.isNotEmpty())
+        // Flow ASCII is filed here too: its characters leave the grid, but they are characters,
+        // and this is the shelf someone looks on for them.
+        val characters = setOf(RenderMode.GlyphMatrix, RenderMode.FlowAscii)
         glyphArt.forEach { preset ->
-            assertEquals(
-                "${preset.name} sits on the glyph shelf without asking for glyphs",
-                RenderMode.GlyphMatrix,
-                preset.params.renderMode,
+            assertTrue(
+                "${preset.name} sits on the glyph shelf without asking for characters",
+                preset.params.renderMode in characters,
             )
         }
     }

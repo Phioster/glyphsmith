@@ -99,6 +99,7 @@ fun RenderPanel(
                     RenderMode.GlyphMatrix -> "levels become characters from the ramp"
                     RenderMode.PixelThenGlyph -> "dither to the palette first, then read glyphs off it"
                     RenderMode.ShapeShifter -> "tones become vector shapes on a grid"
+                    RenderMode.FlowAscii -> "characters or hairs in rows that follow the forms"
                 }
             },
         )
@@ -120,6 +121,9 @@ fun RenderPanel(
         }
         if (params.renderMode == RenderMode.ShapeShifter) {
             ShapeShifterSection(params, onChange, onExportShapeSet, onImportShapeSet)
+        }
+        if (params.renderMode == RenderMode.FlowAscii) {
+            FlowAsciiSection(params, onChange)
         }
         if (!glyphMode) return@Column
 

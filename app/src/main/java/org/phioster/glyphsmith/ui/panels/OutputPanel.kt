@@ -174,7 +174,11 @@ fun OutputPanel(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             // In shape shifter the same export writes the shapes themselves, as true outlines.
             val shapes = state.params.renderMode == RenderMode.ShapeShifter
-            TerminalButton(if (shapes) "svg shapes" else "svg blocks", onExportPixelSvg, Modifier.weight(1f), enabled)
+            // Flow ASCII has no cells to write a block for.
+            TerminalButton(
+                if (shapes) "svg shapes" else "svg blocks", onExportPixelSvg, Modifier.weight(1f),
+                enabled && state.params.renderMode.onGrid,
+            )
             TerminalButton(
                 "svg text", { onExportSvg(SvgMode.TEXT) }, Modifier.weight(1f), textEnabled,
             )

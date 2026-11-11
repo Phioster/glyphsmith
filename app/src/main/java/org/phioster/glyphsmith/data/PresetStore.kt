@@ -243,6 +243,9 @@ class PresetStore(context: Context) {
             // that is the shelf someone will look on for it.
             params.renderMode.isGlyph -> CATEGORY_GLYPH
 
+            // Rows of characters, even off the grid, are looked for beside the other characters.
+            params.renderMode == RenderMode.FlowAscii -> CATEGORY_GLYPH
+
             // Shapes on a grid are geometry whatever else the preset does with them.
             params.renderMode == RenderMode.ShapeShifter -> CATEGORY_GEOMETRY
 

@@ -46,6 +46,9 @@ enum class RenderMode {
 
     /** The picture as a grid of vector shapes chosen by tone — see [ShapeShifter]. */
     ShapeShifter,
+
+    /** Characters or hairs set in rows that follow the forms of the picture — see [FlowAscii]. */
+    FlowAscii,
     ;
 
     /**
@@ -61,14 +64,26 @@ enum class RenderMode {
     val isGlyph: Boolean
         get() = when (this) {
             GlyphMatrix, PixelThenGlyph -> true
-            PurePixel, ShapeShifter -> false
+            // Characters, but not on a grid: there is no text to export, so it is not glyph art.
+            PurePixel, ShapeShifter, FlowAscii -> false
+        }
+
+    /**
+     * True when the render is set on a grid of cells. Flow ASCII alone is not — its marks go where
+     * the picture leads them — so the exports that write one block or shape per cell have nothing
+     * to write for it.
+     */
+    val onGrid: Boolean
+        get() = when (this) {
+            GlyphMatrix, PurePixel, PixelThenGlyph, ShapeShifter -> true
+            FlowAscii -> false
         }
 
     /** True when a palette dither runs before anything else looks at the image. */
     val ditherFirst: Boolean
         get() = when (this) {
             PurePixel, PixelThenGlyph -> true
-            GlyphMatrix, ShapeShifter -> false
+            GlyphMatrix, ShapeShifter, FlowAscii -> false
         }
 
     companion object {

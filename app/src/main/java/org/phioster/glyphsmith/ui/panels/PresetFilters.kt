@@ -121,6 +121,7 @@ object PresetFilters {
                 p.renderMode.isGlyph -> "glyph ascii"
                 p.renderMode == RenderMode.ShapeShifter ->
                     "shape shifter shapes vector " + p.shapeShifter.bands.joinToString(" ") { it.shape.label }
+                p.renderMode == RenderMode.FlowAscii -> "flow ascii glyph " + p.flowAscii.style.label
                 else -> "pixel"
             },
         ).joinToString(" ").lowercase()

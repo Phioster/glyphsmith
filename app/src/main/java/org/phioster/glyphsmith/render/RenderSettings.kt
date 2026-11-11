@@ -196,6 +196,8 @@ data class RenderSettings(
     val lightOrbs: LightOrbsParams = LightOrbsParams(),
     /** Bands, grid and feather of [RenderMode.ShapeShifter]; ignored by the other modes. */
     val shapeShifter: ShapeShifterParams = ShapeShifterParams(),
+    /** Style, size and spacing of [RenderMode.FlowAscii]; ignored by the other modes. */
+    val flowAscii: FlowAsciiParams = FlowAsciiParams(),
     /**
      * Extra renderings stacked over this one. Empty by default, so nothing changes for
      * anything that has never touched them.

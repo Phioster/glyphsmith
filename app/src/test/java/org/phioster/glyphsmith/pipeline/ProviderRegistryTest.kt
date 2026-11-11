@@ -231,7 +231,7 @@ class ProviderRegistryTest {
      */
     @Test
     fun `each render module is told apart by what it can do`() {
-        val answers = RenderModules.all.map { it.producesGlyphs to it.ditherFirst }
+        val answers = RenderModules.all.map { Triple(it.producesGlyphs, it.ditherFirst, it.onGrid) }
 
         assertEquals("two modules are indistinguishable by capability", answers.size, answers.toSet().size)
     }
