@@ -109,6 +109,7 @@ data class UiState(
     val previewQuality: PreviewQuality = PreviewQuality.FULL,
     /** Playback repeats rather than stopping at the last frame. */
     val looped: Boolean = true,
+    val compactPreview: Boolean = true,
     val playbackQuality: PlaybackQuality = PlaybackQuality.RENDERED,
     val favouritePalettes: Set<String> = emptySet(),
     /** Palettes the user imported and kept. Named rather than identified — see [PaletteStore]. */
@@ -138,6 +139,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             themeId = settings.themeId,
             previewQuality = settings.previewQuality,
             looped = settings.looped,
+            compactPreview = settings.compactPreview,
             playbackQuality = settings.playbackQuality,
             favouritePalettes = settings.favouritePalettes,
             favouriteStyles = settings.favouriteStyles,
@@ -229,6 +231,11 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         if (!next.remove(name)) next.add(name)
         settings.favouriteStyles = next
         _state.value = _state.value.copy(favouriteStyles = next)
+    }
+
+    fun setCompactPreview(compact: Boolean) {
+        settings.compactPreview = compact
+        _state.value = _state.value.copy(compactPreview = compact)
     }
 
     fun setLooped(looped: Boolean) {
