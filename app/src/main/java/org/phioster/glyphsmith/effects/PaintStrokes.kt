@@ -10,13 +10,15 @@ import kotlin.math.sin
 import org.phioster.glyphsmith.core.image.Pixels
 
 /**
- * Repaints the picture in brush strokes: rectangular dabs in the picture's own colours that
- * turn to follow edges and stop at them, laid over each other like thick paint.
+ * Repaints the picture in brush strokes: rectangular dabs that turn to follow edges and stop
+ * at them, laid over each other like thick paint. Each dab is mixed half from the one colour
+ * under its centre and half from the tone around it, so over a dither neighbouring dabs lean
+ * towards different palette colours and mix by eye.
  */
 @Serializable
 data class PaintStrokesParams(
     val enabled: Boolean = false,
-    /** 1..48 — the brush, in 1/1000 of the picture's shorter side, so preview and export agree. */
+    /** 1..48 — the brush, in 1/640 of the picture's shorter side, so preview and export agree. */
     val brushSize: Int = 14,
     /** 0..100 — how hard a stroke's border is. */
     val sharpness: Int = 70,
@@ -34,14 +36,18 @@ data class PaintStrokesParams(
 
 object PaintStrokes {
 
-    private const val UNIT_DIVISOR = 1000f
+    private const val UNIT_DIVISOR = 640f
+    private const val MIN_UNIT = 2f
     private const val MAX_SMOOTH = 4
-    private const val SMOOTH_SHARE = 0.4f
+    private const val SMOOTH_SHARE = 0.3f
     private const val PASS_SHRINK = 0.5f
-    private const val SPACING = 0.55f
-    private const val REFINE_AT = 26
+    private const val SPACING = 0.6f
+    private const val DETAIL_AT = 14f
     private const val TILT = 0.5f
-    private const val SHADE = 0.16f
+    private const val SHADE = 0.12f
+    private const val BRISTLE = 0.1f
+    private const val BRISTLES = 5f
+    private const val PURITY = 128
 
     val pass = EffectPass(
         EffectStack::paintStrokes,
@@ -56,16 +62,16 @@ object PaintStrokes {
         val w = source.width
         val h = source.height
         if (!params.enabled || w < 4 || h < 4) return source
-        val unit = max(1.5f, min(w, h) * params.brushSize.coerceIn(1, 48) / UNIT_DIVISOR)
-        // Strokes read their colour and their edges from a lightly smoothed copy, so a dither's
-        // single dots mix into the tone they stand for instead of each claiming a stroke.
+        val unit = max(MIN_UNIT, min(w, h) * params.brushSize.coerceIn(1, 48) / UNIT_DIVISOR)
+        // Edges are read from a smoothed copy, where a dither's dots have mixed into the tone
+        // they stand for.
         val smooth = PixelOps.blurRgba(source, (unit * SMOOTH_SHARE).toInt().coerceIn(2, MAX_SMOOTH)).data
-        val canvas = smooth.copyOf()
+        val canvas = source.data.copyOf()
 
         var size = unit
         for (round in 0 until params.passes.coerceIn(1, 4)) {
-            paint(smooth, canvas, w, h, size, round, params)
-            size = max(1.5f, size * PASS_SHRINK)
+            paint(Layers(source.data, smooth, canvas, w, h), size, round, params)
+            size = max(MIN_UNIT, size * PASS_SHRINK)
         }
 
         val mix = params.mix.coerceIn(0, 100) * 256 / 100
@@ -75,8 +81,16 @@ object PaintStrokes {
         return source
     }
 
-    @Suppress("LongParameterList")
-    private fun paint(src: IntArray, canvas: IntArray, w: Int, h: Int, size: Float, round: Int, p: PaintStrokesParams) {
+    private class Layers(val src: IntArray, val smooth: IntArray, val canvas: IntArray, val w: Int, val h: Int)
+
+    private class Dab(
+        val cx: Int, val cy: Int, val ux: Float, val uy: Float, val halfW: Float, val halfH: Float,
+        val colour: Int, val key: Int,
+    )
+
+    private fun paint(l: Layers, size: Float, round: Int, p: PaintStrokesParams) {
+        val w = l.w
+        val h = l.h
         val bw = max(1f, size * p.brushWidth.coerceIn(10, 200) / 100f)
         val bh = max(1f, size * p.brushHeight.coerceIn(10, 200) / 100f)
         val step = max(1f, min(bw, bh) * SPACING)
@@ -98,13 +112,13 @@ object PaintStrokes {
             val cx = ((index % cols + unitHash(index, salt + 11)) * step).toInt()
             val cy = ((index / cols + unitHash(index, salt + 23)) * step).toInt()
             if (cx >= w || cy >= h) continue
-            val colour = src[cy * w + cx]
-            if (round > 0 && distance(canvas[cy * w + cx], colour) < REFINE_AT) continue
 
             // The stroke's long axis runs along the edge it sits on; without one it leans a little.
-            val gx = luma(src, w, h, cx + reach, cy) - luma(src, w, h, cx - reach, cy)
-            val gy = luma(src, w, h, cx, cy + reach) - luma(src, w, h, cx, cy - reach)
+            val gx = luma(l.smooth, w, h, cx + reach, cy) - luma(l.smooth, w, h, cx - reach, cy)
+            val gy = luma(l.smooth, w, h, cx, cy + reach) - luma(l.smooth, w, h, cx, cy - reach)
             val strength = hypot(gx, gy)
+            // Later passes only go back over the places that hold detail.
+            if (round > 0 && strength < DETAIL_AT) continue
             val ux: Float
             val uy: Float
             if (strength >= turnAt) {
@@ -116,27 +130,31 @@ object PaintStrokes {
                 uy = -sin(lean)
             }
             val shade = 1f + (unitHash(index, salt + 53) - 0.5f) * SHADE
-            stroke(src, canvas, w, h, cx, cy, ux, uy, bw / 2f, bh / 2f, softBand, tolerance, shaded(colour, shade))
+            val colour = shaded(blend(l.smooth[cy * w + cx], l.src[cy * w + cx], PURITY), shade)
+            stroke(l, Dab(cx, cy, ux, uy, bw / 2f, bh / 2f, colour, index + salt), softBand, tolerance)
         }
     }
 
-    @Suppress("LongParameterList")
-    private fun stroke(
-        src: IntArray, canvas: IntArray, w: Int, h: Int, cx: Int, cy: Int, ux: Float, uy: Float,
-        halfW: Float, halfH: Float, softBand: Float, tolerance: Int, colour: Int,
-    ) {
-        val radius = hypot(halfW, halfH).toInt() + 1
-        for (y in max(0, cy - radius)..min(h - 1, cy + radius)) {
-            for (x in max(0, cx - radius)..min(w - 1, cx + radius)) {
-                val dx = (x - cx).toFloat()
-                val dy = (y - cy).toFloat()
+    private fun stroke(l: Layers, d: Dab, softBand: Float, tolerance: Int) {
+        val w = l.w
+        val radius = hypot(d.halfW, d.halfH).toInt() + 1
+        val here = l.smooth[d.cy * w + d.cx]
+        val bristle = max(1f, d.halfW * 2f / BRISTLES)
+        for (y in max(0, d.cy - radius)..min(l.h - 1, d.cy + radius)) {
+            for (x in max(0, d.cx - radius)..min(w - 1, d.cx + radius)) {
+                val dx = (x - d.cx).toFloat()
+                val dy = (y - d.cy).toFloat()
                 // u runs across the stroke, v along it.
-                val edge = max(abs(dx * ux + dy * uy) / halfW, abs(dy * ux - dx * uy) / halfH)
+                val u = dx * d.ux + dy * d.uy
+                val edge = max(abs(u) / d.halfW, abs(dy * d.ux - dx * d.uy) / d.halfH)
                 if (edge >= 1f) continue
                 val i = y * w + x
-                if (distance(src[i], colour) > tolerance) continue
+                // The stroke ends where the picture stops looking like the place it started.
+                if (distance(l.smooth[i], here) > tolerance) continue
+                // Each bristle leaves its own streak down the length of the stroke.
+                val streak = 1f + (unitHash(((u + d.halfW) / bristle).toInt(), d.key) - 0.5f) * BRISTLE
                 val cover = min(1f, (1f - edge) / softBand)
-                canvas[i] = blend(canvas[i], colour, (cover * 256f).toInt())
+                l.canvas[i] = blend(l.canvas[i], shaded(d.colour, streak), (cover * 256f).toInt())
             }
         }
     }
