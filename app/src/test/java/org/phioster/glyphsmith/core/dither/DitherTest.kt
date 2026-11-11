@@ -68,6 +68,18 @@ class DitherTest {
     }
 
     @Test
+    fun `riemersma holds a flat tone at both ends instead of running away`() {
+        val side = 64
+        // Not the last few percent at either end: sixteen remembered errors cannot add up to a
+        // dot there, which is the method's own limit.
+        for (tone in listOf(0.15f, 0.3f, 0.5f, 0.85f)) {
+            val out = Riemersma.quantise(FloatArray(side * side) { tone }, side, side, 2, 1f)
+            val drawn = out.count { it == 1 }.toFloat() / out.size
+            assertTrue("a flat $tone came out as $drawn", kotlin.math.abs(drawn - tone) < 0.03f)
+        }
+    }
+
+    @Test
     fun `riemersma quantises every cell into the ramp`() {
         val cols = 13
         val rows = 7
