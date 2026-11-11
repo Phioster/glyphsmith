@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,6 +38,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
+import org.phioster.glyphsmith.render.edited
+import org.phioster.glyphsmith.render.withEdited
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import android.Manifest
@@ -131,13 +136,13 @@ fun GlyphsmithScreen(
     onToggleFavouritePalette: (String) -> Unit,
     onToggleFavouriteStyle: (String) -> Unit,
     onLoopedChange: (Boolean) -> Unit,
+    onEditLayer: (Int) -> Unit,
     onAddLayerPicture: (android.net.Uri) -> Unit,
     onCompactPreviewChange: (Boolean) -> Unit,
     onScrubbing: (Boolean) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     var fullView by remember { mutableStateOf(false) }
-    var editLayer by remember { mutableStateOf(-1) }
     val compact = state.compactPreview
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(onPickImage)
@@ -197,12 +202,19 @@ fun GlyphsmithScreen(
     // Provided once here so all hundred-odd sliders report drag state without any of them
     // taking a parameter for it.
     CompositionLocalProvider(LocalScrubReporter provides onScrubbing) {
-    Column(
+    // Turned on its side the picture gets the left of the screen and the controls the right,
+    // each the full height.
+    val wide = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    Row(
         Modifier
             .fillMaxSize()
             .background(Term.Background)
             .padding(horizontal = 12.dp),
     ) {
+    if (wide) {
+        Preview(state, Modifier.weight(1f).fillMaxHeight().padding(top = 12.dp, bottom = 12.dp, end = 10.dp))
+    }
+    Column(Modifier.weight(if (wide) WIDE_CONTROLS else 1f).fillMaxHeight()) {
         Header(
             canUndo = state.canUndo,
             canRedo = state.canRedo,
@@ -251,7 +263,9 @@ fun GlyphsmithScreen(
 
         // Small by default, so the controls get the height: on a phone the picture and a list
         // of sliders cannot both be large, and it is the list that needs scrolling.
-        if (compact) {
+        if (wide) {
+            StatusLine(state, onShrink = null) { fullView = true }
+        } else if (compact) {
             CompactPreview(state, onFullView = { fullView = true }, onGrow = { onCompactPreviewChange(false) })
         } else {
             Preview(state, Modifier.weight(1f))
@@ -262,23 +276,10 @@ fun GlyphsmithScreen(
 
         // Which settings the panels show and change: the picture underneath, or one layer's.
         val layers = state.params.layers
-        val editing = if (editLayer in layers.indices) editLayer else -1
-        val shown = if (editing >= 0) layers[editing].params else state.params
-        val changeShown: (RenderSettings) -> Unit = { changed ->
-            if (editing >= 0) {
-                onParamsChange(
-                    state.params.copy(
-                        layers = layers.mapIndexed { i, layer ->
-                            // A layer never carries a stack of its own.
-                            if (i == editing) layer.copy(params = changed.copy(layers = emptyList())) else layer
-                        },
-                    ),
-                )
-            } else {
-                onParamsChange(changed)
-            }
-        }
-        if (layers.isNotEmpty()) EditTargetRow(layers.map { it.name }, editing) { editLayer = it }
+        val editing = if (state.editLayer in layers.indices) state.editLayer else -1
+        val shown = state.params.edited(editing)
+        val changeShown: (RenderSettings) -> Unit = { changed -> onParamsChange(state.params.withEdited(editing, changed)) }
+        if (layers.isNotEmpty()) EditTargetRow(layers.map { it.name }, editing, onEditLayer)
 
         TabRow(tab) { tab = it }
 
@@ -369,6 +370,7 @@ fun GlyphsmithScreen(
                 )
             }
         }
+    }
     }
     }
 }
@@ -515,11 +517,12 @@ private fun CompactPreview(state: UiState, onFullView: () -> Unit, onGrow: () ->
 }
 
 private const val LIVE_WEIGHT = 1.25f
+private const val WIDE_CONTROLS = 1.1f
 private const val COMPACT_WIDTH = 150
 private const val COMPACT_HEIGHT = 125
 
 @Composable
-private fun StatusLine(state: UiState, onShrink: () -> Unit, onFullView: () -> Unit) {
+private fun StatusLine(state: UiState, onShrink: (() -> Unit)?, onFullView: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -539,12 +542,14 @@ private fun StatusLine(state: UiState, onShrink: () -> Unit, onFullView: () -> U
                 modifier = Modifier.clickable(onClick = onFullView).padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
-        Text(
-            "[small]",
-            color = Term.Ink,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.clickable(onClick = onShrink).padding(end = 10.dp, top = 4.dp, bottom = 4.dp),
-        )
+        if (onShrink != null) {
+            Text(
+                "[small]",
+                color = Term.Ink,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.clickable(onClick = onShrink).padding(end = 10.dp, top = 4.dp, bottom = 4.dp),
+            )
+        }
         Text(
             if (state.working) "busy" else "idle",
             color = if (state.working) Term.Amber else Term.InkFaint,

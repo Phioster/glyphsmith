@@ -58,3 +58,17 @@ data class Layer(
         val OFFSET_RANGE = -100..100
     }
 }
+
+/** The settings the panels edit: layer [index]'s own, or these when there is no such layer. */
+fun RenderSettings.edited(index: Int): RenderSettings = layers.getOrNull(index)?.params ?: this
+
+/**
+ * These settings with [changed] put where [edited] read from. A layer never carries a stack of
+ * its own, so whatever layers [changed] holds are dropped on the way into one.
+ */
+fun RenderSettings.withEdited(index: Int, changed: RenderSettings): RenderSettings =
+    if (index in layers.indices) {
+        copy(layers = layers.mapIndexed { i, layer -> if (i == index) layer.copy(params = changed.copy(layers = emptyList())) else layer })
+    } else {
+        changed
+    }
