@@ -15,7 +15,12 @@ class PaintStrokesTest {
     private fun halves(size: Int = 96) = Pixels(IntArray(size * size) { if (it % size < size / 2) black else white }, size, size)
 
     private fun noise(size: Int = 96) = Pixels(
-        IntArray(size * size) { i -> if ((i * 2654435761L ushr 7) % 2L == 0L) black else white }, size, size,
+        IntArray(size * size) { i ->
+            var x = i * 374761393
+            x = (x xor (x ushr 13)) * 1274126177
+            if ((x ushr 16) and 1 == 0) black else white
+        },
+        size, size,
     )
 
     @Test
@@ -27,10 +32,20 @@ class PaintStrokesTest {
     }
 
     @Test
-    fun `strokes mix a dither's dots into tones`() {
-        val out = PaintStrokes.apply(noise(240), on.copy(brushSize = 24))
-        val mids = out.data.count { PixelOps.redOf(it) in 60..195 }
-        assertTrue("$mids of ${out.data.size} pixels are mid-tones", mids > out.data.size / 2)
+    fun `dabs gather a dither's dots into patches`() {
+        fun changes(data: IntArray) = (1 until data.size).sumOf { kotlin.math.abs(PixelOps.redOf(data[it]) - PixelOps.redOf(data[it - 1])) }
+        val source = noise(240)
+        val before = changes(source.data)
+        val after = changes(PaintStrokes.apply(source, on).data)
+        assertTrue("$after of change after, $before before", after < before / 3)
+    }
+
+    @Test
+    fun `neighbouring dabs differ over a dither`() {
+        val out = PaintStrokes.apply(noise(240), on)
+        val reds = out.data.map { PixelOps.redOf(it) }
+        assertTrue(reds.count { it < 110 } > out.data.size / 10)
+        assertTrue(reds.count { it > 145 } > out.data.size / 10)
     }
 
     @Test

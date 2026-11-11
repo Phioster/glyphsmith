@@ -214,6 +214,9 @@ class PresetLibraryTest {
      *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
      *
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
+     * - **Oil study repainted** (2026-11-11): the paint box grows to 32 colours with pure tube
+     *   colours (a bright red came out orange without them), brush 14 and two passes. Checked
+     *   locally: the library without `oil study` hashes the same before and after.
      * - **Oil study re-tuned** (2026-11-11): finer brush, three passes and a 24-colour paint box as
      *   its palette override. Checked locally: the library without `oil study` hashes the same
      *   before and after.
@@ -257,7 +260,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "a9f06beaa0e3117da590ab6fad2b4696c2f0a0e8b6db62b4e64c5e3d7782479c"
+    private val digest = "0d4ab4c4458c6d48afa25fb008abbeb8fd4bfc996731fc3de49c55736e854ae8"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
