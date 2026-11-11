@@ -54,6 +54,10 @@ import org.phioster.glyphsmith.data.LiveCamera
 import org.phioster.glyphsmith.data.LiveFrame
 import org.phioster.glyphsmith.data.PaletteFile
 import org.phioster.glyphsmith.data.PaletteStore
+import org.phioster.glyphsmith.data.LayerImageStore
+import org.phioster.glyphsmith.pipeline.LayerImages
+import org.phioster.glyphsmith.render.Layer
+import org.phioster.glyphsmith.render.LayerBlend
 import org.phioster.glyphsmith.data.ShapeSetFile
 import org.phioster.glyphsmith.render.ShapeSets
 import org.phioster.glyphsmith.data.Preset
@@ -131,6 +135,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private val presets = PresetController(app)
     private val settings = Settings(app)
     private val palettes = PaletteStore(app)
+    private val layerImages = LayerImageStore(app)
     private val exports = ExportCoordinator(AndroidExports(app))
 
     private val _state = MutableStateFlow(
@@ -292,6 +297,24 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         // appended a second time by effectiveRamp().
         updateParams(params.copy(rampOverride = sorted, injection = ""))
         "ordered ${sorted.length} glyphs by coverage"
+    }
+
+    /**
+     * Adds a picture as a layer of its own, on top, drawn with the settings in force. Normal
+     * blend rather than the usual screen: a cut-out is meant to cover what is under it.
+     */
+    fun addLayerPicture(uri: Uri) = runExport("layer picture") {
+        val id = withContext(Dispatchers.IO) { layerImages.adopt(uri) }
+            ?: return@runExport "could not read that picture"
+        val params = _state.value.params
+        val layer = Layer(
+            name = "picture ${params.layers.count { it.image.isNotEmpty() } + 1}",
+            params = params.copy(layers = emptyList()),
+            blend = LayerBlend.NORMAL,
+            image = id,
+        )
+        updateParams(params.copy(layers = params.layers + layer))
+        "picture added as a layer"
     }
 
     /** Writes the shape shifter's bands to their own file. */
@@ -548,6 +571,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     private suspend fun rebuild(params: RenderSettings) {
         val frame = sources.frame() ?: return
+        // Before the render, so a preset or a restart that names a layer picture finds it.
+        val wanted = params.layers.map { it.image }.filter { it.isNotEmpty() }
+        if (wanted.any { !LayerImages.has(it) }) withContext(Dispatchers.IO) { layerImages.ensure(wanted) }
         _state.value = _state.value.copy(working = true)
         val scrub = scrubbing
         val budget = if (scrub) SCRUB_MAX_SIDE else _state.value.previewQuality.maxSide

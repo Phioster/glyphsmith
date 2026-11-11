@@ -1,5 +1,7 @@
 package org.phioster.glyphsmith.ui.panels
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -38,9 +40,13 @@ import org.phioster.glyphsmith.ui.theme.Term
 fun LayerPanel(
     params: RenderSettings,
     onChange: (RenderSettings) -> Unit,
+    onAddPicture: (android.net.Uri) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val layers = params.layers
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(onAddPicture)
+    }
 
     fun update(index: Int, block: (Layer) -> Layer) {
         onChange(
@@ -68,6 +74,19 @@ fun LayerPanel(
                 )
             },
             modifier = Modifier.fillMaxWidth(),
+        )
+
+        TerminalButton(
+            label = "add a picture as a layer",
+            onClick = { picker.launch(arrayOf("image/*")) },
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        )
+        Text(
+            "a picture of its own on top — a cut-out PNG keeps its transparency. Pick it in the " +
+                "edit row above the tabs to give it its own style, effects or preset",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 6.dp),
         )
 
         if (layers.isEmpty()) {
@@ -163,7 +182,8 @@ private fun LayerBlock(
         if (!layer.enabled) return@Column
 
         Text(
-            "${CharacterSets.byId(layer.params.charSetId).name} · " +
+            (if (layer.image.isEmpty()) "" else "own picture · ") +
+                "${CharacterSets.byId(layer.params.charSetId).name} · " +
                 "cell ${layer.params.cellSize} · ${layer.params.ditherMode.label}",
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,

@@ -127,7 +127,7 @@ glyph/      The Glyph Art module: CharacterSets, GlyphEngine (pure Kotlin), Glyp
             GlyphRenderModules, and Glyph Art's own outputs — TextExporters, SvgExporter
 effects/    EffectId/EffectIds, EffectParams, EffectStack, EffectPass, EffectPasses,
             EffectNodes, EffectProviders, EffectPipeline, PixelOps and the passes
-pipeline/   RenderPipeline, LayerCompositor, Providers
+pipeline/   RenderPipeline, LayerCompositor, LayerImages, Providers
 anim/       Animation tracks and segments, Temporal, GifEncoder, Mp4Encoder, ColorQuantizer
 data/       Source (still/video), ImageLoader, LiveCamera, CameraCapture, PresetLibrary,
             PresetStore, PresetSchema, PaletteFile, Import, Settings

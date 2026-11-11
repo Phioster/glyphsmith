@@ -48,7 +48,14 @@ object LayerCompositor {
         val canvas = Canvas(out)
         val matrix = Matrix()
 
-        val scale = layer.scale.coerceIn(Layer.SCALE_RANGE) / 100f
+        // A picture of the layer's own is fitted inside the frame first, so its size at 100 %
+        // does not depend on how large its rendering happened to come out.
+        val fit = if (layer.image.isEmpty()) {
+            1f
+        } else {
+            minOf(width.toFloat() / source.width, height.toFloat() / source.height)
+        }
+        val scale = fit * layer.scale.coerceIn(Layer.SCALE_RANGE) / 100f
         val flipX = if (layer.flipHorizontal) -1f else 1f
         val flipY = if (layer.flipVertical) -1f else 1f
 

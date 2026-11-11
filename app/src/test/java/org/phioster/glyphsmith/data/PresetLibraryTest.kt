@@ -215,6 +215,8 @@ class PresetLibraryTest {
      *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
      *
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
+     * - **Layer pictures** (2026-11-11): a layer gains `image`, empty in every shipped preset.
+     *   Checked locally: with the key stripped, the library hashed to the previous digest exactly.
      * - **Stress relief** (2026-11-11): the effect and its preset `flaking fresco`; paint strokes
      *   gain brushGrowth and flattenBy. Checked locally: without the preset, the block, the two
      *   keys and the slot, the library hashed to the previous digest exactly.
@@ -264,7 +266,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "e1cc60eb9da665015a323bb399c2444424c36ab37a9ef850b21f489405a640e8"
+    private val digest = "bc1adffb02818a00b30c720fa7890a406b604c6acb94cdd78d788b226c0778b2"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
