@@ -2,6 +2,7 @@ package org.phioster.glyphsmith
 
 import org.phioster.glyphsmith.glyph.GlyphMatrixModule
 import org.phioster.glyphsmith.glyph.PixelThenGlyphModule
+import org.phioster.glyphsmith.render.FlowAsciiModule
 import org.phioster.glyphsmith.render.PixelDitherModule
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.render.RenderModule
@@ -30,5 +31,6 @@ object AppRenderModules : RenderModuleSet {
         RenderMode.PurePixel -> PixelDitherModule
         RenderMode.PixelThenGlyph -> PixelThenGlyphModule
         RenderMode.ShapeShifter -> ShapeShifterModule
+        RenderMode.FlowAscii -> FlowAsciiModule
     }
 }

@@ -21,6 +21,8 @@ class RenderModuleProvider(val mode: RenderMode, override val displayName: Strin
 
     /** True when a palette dither runs before anything else looks at the image. */
     val ditherFirst: Boolean get() = mode.ditherFirst
+
+    val onGrid: Boolean get() = mode.onGrid
 }
 
 /**
@@ -42,6 +44,7 @@ object RenderModules : Registry<RenderModuleProvider>(
         RenderModuleProvider(RenderMode.PurePixel, "pixel dither"),
         RenderModuleProvider(RenderMode.PixelThenGlyph, "pixel dither → glyphs"),
         RenderModuleProvider(RenderMode.ShapeShifter, "shape shifter"),
+        RenderModuleProvider(RenderMode.FlowAscii, "flow ascii"),
     ),
 ) {
     private val byMode = all.associateBy { it.mode }

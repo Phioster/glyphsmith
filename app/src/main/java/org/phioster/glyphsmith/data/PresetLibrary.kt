@@ -34,6 +34,8 @@ import org.phioster.glyphsmith.render.LightOrbsParams
 import org.phioster.glyphsmith.render.FeatherPattern
 import org.phioster.glyphsmith.render.ShapeLayout
 import org.phioster.glyphsmith.render.ShapeSets
+import org.phioster.glyphsmith.render.FlowAsciiParams
+import org.phioster.glyphsmith.render.FlowStyle
 import org.phioster.glyphsmith.render.ShapeShifterParams
 import org.phioster.glyphsmith.core.dither.DitherMode
 import org.phioster.glyphsmith.core.color.ColorDistance
@@ -99,6 +101,10 @@ object PresetLibrary {
         0xFF06204E, 0xFF02101E, 0xFF5CF0E8, 0xFF18C8C0, 0xFF0C8C90, 0xFFC8F890, 0xFF7CE04C, 0xFF38B02C,
         0xFF1C7A24, 0xFF0C4A1C, 0xFFFFF4B0, 0xFFFFD86A, 0xFFF0A8C8, 0xFFD06A4A, 0xFF8C5A3C, 0xFF6C7884,
     ).map { it.toInt() }
+
+    /** A flow ASCII preset: rows of characters or hairs that follow the picture's forms. */
+    private fun flow(name: String, params: RenderSettings) =
+        Preset(name, params.copy(renderMode = RenderMode.FlowAscii), PresetStore.CATEGORY_GLYPH)
 
     /** A Shape Shifter preset: tones drawn as vector shapes on a grid. */
     private fun shapes(name: String, category: String, params: RenderSettings) =
@@ -2038,6 +2044,34 @@ object PresetLibrary {
         // The render module, not the premise. Each of these demonstrates a different
         // glyph capability rather than a different look: the ramp, its length, a
         // non-Latin set, the edge pass, injection, and colour on characters.
+        flow(
+            "flow ascii",
+            // Characters that lie along fingers, folds and faces, in the picture's own colours.
+            RenderSettings(colorMode = ColorMode.SOURCE, contrast = 1.15f, flowAscii = FlowAsciiParams()),
+        ),
+        flow(
+            "ascii fur",
+            // Everything out of short hairs laid along the forms; made for animals and hair.
+            RenderSettings(
+                colorMode = ColorMode.SOURCE,
+                contrast = 1.15f,
+                flowAscii = FlowAsciiParams(style = FlowStyle.FUR),
+            ),
+        ),
+        flow(
+            "moonlit ascii",
+            // One cold ink on a night-blue ground, with the strong edges drawn over once more.
+            RenderSettings(
+                colorMode = ColorMode.SINGLE,
+                inkColor = 0xFF9CCBFF.toInt(),
+                backgroundColor = 0xFF05080F.toInt(),
+                contrast = 1.25f,
+                flowAscii = FlowAsciiParams(outline = true, blackBelow = 8),
+                effects = EffectStack(
+                    glow = GlowParams(enabled = true, threshold = 55, radius = 40, intensity = 380),
+                ),
+            ),
+        ),
         glyph(
             "terminal",
             PresetStore.CATEGORY_GLYPH,
