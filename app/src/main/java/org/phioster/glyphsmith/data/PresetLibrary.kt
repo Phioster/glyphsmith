@@ -107,7 +107,26 @@ object PresetLibrary {
      * mid blue after its first white, which is the horizon mirrored in polished metal.
      */
     private val CHROME = listOf(
-        0xFF02040C, 0xFF14245C, 0xFF3C6CC8, 0xFFE8F4FF, 0xFF5C7CB8, 0xFFB8CCE8, 0xFFFFFFFF,
+        0xFF02040C, 0xFF14245C, 0xFF3C6CC8, 0xFF8CB0E8, 0xFF5C7CB8, 0xFFB8CCE8, 0xFFFFFFFF,
+    ).map { it.toInt() }
+
+    /**
+     * Sweets and rhinestones: pinks from deep to pale, lilac, baby blue, white. No gold or brown:
+     * with either in the box, skin came out mustard instead of rosy.
+     */
+    private val BONBON = listOf(
+        0xFF1E0820, 0xFF5A1050, 0xFFA0187A, 0xFFE0389C, 0xFFFF6FB8, 0xFFFFA4D4, 0xFFFFD4EC, 0xFFFFFFFF,
+        0xFF7A4CC8, 0xFFB894F0, 0xFF8CD4FF, 0xFFD8F0FF, 0xFFE89CA8, 0xFFFFC4B8, 0xFF7A3A5A, 0xFF3A2A34,
+    ).map { it.toInt() }
+
+    /** Pink into turquoise, on night violet: the two colours a 1990s mall rendered everything in. */
+    private val VAPOR = listOf(
+        0xFF1A0B3A, 0xFF5A2A9C, 0xFFF05CB8, 0xFF4CE0D8, 0xFFFFC8E8, 0xFFFFFFFF,
+    ).map { it.toInt() }
+
+    /** A sunset behind a grid: night violet through magenta and orange to pale yellow. */
+    private val OUTRUN = listOf(
+        0xFF0A0420, 0xFF2A0A58, 0xFF7A1090, 0xFFE0207A, 0xFFFF5A3C, 0xFFFF9A2A, 0xFFFFE89A,
     ).map { it.toInt() }
 
     /** A flow ASCII preset: rows of characters or hairs that follow the picture's forms. */
@@ -1533,11 +1552,61 @@ object PresetLibrary {
                 paletteId = "palette.oxide",
                 paletteOverride = CHROME,
                 contrast = 1.15f,
+                // No glow: the palette already ends in white, and any bloom on top washed hands
+                // and faces out to a single blank. The stars carry the shine alone.
                 effects = EffectStack(
                     stars = DiffractionStarsParams(enabled = true, threshold = 86, rays = 4, length = 45, intensity = 450),
-                    // Kept low: the palette already ends in white, and more glow than this washes
-                    // hands and faces out to a single blank.
-                    glow = GlowParams(enabled = true, threshold = 88, radius = 18, intensity = 180),
+                ),
+            ),
+        ),
+        pixel(
+            "mcbling",
+            PresetStore.CATEGORY_COLOR,
+            // Mid-2000s glam: everything in sweet pinks, a star on every stone, soft all over.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = BONBON,
+                saturation = 125,
+                highlights = 58,
+                effects = EffectStack(
+                    stars = DiffractionStarsParams(enabled = true, threshold = 74, rays = 4, length = 34, intensity = 520),
+                    glow = GlowParams(enabled = true, threshold = 70, radius = 40, intensity = 300),
+                ),
+            ),
+        ),
+        pixel(
+            "vaporwave",
+            PresetStore.CATEGORY_COLOR,
+            // Tones mapped onto pink and turquoise in a coarse ordered screen, on washed scan lines.
+            RenderSettings(
+                cellSize = 3,
+                ditherMode = DitherMode.BAYER_4,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.oxide",
+                paletteOverride = VAPOR,
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(enabled = true, scanlines = 28, scanlineSpacing = 4),
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = 3),
+                ),
+            ),
+        ),
+        pixel(
+            "synthwave",
+            PresetStore.CATEGORY_COLOR,
+            // An outrun sunset: night violet to orange, with the lights blooming like neon tube.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.oxide",
+                paletteOverride = OUTRUN,
+                contrast = 1.2f,
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(enabled = true, scanlines = 18, scanlineSpacing = 3),
+                    glow = GlowParams(enabled = true, threshold = 60, radius = 70, intensity = 420),
                 ),
             ),
         ),
