@@ -21,7 +21,14 @@ object ImageLoader {
     /** Longest source edge kept after decoding. Enough detail for a fine grid, cheap to hold. */
     const val MAX_SOURCE_SIDE = 2048
 
-    fun load(context: Context, uri: Uri, maxSide: Int = MAX_SOURCE_SIDE): Bitmap? {
+    /**
+     * The picture at [uri], or null when it cannot be had. That includes a uri this app may not
+     * read — a share whose permission never arrived throws, and used to take the app down.
+     */
+    fun load(context: Context, uri: Uri, maxSide: Int = MAX_SOURCE_SIDE): Bitmap? =
+        runCatching { decode(context, uri, maxSide) }.getOrNull()
+
+    private fun decode(context: Context, uri: Uri, maxSide: Int): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
