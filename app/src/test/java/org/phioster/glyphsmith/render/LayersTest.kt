@@ -81,4 +81,26 @@ class LayersTest {
         LayerBlend.entries.forEach { assertTrue(it.label.isNotBlank()) }
         assertEquals(LayerBlend.entries.size, LayerBlend.entries.map { it.label }.toSet().size)
     }
+
+    @Test
+    fun `the panels edit the chosen layer and nothing else`() {
+        val stack = RenderSettings(cellSize = 4, layers = listOf(Layer(name = "a"), Layer(name = "b", params = RenderSettings(cellSize = 9))))
+        assertEquals(9, stack.edited(1).cellSize)
+        assertEquals(4, stack.edited(-1).cellSize)
+        assertEquals(4, stack.edited(7).cellSize)
+
+        val changed = stack.withEdited(1, RenderSettings(cellSize = 2, layers = listOf(Layer(name = "stowaway"))))
+        assertEquals(4, changed.cellSize)
+        assertEquals(stack.layers[0], changed.layers[0])
+        assertEquals(2, changed.layers[1].params.cellSize)
+        assertEquals("b", changed.layers[1].name)
+        assertEquals(emptyList<Layer>(), changed.layers[1].params.layers)
+    }
+
+    @Test
+    fun `with no layer chosen a change replaces the picture's own settings`() {
+        val stack = RenderSettings(cellSize = 4, layers = listOf(Layer(name = "a")))
+        val next = stack.copy(cellSize = 6)
+        assertEquals(next, stack.withEdited(-1, next))
+    }
 }

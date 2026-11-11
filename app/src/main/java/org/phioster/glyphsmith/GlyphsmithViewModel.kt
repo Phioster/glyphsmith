@@ -58,6 +58,8 @@ import org.phioster.glyphsmith.data.LayerImageStore
 import org.phioster.glyphsmith.pipeline.LayerImages
 import org.phioster.glyphsmith.render.Layer
 import org.phioster.glyphsmith.render.LayerBlend
+import org.phioster.glyphsmith.render.edited
+import org.phioster.glyphsmith.render.withEdited
 import org.phioster.glyphsmith.data.ShapeSetFile
 import org.phioster.glyphsmith.render.ShapeSets
 import org.phioster.glyphsmith.data.Preset
@@ -114,6 +116,8 @@ data class UiState(
     /** Playback repeats rather than stopping at the last frame. */
     val looped: Boolean = true,
     val compactPreview: Boolean = true,
+    /** Which layer the panels edit, or -1 for the picture underneath. */
+    val editLayer: Int = -1,
     val playbackQuality: PlaybackQuality = PlaybackQuality.RENDERED,
     val favouritePalettes: Set<String> = emptySet(),
     /** Palettes the user imported and kept. Named rather than identified — see [PaletteStore]. */
@@ -248,7 +252,20 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(looped = looped)
     }
 
+    fun setEditLayer(index: Int) {
+        _state.value = _state.value.copy(editLayer = index)
+    }
+
+    /** What the panels are showing: the chosen layer's settings, or the picture's. */
+    private fun edited(): RenderSettings = _state.value.params.edited(_state.value.editLayer)
+
+    private fun updateEdited(changed: RenderSettings) =
+        updateParams(_state.value.params.withEdited(_state.value.editLayer, changed))
+
     fun updateParams(params: RenderSettings) {
+        // A layer added, removed or reordered: the index would now mean a different one.
+        val sameStack = params.layers.map { it.name } == _state.value.params.layers.map { it.name }
+        if (!sameStack) _state.value = _state.value.copy(editLayer = -1)
         _state.value = _state.value.copy(params = params)
         paramsFlow.value = params
     }
@@ -263,13 +280,15 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun extractPalette(count: Int, method: QuantizeMethod = QuantizeMethod.MEDIAN_CUT) =
         runExport("palette") {
-        val pixels = sources.frame()?.pixels ?: return@runExport "no image"
+        // A layer with a picture of its own gives its own colours.
+        val own = _state.value.params.layers.getOrNull(_state.value.editLayer)?.image.orEmpty()
+        val pixels = LayerImages[own]?.pixels ?: sources.frame()?.pixels ?: return@runExport "no image"
         val colors = withContext(Dispatchers.Default) {
             Palettes.fromColors(ColorQuantizer.extract(pixels, count, method).toList())
         }
         if (colors.isEmpty()) return@runExport "no colours found"
-        updateParams(
-            _state.value.params.copy(
+        updateEdited(
+            edited().copy(
                 colorMode = ColorMode.PALETTE,
                 paletteOverride = colors,
                 paletteLocks = List(colors.size) { false },
@@ -287,7 +306,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * ramp rather than right in general.
      */
     fun autoOrderRamp() = runExport("ramp") {
-        val params = _state.value.params
+        val params = edited()
         val face = GlyphRenderer.faceFor(params, params.effectiveRamp().ifEmpty { " " })
         val sorted = withContext(Dispatchers.Default) {
             GlyphCoverage.sort(params.baseGlyphs() + params.injection, face.typeface)
@@ -295,7 +314,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         if (sorted.isEmpty()) return@runExport "nothing to order"
         // The injected characters are now placed by measurement, so they must not also be
         // appended a second time by effectiveRamp().
-        updateParams(params.copy(rampOverride = sorted, injection = ""))
+        updateEdited(params.copy(rampOverride = sorted, injection = ""))
         "ordered ${sorted.length} glyphs by coverage"
     }
 
@@ -319,7 +338,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Writes the shape shifter's bands to their own file. */
     fun exportShapeSet() = runExport("shape set") {
-        val shifter = _state.value.params.shapeShifter
+        val shifter = edited().shapeShifter
         val bands = shifter.bands.ifEmpty { ShapeSets.default.bands }
         val name = ShapeSets.all.firstOrNull { it.bands == bands }?.name ?: "custom"
         val text = ShapeSetFile.encode(name, bands)
@@ -334,14 +353,14 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             }.getOrNull()
         } ?: return@runExport "could not read that file"
         val bands = ShapeSetFile.decode(text) ?: return@runExport "that file isn't a shape set"
-        val params = _state.value.params
-        updateParams(params.copy(shapeShifter = params.shapeShifter.copy(bands = bands)))
+        val params = edited()
+        updateEdited(params.copy(shapeShifter = params.shapeShifter.copy(bands = bands)))
         "loaded ${bands.size} bands"
     }
 
     /** Writes the palette in use to its own file, so colours can be shared without a look. */
     fun exportPalette() = runExport("palette") {
-        val text = PaletteFile.encode(_state.value.params.activePalette())
+        val text = PaletteFile.encode(edited().activePalette())
         withContext(Dispatchers.IO) { exports.palette(text) }
     }
 
@@ -369,8 +388,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val luma = FloatArray(pixels.size) { PixelOps.luminance(pixels[it]) }
         val screen = ScreenImport.screenOf(luma, width, height, size)
 
-        updateParams(
-            _state.value.params.copy(
+        updateEdited(
+            edited().copy(
                 ditherMode = DitherMode.CUSTOM_SCREEN,
                 screenOverride = screen,
             ),
@@ -379,7 +398,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Clears an imported screen, so the style falls back to its own woven default. */
-    fun clearScreen() = updateParams(_state.value.params.copy(screenOverride = emptyList()))
+    fun clearScreen() = updateEdited(edited().copy(screenOverride = emptyList()))
 
     /**
      * Reads a palette file, keeps what is in it, and applies the first one.
@@ -425,8 +444,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     fun applyPalette(file: PaletteFile) {
         val colors = PaletteFile.colorsOf(file)
         if (colors.isEmpty()) return
-        updateParams(
-            _state.value.params.copy(
+        updateEdited(
+            edited().copy(
                 colorMode = ColorMode.PALETTE,
                 paletteOverride = colors,
                 paletteLocks = List(colors.size) { false },
@@ -984,8 +1003,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * general-purpose button and Glyph Art is chosen deliberately, not stumbled into.
      */
     fun randomise() {
-        val rolled = RandomLook.roll(_state.value.params)
-        updateParams(rolled)
+        val rolled = RandomLook.roll(edited())
+        updateEdited(rolled)
         val set = CharacterSets.byId(rolled.charSetId)
         _state.value = _state.value.copy(status = "rolled ${set.name} · ${rolled.ditherMode.label}")
     }
