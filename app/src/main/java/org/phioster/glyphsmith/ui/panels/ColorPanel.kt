@@ -80,7 +80,14 @@ fun ColorPanel(
                 TerminalChip(
                     label = mode.name,
                     selected = params.colorMode == mode,
-                    onClick = { onChange(params.copy(colorMode = mode)) },
+                    onClick = {
+                        onChange(params.copy(colorMode = mode))
+                        // Source with a grey palette would show a grey picture and look like
+                        // nothing happened; fetch the picture's own colours along with it.
+                        val greyPixels = mode == ColorMode.SOURCE && !params.renderMode.isGlyph &&
+                            palette.colors.all(::isGrey)
+                        if (greyPixels) onExtractPalette(SOURCE_COLOURS, QuantizeMethod.MEDIAN_CUT)
+                    },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -257,7 +264,7 @@ private fun PaletteSection(
         ) {
             EXTRACT_COUNTS.forEach { count ->
                 TerminalButton(
-                    label = "from image ×$count",
+                    label = "image ×$count",
                     onClick = { onExtractPalette(count, method) },
                     modifier = Modifier.weight(1f),
                 )
@@ -502,4 +509,17 @@ private fun PaletteRamp(colors: List<Int>, modifier: Modifier = Modifier) {
             .border(1.dp, Term.InkFaint, RectangleShape)
             .background(Brush.horizontalGradient(colors.map { Color(it) })),
     )
+}
+
+/** How many colours a first tap on source fetches from the picture. */
+private const val SOURCE_COLOURS = 16
+
+private const val GREY_SLACK = 6
+
+/** Whether [color] has no hue to speak of. */
+private fun isGrey(color: Int): Boolean {
+    val r = color shr 16 and 0xFF
+    val g = color shr 8 and 0xFF
+    val b = color and 0xFF
+    return maxOf(r, g, b) - minOf(r, g, b) <= GREY_SLACK
 }
