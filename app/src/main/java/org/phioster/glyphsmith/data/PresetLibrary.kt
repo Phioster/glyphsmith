@@ -90,6 +90,16 @@ object PresetLibrary {
         0xFFC07A4A, 0xFFD9A441, 0xFFA8A29A, 0xFFDDA98A, 0xFFE8C9A8, 0xFFB8D4E8, 0xFFE9E2D6, 0xFFFFFFFF,
     ).map { it.toInt() }
 
+    /**
+     * The colours of a glossy 2000s desktop: sky, water and grass with clean whites, and just
+     * enough warm and neutral entries that a face or a sunset is not forced blue.
+     */
+    private val AERO_BOX = listOf(
+        0xFFFFFFFF, 0xFFE8F8FF, 0xFFB8E8FF, 0xFF7FD4FF, 0xFF38B6FF, 0xFF0A8CF0, 0xFF0A5CC8, 0xFF083A8C,
+        0xFF06204E, 0xFF02101E, 0xFF5CF0E8, 0xFF18C8C0, 0xFF0C8C90, 0xFFC8F890, 0xFF7CE04C, 0xFF38B02C,
+        0xFF1C7A24, 0xFF0C4A1C, 0xFFFFF4B0, 0xFFFFD86A, 0xFFF0A8C8, 0xFFD06A4A, 0xFF8C5A3C, 0xFF6C7884,
+    ).map { it.toInt() }
+
     /** A Shape Shifter preset: tones drawn as vector shapes on a grid. */
     private fun shapes(name: String, category: String, params: RenderSettings) =
         Preset(name, params.copy(renderMode = RenderMode.ShapeShifter), category)
@@ -1494,6 +1504,24 @@ object PresetLibrary {
                 effects = EffectStack(
                     paintStrokes = PaintStrokesParams(enabled = true, passes = 2, brushGrowth = 15),
                     stressRelief = StressReliefParams(enabled = true, edgeWear = 3),
+                ),
+            ),
+        ),
+        pixel(
+            "frutiger aero",
+            PresetStore.CATEGORY_COLOR,
+            // Glyphsmith's half of the look: saturated colour dithered into sky, water and grass,
+            // with a soft bloom on the lights. The bubbles and sun rays come from Flaresmith.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = AERO_BOX,
+                saturation = 135,
+                highlights = 60,
+                effects = EffectStack(
+                    glow = GlowParams(enabled = true, threshold = 70, radius = 50, intensity = 400),
                 ),
             ),
         ),

@@ -261,12 +261,14 @@ class PresetLibraryTest {
      * - **Orb Offset / Orb Direction** (2026-11-10): two new animation targets, so every preset
      *   carries two more *disabled* tracks. Checked in CI by stripping them again: the library then
      *   hashed to the previous digest exactly, and none of the new tracks is switched on.
+     * - "frutiger aero" joined the library. Checked locally: without it, the library hashed to
+     *   the previous digest exactly.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "bc1adffb02818a00b30c720fa7890a406b604c6acb94cdd78d788b226c0778b2"
+    private val digest = "51326fb11a66328aea343f3fde5411ba35636e57ce4c8c5647570fe6e79727b2"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -306,8 +308,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 114, presets.size)
-        assertEquals("curated presets", 108, curated.size)
+        assertEquals("built-in presets", 115, presets.size)
+        assertEquals("curated presets", 109, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 
