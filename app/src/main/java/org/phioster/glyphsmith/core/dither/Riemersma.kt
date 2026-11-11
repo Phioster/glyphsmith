@@ -70,14 +70,17 @@ object Riemersma {
             for (i in 0 until QUEUE) accumulated += queue[i] * weights[i]
 
             val cell = y * cols + x
-            val target = luma[cell] + jitter(x, y) + (accumulated / RATIO) * strength
-            val index = Dither.quantise(target, levels)
+            val wanted = luma[cell] + jitter(x, y)
+            val index = Dither.quantise(wanted + (accumulated / RATIO) * strength, levels)
             out[cell] = index
 
             val reproduced = index.toFloat() / (levels - 1)
             // Oldest drops off the front; the newest error goes in at the heaviest weight.
+            // The error is what the cell wanted against what it got, without the correction
+            // it was given: with a gain above one, feeding the correction back in compounds
+            // until a dark picture runs away to black.
             System.arraycopy(queue, 1, queue, 0, QUEUE - 1)
-            queue[QUEUE - 1] = target - reproduced
+            queue[QUEUE - 1] = wanted - reproduced
         }
         return out
     }

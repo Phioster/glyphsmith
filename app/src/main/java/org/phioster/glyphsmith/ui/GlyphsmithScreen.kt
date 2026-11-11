@@ -365,7 +365,7 @@ private fun Header(
     // the user did not know.
     Row(
         Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TerminalButton(label = "img", onClick = onLoad, modifier = Modifier.weight(1f))
@@ -375,7 +375,8 @@ private fun Header(
             label = if (live) "live ■" else "live",
             accent = if (live) Term.Amber else Term.Ink,
             onClick = onLive,
-            modifier = Modifier.weight(1f),
+            // One letter more than its neighbours, and a mark on top while it runs.
+            modifier = Modifier.weight(LIVE_WEIGHT),
         )
         TerminalButton(label = "↶", onClick = onUndo, enabled = canUndo)
         TerminalButton(label = "↷", onClick = onRedo, enabled = canRedo)
@@ -489,6 +490,7 @@ private fun CompactPreview(state: UiState, onFullView: () -> Unit, onGrow: () ->
     }
 }
 
+private const val LIVE_WEIGHT = 1.25f
 private const val COMPACT_WIDTH = 150
 private const val COMPACT_HEIGHT = 125
 

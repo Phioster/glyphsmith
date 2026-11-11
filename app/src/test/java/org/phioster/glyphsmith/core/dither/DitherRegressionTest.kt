@@ -78,7 +78,10 @@ class DitherRegressionTest {
         DitherMode.FALSE_FLOYD to "13b654c11e4f92ce",
         DitherMode.STEVENSON_ARCE to "4ace42ef54ec98e5",
         DitherMode.SMOOTH_DIFFUSE to "a6cde635fd282236",
-        DitherMode.RIEMERSMA to "830cfe236c125f63",
+        // Moved on 2026-11-11: the queue used to store the corrected target's error, which
+        // compounds at a gain above one and ran dark pictures to black. It now stores the
+        // cell's own error, as the published method does.
+        DitherMode.RIEMERSMA to "ad2f0a0cdacaf7f2",
         DitherMode.DIFFUSE_Y to "baf58defd3138b0c",
         DitherMode.DIFFUSE_X to "78633c120ccf4b94",
         DitherMode.BAYER_2 to "ba54a9e642b71b4a",
