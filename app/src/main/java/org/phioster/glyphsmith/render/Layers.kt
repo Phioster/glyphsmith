@@ -14,7 +14,7 @@ enum class LayerBlend(val label: String) {
 }
 
 /**
- * A second rendering of the same picture, stacked on the first.
+ * A second rendering stacked on the first: of the same picture, or of one the layer brings.
  *
  * The reference app's layer stack is how one image ends up carrying two treatments at
  * once — a coarse ramp underneath, a fine one on top, offset and screened together. This is
@@ -45,6 +45,12 @@ data class Layer(
     val rotation: Int = 0,
     val flipHorizontal: Boolean = false,
     val flipVertical: Boolean = false,
+    /**
+     * The id of a picture of the layer's own, or empty for the picture underneath. A layer
+     * with its own picture is fitted inside the frame at 100 % scale and keeps the picture's
+     * transparency.
+     */
+    val image: String = "",
 ) {
     companion object {
         val OPACITY_RANGE = 0..100

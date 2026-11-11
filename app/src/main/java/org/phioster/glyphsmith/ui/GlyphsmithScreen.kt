@@ -131,11 +131,13 @@ fun GlyphsmithScreen(
     onToggleFavouritePalette: (String) -> Unit,
     onToggleFavouriteStyle: (String) -> Unit,
     onLoopedChange: (Boolean) -> Unit,
+    onAddLayerPicture: (android.net.Uri) -> Unit,
     onCompactPreviewChange: (Boolean) -> Unit,
     onScrubbing: (Boolean) -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.ASCII) }
     var fullView by remember { mutableStateOf(false) }
+    var editLayer by remember { mutableStateOf(-1) }
     val compact = state.compactPreview
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(onPickImage)
@@ -258,6 +260,26 @@ fun GlyphsmithScreen(
 
         if (fullView) FullView(state) { fullView = false }
 
+        // Which settings the panels show and change: the picture underneath, or one layer's.
+        val layers = state.params.layers
+        val editing = if (editLayer in layers.indices) editLayer else -1
+        val shown = if (editing >= 0) layers[editing].params else state.params
+        val changeShown: (RenderSettings) -> Unit = { changed ->
+            if (editing >= 0) {
+                onParamsChange(
+                    state.params.copy(
+                        layers = layers.mapIndexed { i, layer ->
+                            // A layer never carries a stack of its own.
+                            if (i == editing) layer.copy(params = changed.copy(layers = emptyList())) else layer
+                        },
+                    ),
+                )
+            } else {
+                onParamsChange(changed)
+            }
+        }
+        if (layers.isNotEmpty()) EditTargetRow(layers.map { it.name }, editing) { editLayer = it }
+
         TabRow(tab) { tab = it }
 
         Column(
@@ -268,8 +290,8 @@ fun GlyphsmithScreen(
         ) {
             when (tab) {
                 Tab.ASCII -> RenderPanel(
-                    params = state.params,
-                    onChange = onParamsChange,
+                    params = shown,
+                    onChange = changeShown,
                     fontLabel = state.fontLabel,
                     missingGlyphs = state.missingGlyphs,
                     rampCoverage = state.rampCoverage,
@@ -278,15 +300,15 @@ fun GlyphsmithScreen(
                     onImportShapeSet = onImportShapeSet,
                 )
                 Tab.MAPPING -> MappingPanel(
-                    params = state.params,
-                    onChange = onParamsChange,
+                    params = shown,
+                    onChange = changeShown,
                     favourites = state.favouriteStyles,
                     onToggleFavourite = onToggleFavouriteStyle,
                     onImportScreen = onImportScreen,
                 )
                 Tab.COLOR -> ColorPanel(
-                    params = state.params,
-                    onChange = onParamsChange,
+                    params = shown,
+                    onChange = changeShown,
                     onExtractPalette = onExtractPalette,
                     onExportPalette = onExportPalette,
                     onImportPalette = onImportPalette,
@@ -296,8 +318,8 @@ fun GlyphsmithScreen(
                     favourites = state.favouritePalettes,
                     onToggleFavourite = onToggleFavouritePalette,
                 )
-                Tab.EFFECTS -> EffectsPanel(state.params, onParamsChange)
-                Tab.LAYERS -> LayerPanel(state.params, onParamsChange)
+                Tab.EFFECTS -> EffectsPanel(shown, changeShown)
+                Tab.LAYERS -> LayerPanel(state.params, onParamsChange, onAddLayerPicture)
                 Tab.ANIM -> AnimPanel(
                     state = state,
                     onChange = onParamsChange,
@@ -326,7 +348,8 @@ fun GlyphsmithScreen(
 
                 Tab.PRESETS -> PresetPanel(
                     presets = state.presets,
-                    onApply = onApplyPreset,
+                    // On a layer, a preset dresses that layer and leaves the rest alone.
+                    onApply = { preset -> if (editing >= 0) changeShown(preset.params) else onApplyPreset(preset) },
                     onSave = onSavePreset,
                     onDelete = onDeletePreset,
                     onExport = onExportPresets,
@@ -554,6 +577,25 @@ private fun FullView(state: UiState, onClose: () -> Unit) {
                     .clickable(onClick = onClose)
                     .padding(horizontal = 14.dp, vertical = 10.dp),
             )
+        }
+    }
+}
+
+/** Chooses what the panels edit: the picture underneath or one of the layers on it. */
+@Composable
+private fun EditTargetRow(names: List<String>, editing: Int, onSelect: (Int) -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("edit", color = Term.InkDim, style = MaterialTheme.typography.bodySmall)
+        TerminalChip(label = "base", selected = editing < 0, onClick = { onSelect(-1) })
+        names.forEachIndexed { index, name ->
+            TerminalChip(label = name, selected = index == editing, onClick = { onSelect(index) })
         }
     }
 }

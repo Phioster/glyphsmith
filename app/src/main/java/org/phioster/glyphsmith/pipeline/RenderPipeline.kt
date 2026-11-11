@@ -3,6 +3,7 @@ package org.phioster.glyphsmith.pipeline
 import android.graphics.Bitmap
 import org.phioster.glyphsmith.core.pipeline.RenderContext
 import org.phioster.glyphsmith.effects.EffectPipeline
+import org.phioster.glyphsmith.render.Layer
 import org.phioster.glyphsmith.render.RenderModuleOutput
 import org.phioster.glyphsmith.render.RenderModuleSet
 import org.phioster.glyphsmith.render.RenderSettings
@@ -52,6 +53,20 @@ object RenderPipeline {
         pixels, sourceWidth, sourceHeight, params.copy(layers = emptyList()), maxSide, modules,
     ).bitmap
 
+    /** A layer's own picture through the layer's settings, cut back to its silhouette. */
+    private fun renderPicture(layer: Layer, frameWidth: Int, frameHeight: Int, modules: RenderModuleSet): Bitmap? {
+        val picture = LayerImages[layer.image] ?: return null
+        val side = LayerImages.sideInside(picture.width, picture.height, frameWidth, frameHeight)
+        val rendered = renderFlat(picture.pixels, picture.width, picture.height, layer.params, side, modules)
+        val width = rendered.width
+        val height = rendered.height
+        val pixels = IntArray(width * height)
+        rendered.getPixels(pixels, 0, width, 0, 0, width, height)
+        rendered.recycle()
+        LayerImages.cutOut(pixels, width, height, picture)
+        return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+    }
+
     @Suppress("LongParameterList")
     fun run(
         pixels: IntArray,
@@ -87,9 +102,16 @@ object RenderPipeline {
         // blended over it. Its own layer list is ignored — one level deep is the rule.
         if (params.layers.none { it.enabled && it.opacity > 0 }) return base
 
+        // Read now: the compositor recycles the base as it goes.
+        val frameWidth = base.bitmap.width
+        val frameHeight = base.bitmap.height
         val composited = LayerCompositor.composite(base.bitmap, params.layers) { layer ->
             runCatching {
-                renderFlat(pixels, sourceWidth, sourceHeight, layer.params, maxSide, modules)
+                if (layer.image.isEmpty()) {
+                    renderFlat(pixels, sourceWidth, sourceHeight, layer.params, maxSide, modules)
+                } else {
+                    renderPicture(layer, frameWidth, frameHeight, modules)
+                }
             }.getOrNull()
         }
         return Result(
