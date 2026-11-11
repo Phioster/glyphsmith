@@ -1,6 +1,7 @@
 package org.phioster.glyphsmith.ui.panels
 
 import androidx.compose.runtime.Composable
+import org.phioster.glyphsmith.effects.PaintFlatten
 import org.phioster.glyphsmith.effects.PaintStrokesParams
 import org.phioster.glyphsmith.ui.TerminalSlider
 
@@ -44,5 +45,13 @@ internal fun PaintStrokesSection(params: PaintStrokesParams, move: MoveHandler, 
             { onChange(params.copy(edgeSensitivity = it.toInt())) },
             valueText = "${params.edgeSensitivity}/100",
         )
+        TerminalSlider(
+            "brush growth", params.brushGrowth.toFloat(), 0f..100f,
+            { onChange(params.copy(brushGrowth = it.toInt())) },
+            valueText = "${params.brushGrowth}/100",
+        )
+        ChoiceRow("flatten by", PaintFlatten.entries, params.flattenBy, { it.label }) {
+            onChange(params.copy(flattenBy = it))
+        }
     }
 }

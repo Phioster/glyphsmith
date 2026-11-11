@@ -229,7 +229,7 @@ private fun BandEditor(
 }
 
 @Composable
-private fun <T> ChoiceRow(label: String, items: List<T>, selected: T, name: (T) -> String, onSelect: (T) -> Unit) {
+internal fun <T> ChoiceRow(label: String, items: List<T>, selected: T, name: (T) -> String, onSelect: (T) -> Unit) {
     Text(
         label.uppercase(),
         color = Term.InkDim,
