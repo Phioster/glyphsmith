@@ -1,0 +1,27 @@
+name: Probe
+
+# A compile-and-test check that never fails the run. The Compose and Android code cannot be
+# built on the maintainer's device, so this is where a first draft is tried: push a branch,
+# dispatch this on it, read the log. A green tick here means only that it ran.
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    name: Try to build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - name: Build
+        run: gradle testDebugUnitTest assembleDebug assembleDebugAndroidTest --no-daemon 2>&1 | tee build.log; test ${PIPESTATUS[0]} -eq 0 && echo "PROBE-OK" || echo "PROBE-FAILED"
