@@ -288,9 +288,12 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             Palettes.fromColors(ColorQuantizer.extract(pixels, count, method).toList())
         }
         if (colors.isEmpty()) return@runExport "no colours found"
+        val now = edited()
+        // Source mode on the pixel path dithers into this palette, so extracting must not leave it.
+        val keepSource = now.colorMode == ColorMode.SOURCE && !now.renderMode.isGlyph
         updateEdited(
-            edited().copy(
-                colorMode = ColorMode.PALETTE,
+            now.copy(
+                colorMode = if (keepSource) ColorMode.SOURCE else ColorMode.PALETTE,
                 paletteOverride = colors,
                 paletteLocks = List(colors.size) { false },
             ),
