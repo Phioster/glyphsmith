@@ -97,33 +97,49 @@ fun PresetPanel(
             )
         }
 
-        SectionHeader("save current")
-
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-        ) {
-            BasicTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Term.Ink),
-                cursorBrush = SolidColor(Term.Ink),
-                modifier = Modifier
-                    .weight(1f)
-                    .border(1.dp, Term.InkDim, RectangleShape)
-                    .background(Term.SurfaceHigh)
-                    .padding(horizontal = 8.dp, vertical = 9.dp),
-            )
-            TerminalButton(
-                label = "save",
-                enabled = name.isNotBlank(),
-                onClick = {
-                    onSave(name)
-                    name = ""
-                },
-            )
+        // Folded away until asked for. Open, its name field sat right above the search field
+        // and looked just like it, and a search was forever being typed into the wrong one.
+        var saving by remember { mutableStateOf(false) }
+        TerminalButton(
+            label = if (saving) "save current look ▾" else "save current look ▸",
+            onClick = { saving = !saving },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 6.dp),
+        )
+        if (saving) {
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .border(1.dp, Term.Amber, RectangleShape)
+                        .background(Term.SurfaceHigh)
+                        .padding(horizontal = 8.dp, vertical = 9.dp),
+                ) {
+                    if (name.isEmpty()) {
+                        Text("name of the new preset", color = Term.InkFaint, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    BasicTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium.copy(color = Term.Ink),
+                        cursorBrush = SolidColor(Term.Ink),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                TerminalButton(
+                    label = "save",
+                    enabled = name.isNotBlank(),
+                    onClick = {
+                        onSave(name)
+                        name = ""
+                        saving = false
+                    },
+                )
+            }
         }
 
         // The row is derived from the library on every draw, so a shelf appears when it holds

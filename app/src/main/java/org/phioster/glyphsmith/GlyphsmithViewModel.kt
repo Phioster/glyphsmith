@@ -1153,7 +1153,10 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun applyPreset(preset: Preset) {
-        updateParams(preset.params)
+        // A picture laid over the base — light handed in from Flaresmith, say — is part of this
+        // picture, not of the look, and a look chosen afterwards must not throw it away.
+        val pictures = _state.value.params.layers.filter { it.image.isNotEmpty() }
+        updateParams(preset.params.copy(layers = preset.params.layers + pictures))
         _state.value = _state.value.copy(status = "preset ${preset.name}")
     }
 

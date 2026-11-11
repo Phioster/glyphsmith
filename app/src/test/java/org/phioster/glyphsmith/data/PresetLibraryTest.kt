@@ -277,12 +277,15 @@ class PresetLibraryTest {
      *   the three flow presets and the block, the library still hashed to the digest before them.
      * - `terminal hologram`, `y2k chrome` and `vhs night` joined the library. Checked locally:
      *   without the three, the library hashed to the previous digest exactly.
+     * - `terminal hologram` and `y2k chrome` were calmed after a look on the device (less glow, no
+     *   tearing, dark areas left empty). Checked locally: without them and `vhs night`, the
+     *   library still hashed to the digest before the three.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "81b422220f07fca2e83db5d189e6c9e28301bb5b8ddedfe60344bbbb4a2f1395"
+    private val digest = "eaad5d956306214db36c3fe0d56fd01d5b859b521de6630d124d448d2b296ddb"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
