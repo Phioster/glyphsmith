@@ -270,12 +270,14 @@ class PresetLibraryTest {
      * - **Flow ASCII** (2026-11-11): the mode, its `"flowAscii"` block in every preset, and the
      *   presets `flow ascii`, `ascii fur` and `moonlit ascii`. Checked locally: without the three
      *   and the block, the library hashed to the previous digest exactly.
+     * - Flow ASCII gained `"liftDarks"`, and `ascii fur` sets it to 40. Checked locally: without
+     *   the three flow presets and the block, the library still hashed to the digest before them.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "720a48be0c517c55f286cc7dc330179cf2d80dc4070fb490e093cac66db25c57"
+    private val digest = "95c66507ebc862038c65b48821a628c2542bdbd697af63843067a07a9c0f414b"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {

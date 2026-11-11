@@ -124,4 +124,25 @@ class FlowAsciiTest {
         assertEquals(2, FlowAscii.cellFor(2048, 2048))
         assertEquals(4, FlowAscii.cellFor(4000, 3000))
     }
+
+    @Test
+    fun `inside a plain form the rows bend with its outline instead of lying flat`() {
+        // Deep inside the disc there is nothing to see; only the wide look knows of the rim.
+        val field = FlowField.of(disc.luma, side, side)
+        // Left of the centre the rim runs up and down, so the flow should too — not flat.
+        val inside = field.angle[80 * side + 55]
+        assertTrue("angle $inside", abs(sin(inside)) > 0.7f)
+    }
+
+    @Test
+    fun `lifting the darks draws what was too dark and barely touches what was bright`() {
+        val dim = grid { x, _ -> if (x < 80) 0.08f else 0.9f }
+        val plain = FlowAscii.marks(dim, settings(FlowAsciiParams(style = FlowStyle.FUR)))
+        val raised = FlowAscii.marks(dim, settings(FlowAsciiParams(style = FlowStyle.FUR, liftDarks = 80)))
+        fun mean(marks: FlowMarks, dark: Boolean) = (0 until marks.count)
+            .filter { (marks.x[it] < 70f) == dark && (marks.x[it] < 70f || marks.x[it] > 90f) }
+            .map { marks.half[it] }.average()
+        assertTrue(mean(raised, dark = true) > mean(plain, dark = true) * 1.4)
+        assertEquals(mean(plain, dark = false), mean(raised, dark = false), 0.2)
+    }
 }

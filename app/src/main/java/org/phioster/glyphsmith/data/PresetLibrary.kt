@@ -2055,7 +2055,8 @@ object PresetLibrary {
             RenderSettings(
                 colorMode = ColorMode.SOURCE,
                 contrast = 1.15f,
-                flowAscii = FlowAsciiParams(style = FlowStyle.FUR),
+                // Lifted, so the coat of a dark animal is drawn rather than left a black shape.
+                flowAscii = FlowAsciiParams(style = FlowStyle.FUR, liftDarks = 40),
             ),
         ),
         flow(
