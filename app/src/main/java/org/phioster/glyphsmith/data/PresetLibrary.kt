@@ -1532,10 +1532,12 @@ object PresetLibrary {
                 colorMode = ColorMode.PALETTE,
                 paletteId = "palette.oxide",
                 paletteOverride = CHROME,
-                contrast = 1.3f,
+                contrast = 1.15f,
                 effects = EffectStack(
-                    stars = DiffractionStarsParams(enabled = true, threshold = 82, rays = 4, length = 50, intensity = 600),
-                    glow = GlowParams(enabled = true, threshold = 75, radius = 30, intensity = 350),
+                    stars = DiffractionStarsParams(enabled = true, threshold = 86, rays = 4, length = 45, intensity = 450),
+                    // Kept low: the palette already ends in white, and more glow than this washes
+                    // hands and faces out to a single blank.
+                    glow = GlowParams(enabled = true, threshold = 88, radius = 18, intensity = 180),
                 ),
             ),
         ),
@@ -2124,19 +2126,18 @@ object PresetLibrary {
         ),
         flow(
             "terminal hologram",
-            // A projection rather than a print: cyan characters that glow, on scan lines, with
-            // the colour fringing and the odd torn line of a signal that is not quite locked.
+            // A projection rather than a print: cyan characters that glow, on faint scan lines.
             RenderSettings(
                 colorMode = ColorMode.SINGLE,
                 inkColor = 0xFF5CF4FF.toInt(),
                 backgroundColor = 0xFF020B10.toInt(),
                 contrast = 1.2f,
-                flowAscii = FlowAsciiParams(liftDarks = 25, blackBelow = 6),
+                // Dark areas stay empty: lifted, they filled with rows of noise that made the
+                // whole projection restless.
+                flowAscii = FlowAsciiParams(blackBelow = 10),
                 effects = EffectStack(
-                    postProcessing = PostProcessingParams(enabled = true, scanlines = 45, scanlineSpacing = 3),
-                    chromatic = ChromaticParams(enabled = true, maxDisplace = 2),
-                    glow = GlowParams(enabled = true, threshold = 35, radius = 60, intensity = 520),
-                    interlace = InterlaceParams(enabled = true, shift = 1, density = 12, tearColor = 20),
+                    postProcessing = PostProcessingParams(enabled = true, scanlines = 28, scanlineSpacing = 3),
+                    glow = GlowParams(enabled = true, threshold = 45, radius = 50, intensity = 400),
                 ),
             ),
         ),
