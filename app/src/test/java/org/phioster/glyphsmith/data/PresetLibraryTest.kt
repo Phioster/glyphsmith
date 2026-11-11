@@ -127,6 +127,9 @@ class PresetLibraryTest {
         oil study|CLASSIC|PurePixel|FLOYD_STEINBERG
         flaking fresco|CLASSIC|PurePixel|FLOYD_STEINBERG
         y2k chrome|COLOR|PurePixel|FLOYD_STEINBERG
+        mcbling|COLOR|PurePixel|FLOYD_STEINBERG
+        vaporwave|COLOR|PurePixel|BAYER_4
+        synthwave|COLOR|PurePixel|FLOYD_STEINBERG
         vhs night|GLITCH|PurePixel|FLOYD_STEINBERG
         frutiger aero|COLOR|PurePixel|FLOYD_STEINBERG
         modulation lines|MOTION|PurePixel|MOD_LINES
@@ -280,12 +283,15 @@ class PresetLibraryTest {
      * - `terminal hologram` and `y2k chrome` were calmed after a look on the device (less glow, no
      *   tearing, dark areas left empty). Checked locally: without them and `vhs night`, the
      *   library still hashed to the digest before the three.
+     * - `mcbling`, `vaporwave` and `synthwave` joined, and `y2k chrome` lost its glow and the white
+     *   band in the middle of its palette. Checked locally: without the six style presets since
+     *   flow ASCII, the library still hashed to the digest before them.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "eaad5d956306214db36c3fe0d56fd01d5b859b521de6630d124d448d2b296ddb"
+    private val digest = "4909fb49572fcb6fdcf96a7830dd86ab5d137f087bc3544965dec1fa5e7766d6"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -325,8 +331,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 121, presets.size)
-        assertEquals("curated presets", 115, curated.size)
+        assertEquals("built-in presets", 124, presets.size)
+        assertEquals("curated presets", 118, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 
