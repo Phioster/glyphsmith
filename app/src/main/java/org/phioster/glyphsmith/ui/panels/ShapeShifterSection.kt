@@ -1,5 +1,7 @@
 package org.phioster.glyphsmith.ui.panels
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -51,7 +53,12 @@ import org.phioster.glyphsmith.ui.theme.Term
  * The strip is the tonal range dark to bright; tap a band to edit its shape, size and width.
  */
 @Composable
-internal fun ShapeShifterSection(params: RenderSettings, onChange: (RenderSettings) -> Unit) {
+internal fun ShapeShifterSection(
+    params: RenderSettings,
+    onChange: (RenderSettings) -> Unit,
+    onExport: () -> Unit,
+    onImport: (android.net.Uri) -> Unit,
+) {
     val shifter = params.shapeShifter
     val bands = shifter.bands.ifEmpty { ShapeSets.default.bands }
     val update: (ShapeShifterParams) -> Unit = { onChange(params.copy(shapeShifter = it)) }
@@ -71,6 +78,19 @@ internal fun ShapeShifterSection(params: RenderSettings, onChange: (RenderSettin
         onSelect = { update(shifter.copy(bands = sets[it].bands)) },
         itemLabel = { it.name },
     )
+
+    val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(onImport)
+    }
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        TerminalButton("save set", onExport, Modifier.weight(1f))
+        TerminalButton(
+            "load set", { importer.launch(arrayOf("application/json", "text/plain", "*/*")) }, Modifier.weight(1f),
+        )
+    }
 
     BandStrip(bands, selected) { open = it }
     BandEditor(bands, selected, shifter.perBandColor) { update(shifter.copy(bands = it)) }

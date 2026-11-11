@@ -119,6 +119,8 @@ fun GlyphsmithScreen(
     onResetPresets: () -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
+    onExportShapeSet: () -> Unit,
+    onImportShapeSet: (android.net.Uri) -> Unit,
     onApplyPalette: (org.phioster.glyphsmith.data.PaletteFile) -> Unit,
     onForgetPalette: (String) -> Unit,
     onImportScreen: (android.net.Uri, Int) -> Unit,
@@ -270,6 +272,8 @@ fun GlyphsmithScreen(
                     missingGlyphs = state.missingGlyphs,
                     rampCoverage = state.rampCoverage,
                     onAutoOrder = onAutoOrderRamp,
+                    onExportShapeSet = onExportShapeSet,
+                    onImportShapeSet = onImportShapeSet,
                 )
                 Tab.MAPPING -> MappingPanel(
                     params = state.params,

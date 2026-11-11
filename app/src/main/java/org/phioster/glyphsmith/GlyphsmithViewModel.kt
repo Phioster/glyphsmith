@@ -54,6 +54,8 @@ import org.phioster.glyphsmith.data.LiveCamera
 import org.phioster.glyphsmith.data.LiveFrame
 import org.phioster.glyphsmith.data.PaletteFile
 import org.phioster.glyphsmith.data.PaletteStore
+import org.phioster.glyphsmith.data.ShapeSetFile
+import org.phioster.glyphsmith.render.ShapeSets
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PlaybackQuality
 import org.phioster.glyphsmith.data.PreviewQuality
@@ -283,6 +285,28 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         // appended a second time by effectiveRamp().
         updateParams(params.copy(rampOverride = sorted, injection = ""))
         "ordered ${sorted.length} glyphs by coverage"
+    }
+
+    /** Writes the shape shifter's bands to their own file. */
+    fun exportShapeSet() = runExport("shape set") {
+        val shifter = _state.value.params.shapeShifter
+        val bands = shifter.bands.ifEmpty { ShapeSets.default.bands }
+        val name = ShapeSets.all.firstOrNull { it.bands == bands }?.name ?: "custom"
+        val text = ShapeSetFile.encode(name, bands)
+        withContext(Dispatchers.IO) { exports.shapeSet(text) }
+    }
+
+    /** Reads a shape set file and puts its bands in place of the current ones. */
+    fun importShapeSet(uri: Uri) = runExport("shape set") {
+        val text = withContext(Dispatchers.IO) {
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+            }.getOrNull()
+        } ?: return@runExport "could not read that file"
+        val bands = ShapeSetFile.decode(text) ?: return@runExport "that file isn't a shape set"
+        val params = _state.value.params
+        updateParams(params.copy(shapeShifter = params.shapeShifter.copy(bands = bands)))
+        "loaded ${bands.size} bands"
     }
 
     /** Writes the palette in use to its own file, so colours can be shared without a look. */

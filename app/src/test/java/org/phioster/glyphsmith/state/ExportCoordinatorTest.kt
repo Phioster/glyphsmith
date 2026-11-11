@@ -182,6 +182,17 @@ class ExportCoordinatorTest {
     }
 
     @Test
+    fun `a shape set goes out under a name that says it is one`() {
+        val (exports, fake) = coordinator()
+
+        assertEquals("shape set saved to Download/Glyphsmith", exports.shapeSet("{}"))
+
+        val name = fake.calls.single().removePrefix("saveJson:")
+        assertTrue(name, name.startsWith("glyphsmith-shapes-"))
+        assertTrue(name, name.endsWith(".json"))
+    }
+
+    @Test
     fun `an animation is written as its own format`() {
         val (gif, gifCalls) = coordinator()
         assertEquals("gif saved to Download/Glyphsmith", gif.animation(ByteArray(3), AnimationFormat.GIF))
