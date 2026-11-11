@@ -57,6 +57,21 @@ class PaintStrokesTest {
     }
 
     @Test
+    fun `growth and flatten-by are off by default and change the painting when set`() {
+        val plain = PaintStrokes.apply(noise(), on).data
+        assertEquals("growth", false, plain.contentEquals(PaintStrokes.apply(noise(), on.copy(brushGrowth = 60)).data))
+        // Red beside green at one brightness: colour keeps them apart, luminance lets strokes cross.
+        fun twoHues() = Pixels(IntArray(96 * 96) { if (it % 96 < 48) 0xFFB40000.toInt() else 0xFF003500.toInt() }, 96, 96)
+        fun crossed(by: PaintFlatten): Int {
+            val out = PaintStrokes.apply(twoHues(), on.copy(edgeSensitivity = 100, flattenBy = by, brushSize = 30))
+            return out.data.indices.count { i -> i % 96 < 48 && PixelOps.greenOf(out.data[i]) > PixelOps.redOf(out.data[i]) }
+        }
+        val byColour = crossed(PaintFlatten.COLOUR)
+        val byLuma = crossed(PaintFlatten.LUMINANCE)
+        assertTrue("$byLuma crossed by luminance, $byColour by colour", byLuma > byColour + 20)
+    }
+
+    @Test
     fun `mix at zero keeps the picture and alpha is never touched`() {
         val source = noise()
         val before = source.data.copyOf()

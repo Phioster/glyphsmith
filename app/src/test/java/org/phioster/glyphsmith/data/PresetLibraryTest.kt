@@ -125,6 +125,7 @@ class PresetLibraryTest {
         diagonal drift|MOTION|PurePixel|ATKINSON
         silver halide|CLASSIC|PurePixel|FLOYD_STEINBERG
         oil study|CLASSIC|PurePixel|FLOYD_STEINBERG
+        flaking fresco|CLASSIC|PurePixel|FLOYD_STEINBERG
         modulation lines|MOTION|PurePixel|MOD_LINES
         waveform glitch|MOTION|PurePixel|MOD_WAVE
         cyberpunk|MOTION|PurePixel|NONE
@@ -214,6 +215,9 @@ class PresetLibraryTest {
      *   exactly four `"name"` entries. Adding presets is the one change meant to move this.
      *
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
+     * - **Stress relief** (2026-11-11): the effect and its preset `flaking fresco`; paint strokes
+     *   gain brushGrowth and flattenBy. Checked locally: without the preset, the block, the two
+     *   keys and the slot, the library hashed to the previous digest exactly.
      * - **Oil study repainted** (2026-11-11): the paint box grows to 32 colours with pure tube
      *   colours (a bright red came out orange without them), brush 14 and two passes. Checked
      *   locally: the library without `oil study` hashes the same before and after.
@@ -260,7 +264,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "0d4ab4c4458c6d48afa25fb008abbeb8fd4bfc996731fc3de49c55736e854ae8"
+    private val digest = "e1cc60eb9da665015a323bb399c2444424c36ab37a9ef850b21f489405a640e8"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -300,8 +304,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 113, presets.size)
-        assertEquals("curated presets", 107, curated.size)
+        assertEquals("built-in presets", 114, presets.size)
+        assertEquals("curated presets", 108, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 

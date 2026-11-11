@@ -89,5 +89,8 @@ internal fun EffectControls(
 
         EffectId.PAINT ->
             PaintStrokesSection(fx.paintStrokes, move) { p -> update { copy(paintStrokes = p) } }
+
+        EffectId.STRESS ->
+            StressReliefSection(fx.stressRelief, move) { p -> update { copy(stressRelief = p) } }
     }
 }

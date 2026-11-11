@@ -54,5 +54,6 @@ internal object EffectPasses {
         EffectId.WARP -> CrtWarp.pass
         EffectId.NEO_GLOW -> NeoGlow.pass
         EffectId.PAINT -> PaintStrokes.pass
+        EffectId.STRESS -> StressRelief.pass
     }
 }

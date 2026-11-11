@@ -30,13 +30,13 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
   algorithm. It is *no dithering at all*, sits alone in `DitherCategory.BASIC`, and is
   registered like the rest so that a picker and a preset can name it. Quoting 80 as an
   algorithm count overstates the app by one.
-- **Effects: 19** passes, in the chain's default order.
+- **Effects: 20** passes, in the chain's default order.
 - **Palettes: 44** built-in, across 11 categories. Imported palettes are not registered; they
   live in a file.
 - **Character sets: 48** across 11 categories (Glyph Art only).
 - **Themes: 7** — Matrix, Amber CRT, Ice, Handheld and Rose are dark; Parchment and Medieval
   are light.
-- **Built-in presets: 113** — 107 curated (89 Pixel Dither, 11 Glyph Art, 7 Shape Shifter) plus 6 Algorithm Lab
+- **Built-in presets: 114** — 108 curated (90 Pixel Dither, 11 Glyph Art, 7 Shape Shifter) plus 6 Algorithm Lab
   presets, which are counted separately.
 - **Tests: 684 test methods across 69 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and

@@ -32,7 +32,19 @@ data class PaintStrokesParams(
     /** 0..100 — how readily strokes turn along an edge and refuse to cross it. */
     val edgeSensitivity: Int = 59,
     val seed: Int = 1,
+    /** 0..100 — how much larger a stroke gets where the picture is calm. */
+    val brushGrowth: Int = 0,
+    /** What a stroke compares to decide it has left its area. */
+    val flattenBy: PaintFlatten = PaintFlatten.COLOUR,
 )
+
+enum class PaintFlatten(val label: String) {
+    /** Any channel: a red and a green of one brightness stay apart. */
+    COLOUR("colour"),
+
+    /** Brightness only: colours of one brightness run into each other. */
+    LUMINANCE("luminance"),
+}
 
 object PaintStrokes {
 
@@ -48,6 +60,7 @@ object PaintStrokes {
     private const val BRISTLE = 0.1f
     private const val BRISTLES = 5f
     private const val PURITY = 128
+    private const val GROWTH = 2f
 
     val pass = EffectPass(
         EffectStack::paintStrokes,
@@ -106,6 +119,7 @@ object PaintStrokes {
         val tolerance = 30 + (100 - sensitivity) * 22 / 10
         val softBand = 0.04f + (100 - p.sharpness.coerceIn(0, 100)) / 100f * 0.6f
         val reach = (max(1f, size / 2f)).toInt()
+        val growth = p.brushGrowth.coerceIn(0, 100) / 100f * GROWTH
 
         for (entry in order) {
             val index = (entry and 0xFFFFFFFFL).toInt()
@@ -129,13 +143,15 @@ object PaintStrokes {
                 ux = cos(lean)
                 uy = -sin(lean)
             }
+            val grown = 1f + growth * (1f - min(1f, strength / turnAt))
             val shade = 1f + (unitHash(index, salt + 53) - 0.5f) * SHADE
             val colour = shaded(blend(l.smooth[cy * w + cx], l.src[cy * w + cx], PURITY), shade)
-            stroke(l, Dab(cx, cy, ux, uy, bw / 2f, bh / 2f, colour, index + salt), softBand, tolerance)
+            val dab = Dab(cx, cy, ux, uy, bw / 2f * grown, bh / 2f * grown, colour, index + salt)
+            stroke(l, dab, softBand, tolerance, p.flattenBy == PaintFlatten.LUMINANCE)
         }
     }
 
-    private fun stroke(l: Layers, d: Dab, softBand: Float, tolerance: Int) {
+    private fun stroke(l: Layers, d: Dab, softBand: Float, tolerance: Int, byLuma: Boolean) {
         val w = l.w
         val radius = hypot(d.halfW, d.halfH).toInt() + 1
         val here = l.smooth[d.cy * w + d.cx]
@@ -150,7 +166,8 @@ object PaintStrokes {
                 if (edge >= 1f) continue
                 val i = y * w + x
                 // The stroke ends where the picture stops looking like the place it started.
-                if (distance(l.smooth[i], here) > tolerance) continue
+                val apart = if (byLuma) abs(lumaOf(l.smooth[i]) - lumaOf(here)).toInt() else distance(l.smooth[i], here)
+                if (apart > tolerance) continue
                 // Each bristle leaves its own streak down the length of the stroke.
                 val streak = 1f + (unitHash(((u + d.halfW) / bristle).toInt(), d.key) - 0.5f) * BRISTLE
                 val cover = min(1f, (1f - edge) / softBand)
@@ -160,9 +177,11 @@ object PaintStrokes {
     }
 
     private fun luma(src: IntArray, w: Int, h: Int, x: Int, y: Int): Float {
-        val p = src[y.coerceIn(0, h - 1) * w + x.coerceIn(0, w - 1)]
-        return 0.2126f * PixelOps.redOf(p) + 0.7152f * PixelOps.greenOf(p) + 0.0722f * PixelOps.blueOf(p)
+        return lumaOf(src[y.coerceIn(0, h - 1) * w + x.coerceIn(0, w - 1)])
     }
+
+    private fun lumaOf(p: Int): Float =
+        0.2126f * PixelOps.redOf(p) + 0.7152f * PixelOps.greenOf(p) + 0.0722f * PixelOps.blueOf(p)
 
     /** The largest difference in any one channel, 0..255. */
     private fun distance(a: Int, b: Int): Int = max(

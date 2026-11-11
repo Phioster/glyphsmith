@@ -29,6 +29,7 @@ import org.phioster.glyphsmith.effects.PostProcessingParams
 import org.phioster.glyphsmith.effects.GrainKind
 import org.phioster.glyphsmith.effects.NeoGlowParams
 import org.phioster.glyphsmith.effects.PaintStrokesParams
+import org.phioster.glyphsmith.effects.StressReliefParams
 import org.phioster.glyphsmith.render.LightOrbsParams
 import org.phioster.glyphsmith.render.FeatherPattern
 import org.phioster.glyphsmith.render.ShapeLayout
@@ -1476,6 +1477,23 @@ object PresetLibrary {
                 paletteOverride = PAINT_BOX,
                 effects = EffectStack(
                     paintStrokes = PaintStrokesParams(enabled = true, passes = 2),
+                ),
+            ),
+        ),
+        pixel(
+            "flaking fresco",
+            PresetStore.CATEGORY_CLASSIC,
+            // The oil study left to age: after the brush, the borders between its colours fray
+            // and chip, and flecks of the colour next door land where the paint has come off.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = PAINT_BOX,
+                effects = EffectStack(
+                    paintStrokes = PaintStrokesParams(enabled = true, passes = 2, brushGrowth = 15),
+                    stressRelief = StressReliefParams(enabled = true, edgeWear = 3),
                 ),
             ),
         ),

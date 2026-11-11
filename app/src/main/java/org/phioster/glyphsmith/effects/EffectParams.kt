@@ -197,6 +197,7 @@ enum class EffectId(val wireId: String, val label: String) {
     WARP("effect.crt-warp", "crt warp"),
     NEO_GLOW("effect.neo-glow", "neo glow"),
     PAINT("effect.paint-strokes", "paint strokes"),
+    STRESS("effect.stress-relief", "stress relief"),
 }
 
 /**
@@ -232,6 +233,7 @@ data class EffectStack(
     val crtWarp: CrtWarpParams = CrtWarpParams(),
     val neoGlow: NeoGlowParams = NeoGlowParams(),
     val paintStrokes: PaintStrokesParams = PaintStrokesParams(),
+    val stressRelief: StressReliefParams = StressReliefParams(),
     val order: List<EffectId> = EffectId.entries.toList(),
 ) {
     /**
