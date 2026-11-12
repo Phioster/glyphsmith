@@ -172,6 +172,11 @@ object PresetLibrary {
         0xFFD8363C, 0xFFE8504A, 0xFF3D3424, 0xFF5A4A30, 0xFF7C6844, 0xFF9C875B, 0xFFF0A050, 0xFFFFD8A0,
     ).map { it.toInt() }
 
+    /** Black into blood red, with only the very brightest left pale: a ramp, mapped by brightness. */
+    private val BLOOD = listOf(
+        0xFF000000, 0xFF120003, 0xFF3A0508, 0xFF7A0A10, 0xFFC8181C, 0xFFFF6A50, 0xFFFFE8D8,
+    ).map { it.toInt() }
+
     /** What a 1998 console had for a foggy town: grey-greens, browns, rust, and nothing bright. */
     private val MURK = listOf(
         0xFF050605, 0xFF12140F, 0xFF1E221C, 0xFF2C302A, 0xFF3C423C, 0xFF50564E, 0xFF686E64, 0xFF848A7E,
@@ -1821,6 +1826,52 @@ object PresetLibrary {
                 effects = EffectStack(
                     tint = TintParams(enabled = true, color = 0xFFFF9E4D.toInt(), amount = 8),
                     glow = GlowParams(enabled = true, threshold = 70, radius = 80, intensity = 220),
+                ),
+            ),
+        ),
+        pixel(
+            "analog horror",
+            PresetStore.CATEGORY_GLITCH,
+            // A recording nobody admits to having made: crushed to black and blood red, coarse,
+            // on heavy scan lines, with the picture slipping sideways where the tape is worn.
+            RenderSettings(
+                cellSize = 3,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.oxide",
+                paletteOverride = BLOOD,
+                contrast = 1.45f,
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(
+                        enabled = true, grain = 28, grainKind = GrainKind.FILM, vignette = 50,
+                        scanlines = 32, scanlineSpacing = 3,
+                    ),
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = 3),
+                    blurSharpen = BlurSharpenParams(enabled = true, amount = 22, radius = 2),
+                    sliceShift = SliceShiftParams(enabled = true, slices = 22, maxOffset = 7, density = 18),
+                    interlace = InterlaceParams(enabled = true, shift = 2, density = 20, tearColor = 30),
+                ),
+            ),
+        ),
+        pixel(
+            "giallo",
+            PresetStore.CATEGORY_COLOR,
+            // A 1970s Italian thriller, lit through gels: the shadows go deep blue and the lights
+            // hard red, on grainy film, blooming.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = PAINT_BOX,
+                contrast = 1.25f,
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(enabled = true, grain = 20, grainKind = GrainKind.FILM, vignette = 32),
+                    tint = TintParams(
+                        enabled = true, mode = TintMode.DUOTONE,
+                        shadowColor = 0xFF06105A.toInt(), highlightColor = 0xFFFF3848.toInt(), amount = 72,
+                    ),
+                    glow = GlowParams(enabled = true, threshold = 65, radius = 70, intensity = 220),
                 ),
             ),
         ),
