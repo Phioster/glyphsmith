@@ -122,6 +122,7 @@ object PresetFilters {
                 p.renderMode == RenderMode.ShapeShifter ->
                     "shape shifter shapes vector " + p.shapeShifter.bands.joinToString(" ") { it.shape.label }
                 p.renderMode == RenderMode.FlowAscii -> "flow ascii glyph " + p.flowAscii.style.label
+                p.renderMode == RenderMode.Oscilloscope -> "oscilloscope scope traces lines " + p.oscilloscope.phosphor.label
                 else -> "pixel"
             },
         ).joinToString(" ").lowercase()

@@ -246,6 +246,9 @@ class PresetStore(context: Context) {
             // Rows of characters, even off the grid, are looked for beside the other characters.
             params.renderMode == RenderMode.FlowAscii -> CATEGORY_GLYPH
 
+            // Drawn lines rather than a dither: beside the shapes, the other render that is drawn.
+            params.renderMode == RenderMode.Oscilloscope -> CATEGORY_GEOMETRY
+
             // Shapes on a grid are geometry whatever else the preset does with them.
             params.renderMode == RenderMode.ShapeShifter -> CATEGORY_GEOMETRY
 

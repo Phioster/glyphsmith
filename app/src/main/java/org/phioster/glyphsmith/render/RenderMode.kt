@@ -49,6 +49,9 @@ enum class RenderMode {
 
     /** Characters or hairs set in rows that follow the forms of the picture — see [FlowAscii]. */
     FlowAscii,
+
+    /** The picture as glowing traces on a tube, rising where it is bright — see [Oscilloscope]. */
+    Oscilloscope,
     ;
 
     /**
@@ -65,7 +68,7 @@ enum class RenderMode {
         get() = when (this) {
             GlyphMatrix, PixelThenGlyph -> true
             // Characters, but not on a grid: there is no text to export, so it is not glyph art.
-            PurePixel, ShapeShifter, FlowAscii -> false
+            PurePixel, ShapeShifter, FlowAscii, Oscilloscope -> false
         }
 
     /**
@@ -76,14 +79,24 @@ enum class RenderMode {
     val onGrid: Boolean
         get() = when (this) {
             GlyphMatrix, PurePixel, PixelThenGlyph, ShapeShifter -> true
-            FlowAscii -> false
+            FlowAscii, Oscilloscope -> false
+        }
+
+    /**
+     * True when the render takes its colours from the COLOUR tab. The oscilloscope alone does
+     * not: a tube has one phosphor, and everything on it is that colour.
+     */
+    val takesColour: Boolean
+        get() = when (this) {
+            GlyphMatrix, PurePixel, PixelThenGlyph, ShapeShifter, FlowAscii -> true
+            Oscilloscope -> false
         }
 
     /** True when a palette dither runs before anything else looks at the image. */
     val ditherFirst: Boolean
         get() = when (this) {
             PurePixel, PixelThenGlyph -> true
-            GlyphMatrix, ShapeShifter, FlowAscii -> false
+            GlyphMatrix, ShapeShifter, FlowAscii, Oscilloscope -> false
         }
 
     companion object {

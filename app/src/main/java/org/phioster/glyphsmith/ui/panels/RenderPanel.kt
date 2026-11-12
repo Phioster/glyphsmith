@@ -100,6 +100,7 @@ fun RenderPanel(
                     RenderMode.PixelThenGlyph -> "dither to the palette first, then read glyphs off it"
                     RenderMode.ShapeShifter -> "tones become vector shapes on a grid"
                     RenderMode.FlowAscii -> "characters or hairs in rows that follow the forms"
+                    RenderMode.Oscilloscope -> "glowing traces that rise where the picture is bright"
                 }
             },
         )
@@ -124,6 +125,9 @@ fun RenderPanel(
         }
         if (params.renderMode == RenderMode.FlowAscii) {
             FlowAsciiSection(params, onChange)
+        }
+        if (params.renderMode == RenderMode.Oscilloscope) {
+            OscilloscopeSection(params, onChange)
         }
         if (!glyphMode) return@Column
 

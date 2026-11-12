@@ -198,6 +198,8 @@ data class RenderSettings(
     val shapeShifter: ShapeShifterParams = ShapeShifterParams(),
     /** Style, size and spacing of [RenderMode.FlowAscii]; ignored by the other modes. */
     val flowAscii: FlowAsciiParams = FlowAsciiParams(),
+    /** Traces, height and phosphor of [RenderMode.Oscilloscope]; ignored by the other modes. */
+    val oscilloscope: OscilloscopeParams = OscilloscopeParams(),
     /**
      * Extra renderings stacked over this one. Empty by default, so nothing changes for
      * anything that has never touched them.
