@@ -2,6 +2,7 @@ package org.phioster.glyphsmith.data
 
 import org.phioster.glyphsmith.render.RenderSettings
 import org.phioster.glyphsmith.anim.AnimCurve
+import org.phioster.glyphsmith.anim.AnimSegment
 import org.phioster.glyphsmith.anim.AnimTarget
 import org.phioster.glyphsmith.anim.AnimTrack
 import org.phioster.glyphsmith.anim.AnimationParams
@@ -1484,8 +1485,17 @@ object PresetLibrary {
                     glow = GlowParams(enabled = true, threshold = 72, radius = 70, intensity = 200),
                     interlace = InterlaceParams(enabled = true, shift = 1, density = 12, tearColor = 20),
                 ),
-                // A pulse is steady light with a short dip in it: a tube that is about to go.
-                animation = animation(sweep(AnimTarget.SOURCE_BRIGHTNESS, 0, -14, AnimCurve.PULSE, cycles = 2)),
+                // A tube that is about to go: steady, then a dip, at no rhythm. Four dips of
+                // different depth and length at uneven places in the loop; an even pulse flickered
+                // in time like a metronome.
+                animation = animation(frames = 36).copy(
+                    segments = listOf(
+                        AnimSegment(AnimTarget.SOURCE_BRIGHTNESS, from = -18, to = 0, start = 9, end = 16, curve = AnimCurve.EASE_OUT),
+                        AnimSegment(AnimTarget.SOURCE_BRIGHTNESS, from = -9, to = 0, start = 37, end = 41, curve = AnimCurve.EASE_OUT),
+                        AnimSegment(AnimTarget.SOURCE_BRIGHTNESS, from = -24, to = 0, start = 44, end = 55, curve = AnimCurve.EASE_OUT),
+                        AnimSegment(AnimTarget.SOURCE_BRIGHTNESS, from = -7, to = 0, start = 79, end = 83, curve = AnimCurve.EASE_OUT),
+                    ),
+                ),
             ),
         ),
         pixel(
