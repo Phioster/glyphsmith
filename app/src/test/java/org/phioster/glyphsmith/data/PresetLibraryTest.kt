@@ -705,9 +705,10 @@ class PresetLibraryTest {
         assertTrue("there are no motion presets", motion.isNotEmpty())
         motion.forEach { preset ->
             assertTrue("${preset.name} is not animated", preset.params.animation.enabled)
+            // A track or a segment: either is what the animator itself counts as moving.
             assertTrue(
-                "${preset.name} has no track aimed at anything",
-                preset.params.animation.tracks.any { it.enabled },
+                "${preset.name} has no track or segment aimed at anything",
+                preset.params.animation.tracks.any { it.enabled } || preset.params.animation.segments.isNotEmpty(),
             )
         }
     }
