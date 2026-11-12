@@ -152,6 +152,15 @@ object PresetLibrary {
         0xFF12A8D8, 0xFF4CE0FF, 0xFFE0218A, 0xFFFF6FC0, 0xFF7A3AD8, 0xFFFFD84A, 0xFFB8D8F0, 0xFFFFFFFF,
     ).map { it.toInt() }
 
+    /**
+     * Old wallpaper under strip lights, as a ramp from dark to light: damp brown through a green
+     * that is off into mustard and pale yellow. A ramp, not a box of colours to match: matched by
+     * colour, a red and a skin tone both landed on the same brown and the picture went flat.
+     */
+    private val STALE = listOf(
+        0xFF080702, 0xFF1E1A0A, 0xFF3A3414, 0xFF5A5222, 0xFF7E7230, 0xFFA8943E, 0xFFCCB656, 0xFFE8D67E, 0xFFFAF2BC,
+    ).map { it.toInt() }
+
     /** What a 1998 console had for a foggy town: grey-greens, browns, rust, and nothing bright. */
     private val MURK = listOf(
         0xFF050605, 0xFF12140F, 0xFF1E221C, 0xFF2C302A, 0xFF3C423C, 0xFF50564E, 0xFF686E64, 0xFF848A7E,
@@ -1741,6 +1750,29 @@ object PresetLibrary {
                 effects = EffectStack(
                     postProcessing = PostProcessingParams(enabled = true, grain = 12, vignette = 45),
                     tint = TintParams(enabled = true, color = 0xFF8A9088.toInt(), amount = 22),
+                ),
+            ),
+        ),
+        pixel(
+            "backrooms",
+            PresetStore.CATEGORY_COLOR,
+            // Found footage from a place with no exit: everything in stale yellows, soft and
+            // noisy like a camcorder tape, darker towards the corners.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.oxide",
+                paletteOverride = STALE,
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(
+                        enabled = true, grain = 18, grainKind = GrainKind.FILM, vignette = 38,
+                        scanlines = 14, scanlineSpacing = 3,
+                    ),
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = 2),
+                    glow = GlowParams(enabled = true, threshold = 72, radius = 70, intensity = 200),
+                    blurSharpen = BlurSharpenParams(enabled = true, amount = 20, radius = 2),
+                    interlace = InterlaceParams(enabled = true, shift = 1, density = 12, tearColor = 20),
                 ),
             ),
         ),
