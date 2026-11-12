@@ -3,6 +3,7 @@ package org.phioster.glyphsmith.effects
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import org.phioster.glyphsmith.core.image.Pixels
+import org.phioster.glyphsmith.core.pipeline.RowParallel
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.max
@@ -43,15 +44,18 @@ object PixelOps {
         val soft = (smoothing / 100f).coerceAtLeast(0.001f)
         val low = knee - soft / 2f
         val high = knee + soft / 2f
-        for (i in source.data.indices) {
-            val pixel = source.data[i]
-            val weight = smoothStep(low, high, luminance(pixel))
-            out[i] = argb(
-                255,
-                (redOf(pixel) * weight).toInt(),
-                (greenOf(pixel) * weight).toInt(),
-                (blueOf(pixel) * weight).toInt(),
-            )
+        val width = source.width
+        RowParallel.rows(source.height) { band ->
+            for (i in band.first * width until (band.last + 1) * width) {
+                val pixel = source.data[i]
+                val weight = smoothStep(low, high, luminance(pixel))
+                out[i] = argb(
+                    255,
+                    (redOf(pixel) * weight).toInt(),
+                    (greenOf(pixel) * weight).toInt(),
+                    (blueOf(pixel) * weight).toInt(),
+                )
+            }
         }
         return source.derive(out)
     }
@@ -110,9 +114,12 @@ object PixelOps {
     }
 
     private fun blurAxis(source: Pixels, weights: FloatArray, horizontal: Boolean): Pixels {
+        // Taken before the rows are shared out; see RowParallel. Each pixel is still summed in
+        // the same order, so the picture is the same to the last bit, only sooner.
         val out = source.buffer()
         val radius = weights.size / 2
-        for (y in 0 until source.height) {
+        RowParallel.rows(source.height) { band ->
+        for (y in band) {
             for (x in 0 until source.width) {
                 var a = 0f
                 var r = 0f
@@ -140,13 +147,15 @@ object PixelOps {
                 )
             }
         }
+        }
         return source.derive(out)
     }
 
     fun convolve(source: Pixels, weights: FloatArray, horizontal: Boolean): Pixels {
         val out = source.buffer()
         val radius = weights.size / 2
-        for (y in 0 until source.height) {
+        RowParallel.rows(source.height) { band ->
+        for (y in band) {
             for (x in 0 until source.width) {
                 var r = 0f
                 var g = 0f
@@ -163,6 +172,7 @@ object PixelOps {
                 }
                 out[y * source.width + x] = argb(255, r.toInt(), g.toInt(), b.toInt())
             }
+        }
         }
         return source.derive(out)
     }
@@ -227,19 +237,22 @@ object PixelOps {
      * transparent background instead of being clipped away by the base's zero alpha.
      */
     fun addLight(base: Pixels, light: Pixels, intensity: Float) {
-        for (i in base.data.indices) {
-            val b = base.data[i]
-            val l = light.data[i]
-            val r = redOf(l) * intensity
-            val g = greenOf(l) * intensity
-            val bl = blueOf(l) * intensity
-            val alpha = max(alphaOf(b), ((r + g + bl) / 3f).toInt().coerceIn(0, 255))
-            base.data[i] = argb(
-                alpha,
-                (redOf(b) + r).toInt(),
-                (greenOf(b) + g).toInt(),
-                (blueOf(b) + bl).toInt(),
-            )
+        val width = base.width
+        RowParallel.rows(base.height) { band ->
+            for (i in band.first * width until (band.last + 1) * width) {
+                val b = base.data[i]
+                val l = light.data[i]
+                val r = redOf(l) * intensity
+                val g = greenOf(l) * intensity
+                val bl = blueOf(l) * intensity
+                val alpha = max(alphaOf(b), ((r + g + bl) / 3f).toInt().coerceIn(0, 255))
+                base.data[i] = argb(
+                    alpha,
+                    (redOf(b) + r).toInt(),
+                    (greenOf(b) + g).toInt(),
+                    (blueOf(b) + bl).toInt(),
+                )
+            }
         }
     }
 }

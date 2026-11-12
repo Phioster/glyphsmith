@@ -1,5 +1,6 @@
 package org.phioster.glyphsmith.core.pipeline
 
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.ThreadFactory
@@ -35,6 +36,10 @@ object RowParallel {
      */
     private const val MIN_ROWS_TO_FORK = 256
 
+    /** How finely the rows are shared out: enough bands that a fast core can take several. */
+    private const val BANDS_PER_WORKER = 6
+    private const val MIN_BAND_ROWS = 4
+
     private val workers by lazy { Runtime.getRuntime().availableProcessors().coerceIn(1, 8) }
 
     private val pool by lazy {
@@ -52,8 +57,7 @@ object RowParallel {
      *
      * [block] is called with disjoint, contiguous row ranges whose union is exactly
      * `0 until height`, so a caller writing one output row per input row needs no coordination at
-     * all. Bands are handed out in order, but nothing may depend on that — the order they *finish*
-     * in is undefined.
+     * all. Nothing may depend on which worker gets which band, or on the order they finish in.
      */
     fun rows(height: Int, block: (IntRange) -> Unit) {
         if (height <= 0) return
@@ -62,14 +66,19 @@ object RowParallel {
             return
         }
 
-        val bandHeight = (height + workers - 1) / workers
-        val tasks = ArrayList<Callable<Unit>>(workers)
-        var start = 0
-        while (start < height) {
-            val from = start
-            val until = minOf(start + bandHeight, height)
-            tasks.add(Callable { block(from until until) })
-            start = until
+        // Many small bands taken from one counter, not one large band each: a phone's cores are
+        // far from equally fast, and with equal shares the slow ones decide when the picture is
+        // done. This way each worker takes the next band when it has finished its last.
+        val bandHeight = (height / (workers * BANDS_PER_WORKER)).coerceAtLeast(MIN_BAND_ROWS)
+        val next = AtomicInteger(0)
+        val tasks = List(workers) {
+            Callable {
+                while (true) {
+                    val from = next.getAndAdd(bandHeight)
+                    if (from >= height) break
+                    block(from until minOf(from + bandHeight, height))
+                }
+            }
         }
 
         // invokeAll blocks until every band has finished, which is rule 3. It also surfaces a
