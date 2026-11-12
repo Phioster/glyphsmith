@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import org.phioster.glyphsmith.pipeline.LayerImages
 import org.phioster.glyphsmith.UiState
 import org.phioster.glyphsmith.anim.AnimCurve
 import org.phioster.glyphsmith.anim.AnimTarget
@@ -143,7 +144,9 @@ fun AnimPanel(
         // Temporal noise is an animation in its own right, so it alone is enough to play.
         val moves = state.isVideo ||
             (animation.enabled && (animation.activeCount > 0 || animation.segments.isNotEmpty())) ||
-            params.temporal.enabled
+            params.temporal.enabled ||
+            // Light handed over moving plays by itself, with nothing else set.
+            params.layers.any { it.enabled && LayerImages.frames(it.image) > 1 }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TerminalButton(
                 label = if (state.animPlaying) "playing" else "play loop",
