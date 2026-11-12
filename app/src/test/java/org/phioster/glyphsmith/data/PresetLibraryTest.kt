@@ -132,6 +132,9 @@ class PresetLibraryTest {
         old web|COLOR|PurePixel|BAYER_4
         dreamcore|COLOR|PurePixel|FLOYD_STEINBERG
         holo foil|COLOR|PurePixel|FLOYD_STEINBERG
+        analog film|COLOR|PurePixel|FLOYD_STEINBERG
+        cyberpunk rain|COLOR|PurePixel|BAYER_4
+        ps1 horror|COLOR|PurePixel|BAYER_4
         synthwave|COLOR|PurePixel|FLOYD_STEINBERG
         vhs night|GLITCH|PurePixel|FLOYD_STEINBERG
         frutiger aero|COLOR|PurePixel|FLOYD_STEINBERG
@@ -295,12 +298,14 @@ class PresetLibraryTest {
      *   hashed to the previous digest.
      * - `dreamcore` got less haze and glow: under light handed over from Flaresmith it washed out.
      *   Checked locally: every other preset hashes as before.
+     * - `analog film`, `cyberpunk rain` and `ps1 horror` joined, and `holo foil` ends in pale
+     *   pink instead of white. Checked locally: every other preset hashes as before.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "38a57beb8766285853e7ac89ec7eb3256a52e96021626cea2e9c9b7593daf941"
+    private val digest = "858e9bfbce24d7dc3f48d69ea4fdc6fe11aed60bf0b6c2fa960549bb4d1cccee"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -340,8 +345,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 127, presets.size)
-        assertEquals("curated presets", 121, curated.size)
+        assertEquals("built-in presets", 130, presets.size)
+        assertEquals("curated presets", 124, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 
