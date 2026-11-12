@@ -355,7 +355,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val layer = Layer(
             name = if (light) Layers.HANDED_LIGHT else "picture ${params.layers.count { it.image.isNotEmpty() } + 1}",
             params = params.copy(layers = emptyList()),
-            blend = LayerBlend.NORMAL,
+            // Light only ever brightens, so it is screened: laid over normally, coloured light
+            // took the other colours out of the picture under it. A picture covers, as before.
+            blend = if (light) LayerBlend.SCREEN else LayerBlend.NORMAL,
             image = id,
             // Light arrives looking as it did in Flaresmith; a preset chosen on it dresses it.
             asIs = light,
