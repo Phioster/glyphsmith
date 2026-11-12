@@ -136,4 +136,20 @@ class LayersTest {
         val own = still.copy(enabled = true, frames = 36, fps = 15)
         assertEquals(own, Layers.timedFor(own, frames = 48, loopMs = 4000))
     }
+
+    @Test
+    fun `a picture sent coloured lies under its light, is replaced with it and goes when a look is chosen`() {
+        val own = Layer(name = "picture 1", image = "a")
+        val sent = Layer(name = Layers.HANDED_PICTURE, image = "b", asIs = true)
+        val light = Layer(name = Layers.HANDED_LIGHT, image = "c")
+
+        val handed = Layers.withHandedLight(listOf(own), light, sent)
+        assertEquals(listOf(own, sent, light), handed)
+
+        // A second handover without colours takes the first one's picture away with its light.
+        val again = Layer(name = Layers.HANDED_LIGHT, image = "d")
+        assertEquals(listOf(own, again), Layers.withHandedLight(handed, again))
+
+        assertEquals(listOf(own, light), Layers.rendered(handed))
+    }
 }

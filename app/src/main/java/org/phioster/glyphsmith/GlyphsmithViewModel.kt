@@ -336,17 +336,19 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * A picture shared from another app: a layer over the open picture. With nothing open, the
      * sender's [base] is loaded first if it gave one; otherwise the shared picture is the picture.
      */
-    fun receiveShared(uri: Uri, base: Uri?, frames: List<Uri> = emptyList(), loopMs: Int = 0) {
+    fun receiveShared(uri: Uri, base: Uri?, frames: List<Uri> = emptyList(), loopMs: Int = 0, asSent: Boolean = false) {
+        // A sender that has coloured the picture itself wants it seen that way first.
+        val sent = base.takeIf { asSent }
         when {
             // Only a sender that names a base is handing over light for it, and a second
             // handover is meant to replace the first, not to pile up on it.
             _state.value.hasImage -> runExport("layer picture") {
-                addPictureLayer(uri, light = base != null, frames = frames, loopMs = loopMs)
+                addPictureLayer(uri, light = base != null, frames = frames, loopMs = loopMs, asSent = sent)
             }
             base == null -> loadImage(uri)
             else -> viewModelScope.launch {
                 if (!loadStill(base)) return@launch
-                val message = runCatching { addPictureLayer(uri, light = true, frames = frames, loopMs = loopMs) }
+                val message = runCatching { addPictureLayer(uri, light = true, frames = frames, loopMs = loopMs, asSent = sent) }
                     .getOrElse { "layer picture failed: ${it.message}" }
                 _state.value = _state.value.copy(status = message)
             }
@@ -360,7 +362,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         light: Boolean = false,
         frames: List<Uri> = emptyList(),
         loopMs: Int = 0,
+        asSent: Uri? = null,
     ): String {
+        val sentId = asSent?.let { withContext(Dispatchers.IO) { layerImages.adopt(it) } }
         val id = withContext(Dispatchers.IO) { layerImages.adopt(uri) }
             ?: return "could not read that picture"
         // Light that moves comes as the frames of its loop; the animation here plays them.
@@ -376,10 +380,14 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             // Light arrives looking as it did in Flaresmith; a preset chosen on it dresses it.
             asIs = light,
         )
-        val layered = params.copy(layers = if (light) Layers.withHandedLight(params.layers, layer) else params.layers + layer)
+        val sent = sentId?.let {
+            Layer(name = Layers.HANDED_PICTURE, params = params.copy(layers = emptyList()), image = it, asIs = true)
+        }
+        val layered = params.copy(layers = if (light) Layers.withHandedLight(params.layers, layer, sent) else params.layers + layer)
         updateParams(layered.copy(animation = Layers.timedFor(layered.animation, loop, loopMs)))
         return when {
             loop > 1 -> "moving light received · $loop frames · play it under anim"
+            sent != null -> "light received, on the picture as it was sent · a preset renders it"
             light -> "light received"
             else -> "picture added as a layer"
         }
@@ -1192,7 +1200,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     fun applyPreset(preset: Preset) {
         // A picture laid over the base — light handed in from Flaresmith, say — is part of this
         // picture, not of the look, and a look chosen afterwards must not throw it away.
-        val pictures = _state.value.params.layers.filter { it.image.isNotEmpty() }
+        // The picture as it was sent is the exception: it covers the base, and a look is chosen
+        // to see the base rendered.
+        val pictures = Layers.rendered(_state.value.params.layers).filter { it.image.isNotEmpty() }
         updateParams(preset.params.copy(layers = preset.params.layers + pictures))
         _state.value = _state.value.copy(status = "preset ${preset.name}")
     }

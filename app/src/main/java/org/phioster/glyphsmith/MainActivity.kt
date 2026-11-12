@@ -31,6 +31,9 @@ class MainActivity : ComponentActivity() {
 
         /** How long that loop lasts, in milliseconds. */
         const val EXTRA_LOOP_MS = "org.phioster.glyphsmith.extra.LOOP_MS"
+
+        /** The base comes coloured by the sender and is to be shown as it is. */
+        const val EXTRA_AS_SENT = "org.phioster.glyphsmith.extra.AS_SENT"
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -45,7 +48,9 @@ class MainActivity : ComponentActivity() {
         // A sender that knows Glyphsmith may name the picture its layer belongs on.
         val base = IntentCompat.getParcelableExtra(intent, EXTRA_BASE, Uri::class.java)
         val frames = IntentCompat.getParcelableArrayListExtra(intent, EXTRA_FRAMES, Uri::class.java).orEmpty()
-        model.receiveShared(uri, base, frames, intent.getIntExtra(EXTRA_LOOP_MS, 0))
+        model.receiveShared(
+            uri, base, frames, intent.getIntExtra(EXTRA_LOOP_MS, 0), intent.getBooleanExtra(EXTRA_AS_SENT, false),
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

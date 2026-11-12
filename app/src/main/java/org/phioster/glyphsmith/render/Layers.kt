@@ -125,6 +125,18 @@ object Layers {
      * [layers] with [light] on top, in place of any light handed over before. Told apart by name
      * and by having a picture of its own, so nothing new has to be stored in a look.
      */
-    fun withHandedLight(layers: List<Layer>, light: Layer): List<Layer> =
-        layers.filterNot { it.name == HANDED_LIGHT && it.image.isNotEmpty() } + light
+    fun withHandedLight(layers: List<Layer>, light: Layer, asSent: Layer? = null): List<Layer> =
+        layers.filterNot { (it.name == HANDED_LIGHT || it.name == HANDED_PICTURE) && it.image.isNotEmpty() } +
+            listOfNotNull(asSent, light)
+
+    /**
+     * The picture as the sender showed it, colours and all, lying under the handed light and
+     * over this app's own rendering of it. It is there until a look is chosen: a look is the
+     * wish to see the picture rendered, and this layer would hide just that.
+     */
+    const val HANDED_PICTURE = "picture as sent"
+
+    /** [layers] without the picture as it was sent. */
+    fun rendered(layers: List<Layer>): List<Layer> =
+        layers.filterNot { it.name == HANDED_PICTURE && it.image.isNotEmpty() }
 }
