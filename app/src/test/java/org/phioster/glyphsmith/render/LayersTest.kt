@@ -103,4 +103,16 @@ class LayersTest {
         val next = stack.copy(cellSize = 6)
         assertEquals(next, stack.withEdited(-1, next))
     }
+
+    @Test
+    fun `light handed over again replaces the light from before and nothing else`() {
+        val picture = Layer(name = "picture 1", image = "a")
+        val settings = Layer(name = "light")
+        val first = Layer(name = Layers.HANDED_LIGHT, image = "b")
+        val second = Layer(name = Layers.HANDED_LIGHT, image = "c")
+
+        val once = Layers.withHandedLight(listOf(picture, settings), first)
+        assertEquals(listOf(picture, settings, first), once)
+        assertEquals(listOf(picture, settings, second), Layers.withHandedLight(once, second))
+    }
 }

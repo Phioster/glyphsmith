@@ -90,3 +90,15 @@ fun RenderSettings.withAnimationEdited(index: Int, changed: AnimationParams): Re
     val own = layer.params.animation.copy(enabled = true, tracks = changed.tracks, segments = changed.segments)
     return copy(animation = clock).withEdited(index, layer.params.copy(animation = own))
 }
+
+object Layers {
+    /** The name of the layer that holds light handed over from Flaresmith. */
+    const val HANDED_LIGHT = "light"
+
+    /**
+     * [layers] with [light] on top, in place of any light handed over before. Told apart by name
+     * and by having a picture of its own, so nothing new has to be stored in a look.
+     */
+    fun withHandedLight(layers: List<Layer>, light: Layer): List<Layer> =
+        layers.filterNot { it.name == HANDED_LIGHT && it.image.isNotEmpty() } + light
+}
