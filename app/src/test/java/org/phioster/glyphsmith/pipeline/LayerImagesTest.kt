@@ -74,7 +74,7 @@ class LayerImagesTest {
         assertEquals(4, LayerImages.frames("loop"))
         assertEquals(1, LayerImages.frames("still"))
         assertEquals(2, LayerImages.at("loop", 0.5f)?.pixels?.get(0))
-        assertEquals(2, LayerImages.at("loop", 0.6f)?.pixels?.get(0))
+        assertEquals(2, LayerImages.at("loop", 0.505f)?.pixels?.get(0))
         assertEquals(listOf(2), asked)
         assertEquals(7, LayerImages.at("still", 0.5f)?.pixels?.get(0))
 
@@ -85,5 +85,31 @@ class LayerImagesTest {
         LayerImages.keepOnly(listOf("still"))
         assertEquals(1, LayerImages.frames("loop"))
         LayerImages.frameLoader = null
+    }
+
+    @Test
+    fun `a moment between two frames is the two mixed, and the last runs into the first`() {
+        fun grey(level: Int) = (0xFF shl 24) or (level shl 16) or (level shl 8) or level
+        LayerImages.put("fade", LayerImages.Picture(IntArray(1), 1, 1))
+        LayerImages.setLoop("fade", 4)
+        LayerImages.frameLoader = { _, index -> LayerImages.Picture(IntArray(1) { grey(index * 40) }, 1, 1) }
+        assertEquals(grey(40), LayerImages.at("fade", 0.25f)?.pixels?.get(0))
+        assertEquals(grey(60), LayerImages.at("fade", 0.375f)?.pixels?.get(0))
+        // Halfway from the last frame back to the first.
+        assertEquals(grey(60), LayerImages.at("fade", 0.875f)?.pixels?.get(0))
+        LayerImages.keepOnly(emptyList())
+        LayerImages.frameLoader = null
+    }
+
+    @Test
+    fun `light fading in keeps its colour and does not go through black`() {
+        val empty = LayerImages.Picture(IntArray(1), 1, 1)
+        val red = LayerImages.Picture(IntArray(1) { 0xFFFF0000.toInt() }, 1, 1)
+        val half = LayerImages.mixed(empty, red, 0.5f).pixels[0]
+        assertEquals(0x80, half ushr 24)
+        assertEquals(0xFF0000, half and 0xFFFFFF)
+        assertEquals(red.pixels[0], LayerImages.mixed(red, red, 0.3f).pixels[0])
+        // Frames of different sizes cannot be mixed; the first is shown.
+        assertEquals(0, LayerImages.mixed(empty, LayerImages.Picture(IntArray(4), 2, 2), 0.5f).pixels[0])
     }
 }

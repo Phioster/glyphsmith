@@ -124,4 +124,16 @@ class LayersTest {
         assertTrue(settings.withEdited(0, light.params).layers[0].asIs)
         assertEquals(false, settings.withEdited(0, light.params.copy(cellSize = 3)).layers[0].asIs)
     }
+
+    @Test
+    fun `a light loop sets the timing only where nothing is animated yet`() {
+        val still = org.phioster.glyphsmith.anim.AnimationParams()
+        val timed = Layers.timedFor(still, frames = 48, loopMs = 4000)
+        assertEquals(48, timed.frames)
+        assertEquals(12, timed.fps)
+        assertEquals(still, Layers.timedFor(still, frames = 1, loopMs = 4000))
+        assertEquals(still, Layers.timedFor(still, frames = 48, loopMs = 0))
+        val own = still.copy(enabled = true, frames = 36, fps = 15)
+        assertEquals(own, Layers.timedFor(own, frames = 48, loopMs = 4000))
+    }
 }
