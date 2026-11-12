@@ -1,5 +1,6 @@
 package org.phioster.glyphsmith
 
+import org.phioster.glyphsmith.render.Layers
 import org.phioster.glyphsmith.render.PixelDitherRenderer
 import org.phioster.glyphsmith.render.QuantisePass
 import org.phioster.glyphsmith.render.CellSampler
@@ -333,11 +334,13 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun receiveShared(uri: Uri, base: Uri?) {
         when {
-            _state.value.hasImage -> addLayerPicture(uri)
+            // Only a sender that names a base is handing over light for it, and a second
+            // handover is meant to replace the first, not to pile up on it.
+            _state.value.hasImage -> runExport("layer picture") { addPictureLayer(uri, light = base != null) }
             base == null -> loadImage(uri)
             else -> viewModelScope.launch {
                 if (!loadStill(base)) return@launch
-                val message = runCatching { addPictureLayer(uri) }.getOrElse { "layer picture failed: ${it.message}" }
+                val message = runCatching { addPictureLayer(uri, light = true) }.getOrElse { "layer picture failed: ${it.message}" }
                 _state.value = _state.value.copy(status = message)
             }
         }
@@ -345,18 +348,18 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     fun addLayerPicture(uri: Uri) = runExport("layer picture") { addPictureLayer(uri) }
 
-    private suspend fun addPictureLayer(uri: Uri): String {
+    private suspend fun addPictureLayer(uri: Uri, light: Boolean = false): String {
         val id = withContext(Dispatchers.IO) { layerImages.adopt(uri) }
             ?: return "could not read that picture"
         val params = _state.value.params
         val layer = Layer(
-            name = "picture ${params.layers.count { it.image.isNotEmpty() } + 1}",
+            name = if (light) Layers.HANDED_LIGHT else "picture ${params.layers.count { it.image.isNotEmpty() } + 1}",
             params = params.copy(layers = emptyList()),
             blend = LayerBlend.NORMAL,
             image = id,
         )
-        updateParams(params.copy(layers = params.layers + layer))
-        return "picture added as a layer"
+        updateParams(params.copy(layers = if (light) Layers.withHandedLight(params.layers, layer) else params.layers + layer))
+        return if (light) "light received" else "picture added as a layer"
     }
 
     /** Writes the shape shifter's bands to their own file. */

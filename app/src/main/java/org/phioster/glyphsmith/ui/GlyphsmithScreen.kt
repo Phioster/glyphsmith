@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -285,10 +286,14 @@ fun GlyphsmithScreen(
 
         TabRow(tab) { tab = it }
 
+        // Every tab opens at its top: one scroll position shared by all of them dropped a
+        // short panel's visitor somewhere in the middle of a long one.
+        val panelScroll = rememberScrollState()
+        LaunchedEffect(tab) { panelScroll.scrollTo(0) }
         Column(
             Modifier
                 .weight(1.15f)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(panelScroll)
                 .padding(bottom = 16.dp),
         ) {
             when (tab) {
