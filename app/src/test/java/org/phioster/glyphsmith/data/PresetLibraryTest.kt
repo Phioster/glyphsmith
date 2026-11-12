@@ -293,12 +293,14 @@ class PresetLibraryTest {
      *   glows less. Same local check as above.
      * - `old web`, `dreamcore` and `holo foil` joined. Checked locally: without them the library
      *   hashed to the previous digest.
+     * - `dreamcore` got less haze and glow: under light handed over from Flaresmith it washed out.
+     *   Checked locally: every other preset hashes as before.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "93bf63643d3c7ceb75ab2eb8395c13d35f35384b584e9edcef2cc5754b3a3c42"
+    private val digest = "38a57beb8766285853e7ac89ec7eb3256a52e96021626cea2e9c9b7593daf941"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
