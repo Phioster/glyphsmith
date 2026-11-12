@@ -357,6 +357,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             params = params.copy(layers = emptyList()),
             blend = LayerBlend.NORMAL,
             image = id,
+            // Light arrives looking as it did in Flaresmith; a preset chosen on it dresses it.
+            asIs = light,
         )
         updateParams(params.copy(layers = if (light) Layers.withHandedLight(params.layers, layer) else params.layers + layer))
         return if (light) "light received" else "picture added as a layer"

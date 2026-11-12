@@ -300,12 +300,14 @@ class PresetLibraryTest {
      *   Checked locally: every other preset hashes as before.
      * - `analog film`, `cyberpunk rain` and `ps1 horror` joined, and `holo foil` ends in pale
      *   pink instead of white. Checked locally: every other preset hashes as before.
+     * - Layers gained `asIs`, off by default, and the encoding writes defaults: every preset with
+     *   layers now carries the field. No preset's look changed; the library source is untouched.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "858e9bfbce24d7dc3f48d69ea4fdc6fe11aed60bf0b6c2fa960549bb4d1cccee"
+    private val digest = "f73f470725a16f05ffa6d01dea6f95bcd2e931cd1b9d66d8fc46c2757c64bb0e"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {

@@ -222,6 +222,13 @@ private fun LayerBlock(
             { v -> onUpdate { it.copy(rotation = v.toInt()) } },
             valueText = "${layer.rotation}°",
         )
+        if (layer.image.isNotEmpty()) {
+            TerminalButton(
+                label = if (layer.asIs) "shown as it is ✓" else "shown as it is",
+                onClick = { onUpdate { it.copy(asIs = !it.asIs) } },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+            )
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TerminalButton(
                 label = if (layer.flipHorizontal) "flip h ✓" else "flip h",
