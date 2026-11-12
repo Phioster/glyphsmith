@@ -52,6 +52,12 @@ data class Layer(
      * transparency.
      */
     val image: String = "",
+    /**
+     * Shows the layer's own picture as it is, in its own colours, instead of rendering it through
+     * [params]. Light handed over from Flaresmith arrives like this. Without a picture of its
+     * own a layer has nothing to show as it is, and this is ignored.
+     */
+    val asIs: Boolean = false,
 ) {
     companion object {
         val OPACITY_RANGE = 0..100
@@ -66,10 +72,18 @@ fun RenderSettings.edited(index: Int): RenderSettings = layers.getOrNull(index)?
 /**
  * These settings with [changed] put where [edited] read from. A layer never carries a stack of
  * its own, so whatever layers [changed] holds are dropped on the way into one.
+ *
+ * Changing a layer's settings also ends [Layer.asIs]: a preset or a slider that did nothing
+ * visible because the layer was still shown untouched would look broken.
  */
 fun RenderSettings.withEdited(index: Int, changed: RenderSettings): RenderSettings =
     if (index in layers.indices) {
-        copy(layers = layers.mapIndexed { i, layer -> if (i == index) layer.copy(params = changed.copy(layers = emptyList())) else layer })
+        copy(
+            layers = layers.mapIndexed { i, layer ->
+                val own = changed.copy(layers = emptyList())
+                if (i == index) layer.copy(params = own, asIs = layer.asIs && own == layer.params) else layer
+            },
+        )
     } else {
         changed
     }

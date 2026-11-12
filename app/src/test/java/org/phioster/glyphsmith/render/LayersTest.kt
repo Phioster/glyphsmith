@@ -115,4 +115,13 @@ class LayersTest {
         assertEquals(listOf(picture, settings, first), once)
         assertEquals(listOf(picture, settings, second), Layers.withHandedLight(once, second))
     }
+
+    @Test
+    fun `changing a layer's settings ends showing it as it is, and leaving them alone does not`() {
+        val light = Layer(name = Layers.HANDED_LIGHT, image = "a", asIs = true)
+        val settings = RenderSettings(layers = listOf(light))
+
+        assertTrue(settings.withEdited(0, light.params).layers[0].asIs)
+        assertEquals(false, settings.withEdited(0, light.params.copy(cellSize = 3)).layers[0].asIs)
+    }
 }

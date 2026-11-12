@@ -7,6 +7,7 @@ import org.phioster.glyphsmith.render.Layer
 import org.phioster.glyphsmith.render.RenderModuleOutput
 import org.phioster.glyphsmith.render.RenderModuleSet
 import org.phioster.glyphsmith.render.RenderSettings
+import kotlin.math.max
 
 /**
  * Source pixels → a render module → effects → layers.
@@ -57,6 +58,7 @@ object RenderPipeline {
     private fun renderPicture(layer: Layer, frameWidth: Int, frameHeight: Int, modules: RenderModuleSet): Bitmap? {
         val picture = LayerImages[layer.image] ?: return null
         val side = LayerImages.sideInside(picture.width, picture.height, frameWidth, frameHeight)
+        if (layer.asIs) return asItIs(picture, side)
         val rendered = renderFlat(picture.pixels, picture.width, picture.height, layer.params, side, modules)
         val width = rendered.width
         val height = rendered.height
@@ -65,6 +67,15 @@ object RenderPipeline {
         rendered.recycle()
         LayerImages.cutOut(pixels, width, height, picture)
         return Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
+    }
+
+    /** A layer's own picture untouched, only fitted: its longest side becomes [side]. */
+    private fun asItIs(picture: LayerImages.Picture, side: Int): Bitmap {
+        val fit = side.toFloat() / max(picture.width, picture.height)
+        val whole = Bitmap.createBitmap(picture.pixels, picture.width, picture.height, Bitmap.Config.ARGB_8888)
+        val fitted = Bitmap.createScaledBitmap(whole, max(1, (picture.width * fit).toInt()), max(1, (picture.height * fit).toInt()), true)
+        if (fitted !== whole) whole.recycle()
+        return fitted
     }
 
     @Suppress("LongParameterList")
