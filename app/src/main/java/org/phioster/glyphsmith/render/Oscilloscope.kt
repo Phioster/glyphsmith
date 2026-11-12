@@ -98,6 +98,52 @@ object Oscilloscope {
         return ScopePicture(lit(core, cols, rows, width, height, scale, unit, scope), width, height)
     }
 
+    /**
+     * The traces as lines rather than light: every visible stretch of every trace, as x and y in
+     * turn, in cells of the working picture. The same layout as [draw] — spacing, height, hiding
+     * and the start of any motion — so a vector export shows the picture on the screen.
+     */
+    fun runs(grid: CellGrid, params: RenderSettings): List<FloatArray> {
+        val scope = params.oscilloscope
+        val cols = grid.cols
+        val rows = grid.rows
+        val unit = max(cols, rows) / WORK_SIDE.toFloat()
+        val tone = FloatArray(cols * rows) { grid.luma[it].coerceIn(0f, 1f) }
+        repeat(3) { boxBlur(tone, cols, rows, cells(SMOOTH, unit)) }
+
+        val time = params.temporal.time - floor(params.temporal.time)
+        val spacing = max(2f, scope.spacing.coerceIn(4, 24) * unit)
+        val rise = scope.height.coerceIn(0, 80) * unit
+        val drift = if (scope.motion == ScopeMotion.DRIFT) time * spacing else 0f
+        val wave = if (scope.motion == ScopeMotion.WAVE) WAVE_HEIGHT * unit else 0f
+        val horizon = FloatArray(cols) { Float.MAX_VALUE }
+        val ys = FloatArray(cols)
+        val runs = ArrayList<FloatArray>()
+
+        var line = floor((rows - 1 - drift) / spacing) * spacing + drift
+        while (line > 0.01f) {
+            for (x in 0 until cols) {
+                ys[x] = line - toneAt(tone, cols, rows, x.toFloat(), line) * rise
+                if (wave > 0f) {
+                    ys[x] += wave * kotlin.math.sin(TURN * (time + x / (WAVE_LENGTH * unit) + (line - drift) * WAVE_STAGGER / unit))
+                }
+            }
+            var start = -1
+            for (x in 0..cols) {
+                val seen = x < cols && (!scope.hidden || ys[x] < horizon[x])
+                if (seen && start < 0) start = x
+                if (!seen && start >= 0) {
+                    // A single point is not a line.
+                    if (x - start >= 2) runs += FloatArray((x - start) * 2) { i -> if (i % 2 == 0) (start + i / 2).toFloat() else ys[start + i / 2] }
+                    start = -1
+                }
+            }
+            if (scope.hidden) for (x in 0 until cols) horizon[x] = min(horizon[x], ys[x])
+            line -= spacing
+        }
+        return runs
+    }
+
     private fun cells(units: Float, unit: Float): Int = max(1, (units * unit + 0.5f).toInt())
 
     /** [tone] at a column and a row that need not be whole. */
