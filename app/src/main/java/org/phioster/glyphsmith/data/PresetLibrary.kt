@@ -124,6 +124,26 @@ object PresetLibrary {
         0xFF1A0B3A, 0xFF5A2A9C, 0xFFF05CB8, 0xFF4CE0D8, 0xFFFFC8E8, 0xFFFFFFFF,
     ).map { it.toInt() }
 
+    /**
+     * Twenty-four of the 216 web-safe colours (every channel one of 00 33 66 99 CC FF): the
+     * sixteen a 1990s browser named, moved onto that grid, and eight for skin and pastel. Not all
+     * 216, because the palette editor lists every colour as a row.
+     */
+    private val WEB_SAFE = listOf(
+        0xFF000000, 0xFF990000, 0xFF009900, 0xFF999900, 0xFF000099, 0xFF990099, 0xFF009999, 0xFFCCCCCC,
+        0xFF666666, 0xFFFF0000, 0xFF00FF00, 0xFFFFFF00, 0xFF0000FF, 0xFFFF00FF, 0xFF00FFFF, 0xFFFFFFFF,
+        0xFFFFCC99, 0xFFCC9966, 0xFF996633, 0xFF663300, 0xFFFF99CC, 0xFF99CCFF, 0xFFFFFF99, 0xFF333333,
+    ).map { it.toInt() }
+
+    /**
+     * Foil on a trading card: under the shadows, the pastel rainbow runs through twice, so a
+     * small change in brightness is a change of colour and a surface shimmers as it turns.
+     */
+    private val HOLO = listOf(
+        0xFF0A0A1E, 0xFF3A2A6A, 0xFFE87AC8, 0xFFF8D878, 0xFF7CE8B0, 0xFF6CC8F8,
+        0xFFB894F8, 0xFFF8A0D0, 0xFFF8F0B0, 0xFFB8F8E8, 0xFFFFFFFF,
+    ).map { it.toInt() }
+
     /** A sunset behind a grid: night violet through magenta and orange to pale yellow. */
     private val OUTRUN = listOf(
         0xFF0A0420, 0xFF2A0A58, 0xFF7A1090, 0xFFE0207A, 0xFFFF5A3C, 0xFFFF9A2A, 0xFFFFE89A,
@@ -1591,6 +1611,64 @@ object PresetLibrary {
                 effects = EffectStack(
                     postProcessing = PostProcessingParams(enabled = true, scanlines = 28, scanlineSpacing = 4),
                     chromatic = ChromaticParams(enabled = true, maxDisplace = 3),
+                ),
+            ),
+        ),
+        pixel(
+            "old web",
+            PresetStore.CATEGORY_COLOR,
+            // A 1998 homepage: web-safe colours in a hard ordered screen, in chunky pixels, with a
+            // glitter star on anything bright.
+            RenderSettings(
+                cellSize = 3,
+                ditherMode = DitherMode.BAYER_4,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = WEB_SAFE,
+                saturation = 130,
+                effects = EffectStack(
+                    stars = DiffractionStarsParams(enabled = true, threshold = 82, rays = 4, length = 22, intensity = 480),
+                ),
+            ),
+        ),
+        pixel(
+            "dreamcore",
+            PresetStore.CATEGORY_COLOR,
+            // A half-remembered place: too bright, a little too colourful, everything behind a
+            // milky haze, with the faint lines and grain of an old tape.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = PAINT_BOX,
+                saturation = 140,
+                // The pale tint is what makes the haze: it lifts black off the floor. Saturation is
+                // pushed twice because the tint takes colour out again.
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(
+                        enabled = true, exposure = 22, contrast = 80, saturation = 150, grain = 10, grainKind = GrainKind.FILM,
+                        scanlines = 10, scanlineSpacing = 3,
+                    ),
+                    tint = TintParams(enabled = true, color = 0xFFF0D0FF.toInt(), amount = 24),
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = 2),
+                    glow = GlowParams(enabled = true, threshold = 50, radius = 160, intensity = 240),
+                    blurSharpen = BlurSharpenParams(enabled = true, amount = 35, radius = 2),
+                ),
+            ),
+        ),
+        pixel(
+            "holo foil",
+            PresetStore.CATEGORY_COLOR,
+            // Tones mapped through a rainbow that repeats, with small stars where the foil catches.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.oxide",
+                paletteOverride = HOLO,
+                effects = EffectStack(
+                    stars = DiffractionStarsParams(enabled = true, threshold = 88, rays = 4, length = 26, intensity = 380),
                 ),
             ),
         ),

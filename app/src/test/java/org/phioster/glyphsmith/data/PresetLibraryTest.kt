@@ -129,6 +129,9 @@ class PresetLibraryTest {
         y2k chrome|COLOR|PurePixel|FLOYD_STEINBERG
         mcbling|COLOR|PurePixel|FLOYD_STEINBERG
         vaporwave|COLOR|PurePixel|BAYER_4
+        old web|COLOR|PurePixel|BAYER_4
+        dreamcore|COLOR|PurePixel|FLOYD_STEINBERG
+        holo foil|COLOR|PurePixel|FLOYD_STEINBERG
         synthwave|COLOR|PurePixel|FLOYD_STEINBERG
         vhs night|GLITCH|PurePixel|FLOYD_STEINBERG
         frutiger aero|COLOR|PurePixel|FLOYD_STEINBERG
@@ -288,12 +291,14 @@ class PresetLibraryTest {
      *   flow ASCII, the library still hashed to the digest before them.
      * - `y2k chrome` got its mirror band back, above the midtones, with a faint glow; `mcbling`
      *   glows less. Same local check as above.
+     * - `old web`, `dreamcore` and `holo foil` joined. Checked locally: without them the library
+     *   hashed to the previous digest.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "1ac409992dac977e34e8b45847b58d4c45cfb1af03a4df9c93777fae20464554"
+    private val digest = "93bf63643d3c7ceb75ab2eb8395c13d35f35384b584e9edcef2cc5754b3a3c42"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -333,8 +338,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 124, presets.size)
-        assertEquals("curated presets", 118, curated.size)
+        assertEquals("built-in presets", 127, presets.size)
+        assertEquals("curated presets", 121, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 
