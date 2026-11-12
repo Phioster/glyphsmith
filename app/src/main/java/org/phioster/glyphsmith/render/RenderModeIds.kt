@@ -20,6 +20,7 @@ object RenderModeIds : WireIdSerializer<RenderMode>(
             RenderMode.PixelThenGlyph -> "render.pixel-then-glyph"
             RenderMode.ShapeShifter -> "render.shape-shifter"
             RenderMode.FlowAscii -> "render.flow-ascii"
+            RenderMode.Oscilloscope -> "render.oscilloscope"
         }
     },
 )

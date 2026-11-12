@@ -23,6 +23,8 @@ class RenderModuleProvider(val mode: RenderMode, override val displayName: Strin
     val ditherFirst: Boolean get() = mode.ditherFirst
 
     val onGrid: Boolean get() = mode.onGrid
+
+    val takesColour: Boolean get() = mode.takesColour
 }
 
 /**
@@ -45,6 +47,7 @@ object RenderModules : Registry<RenderModuleProvider>(
         RenderModuleProvider(RenderMode.PixelThenGlyph, "pixel dither → glyphs"),
         RenderModuleProvider(RenderMode.ShapeShifter, "shape shifter"),
         RenderModuleProvider(RenderMode.FlowAscii, "flow ascii"),
+        RenderModuleProvider(RenderMode.Oscilloscope, "oscilloscope"),
     ),
 ) {
     private val byMode = all.associateBy { it.mode }

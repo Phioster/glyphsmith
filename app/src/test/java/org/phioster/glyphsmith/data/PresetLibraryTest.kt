@@ -162,6 +162,9 @@ class PresetLibraryTest {
         forming|MOTION|PurePixel|FLOYD_STEINBERG
         two pass screen|LAYERED|PurePixel|CLUSTER_8
         offset plates|LAYERED|PurePixel|FLOYD_STEINBERG
+        oscilloscope|GEOMETRY|Oscilloscope|NONE
+        amber scope|GEOMETRY|Oscilloscope|NONE
+        pulsar|GEOMETRY|Oscilloscope|NONE
         flow ascii|GLYPH|FlowAscii|NONE
         ascii fur|GLYPH|FlowAscii|NONE
         moonlit ascii|GLYPH|FlowAscii|NONE
@@ -308,12 +311,14 @@ class PresetLibraryTest {
      * - `backrooms` joined. Checked locally: without it the library hashed to the previous digest.
      * - `game boy camera` and `akahana` joined. Checked locally: without them the library hashed
      *   to the previous digest.
+     * - **Oscilloscope** (2026-11-12): the mode, its `"oscilloscope"` block in every preset, and
+     *   the presets `oscilloscope`, `amber scope` and `pulsar`. No older preset's look changed.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "11088f6f473bf0790d787396c908367d99405e9e5d85059bf9f706697ef694a5"
+    private val digest = "56844818eb44d71a0ee0a7722fda8944bddb6f1a1f43eec514de3bcf8798f96d"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -353,8 +358,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 133, presets.size)
-        assertEquals("curated presets", 127, curated.size)
+        assertEquals("built-in presets", 136, presets.size)
+        assertEquals("curated presets", 130, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 
@@ -404,8 +409,11 @@ class PresetLibraryTest {
         val shapes = curated.count { it.params.renderMode == RenderMode.ShapeShifter }
         // Flow ASCII is a fourth, smaller still.
         val flow = curated.count { it.params.renderMode == RenderMode.FlowAscii }
+        // The oscilloscope is a fifth, and as small.
+        val scope = curated.count { it.params.renderMode == RenderMode.Oscilloscope }
 
-        assertEquals("every curated preset is one of the four", curated.size, pixel + glyph + shapes + flow)
+        assertEquals("every curated preset is one of the five", curated.size, pixel + glyph + shapes + flow + scope)
+        assertTrue("$scope of ${curated.size} presets are oscilloscope, which is over 10 %", scope * 10 <= curated.size)
         assertTrue("$flow of ${curated.size} presets are flow ascii, which is over 10 %", flow * 10 <= curated.size)
         assertTrue("$shapes of ${curated.size} presets are shape shifter, which is over 10 %", shapes * 10 <= curated.size)
         assertTrue(
@@ -420,12 +428,14 @@ class PresetLibraryTest {
 
     /**
      * A general-purpose preset is a pixel dither. Glyph Art is reached through its own shelf,
-     * and shape shifter presets all sit together under Geometry.
+     * and the two renders that are drawn — shape shifter and the oscilloscope — sit together
+     * under Geometry.
      */
     @Test
     fun `every general preset is a pixel dither`() {
-        val shapes = curated.filter { it.params.renderMode == RenderMode.ShapeShifter }
-        shapes.forEach { assertEquals("${it.name} is a shape preset", PresetStore.CATEGORY_GEOMETRY, it.category) }
+        val drawn = setOf(RenderMode.ShapeShifter, RenderMode.Oscilloscope)
+        val shapes = curated.filter { it.params.renderMode in drawn }
+        shapes.forEach { assertEquals("${it.name} is a drawn preset", PresetStore.CATEGORY_GEOMETRY, it.category) }
         (curated - glyphArt.toSet() - shapes.toSet()).forEach { preset ->
             assertEquals(
                 "${preset.name} is filed under ${preset.category} but renders as glyph art",

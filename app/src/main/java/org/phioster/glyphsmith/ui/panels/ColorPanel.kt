@@ -70,6 +70,15 @@ fun ColorPanel(
     val palettes = remember(category) { Palettes.inCategory(category) }
 
     Column(modifier.fillMaxWidth()) {
+        if (!params.renderMode.takesColour) {
+            Text(
+                "this render mode draws in a colour of its own — choose it in SET. the settings " +
+                    "below are kept for the other modes",
+                color = Term.Amber,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 6.dp),
+            )
+        }
         SectionHeader("character colour")
 
         Row(

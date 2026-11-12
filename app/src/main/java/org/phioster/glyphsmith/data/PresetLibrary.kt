@@ -10,6 +10,8 @@ import org.phioster.glyphsmith.anim.TemporalPattern
 import org.phioster.glyphsmith.render.ColorMode
 import org.phioster.glyphsmith.render.Layer
 import org.phioster.glyphsmith.render.LayerBlend
+import org.phioster.glyphsmith.render.OscilloscopeParams
+import org.phioster.glyphsmith.render.Phosphor
 import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
@@ -185,6 +187,10 @@ object PresetLibrary {
     /** A flow ASCII preset: rows of characters or hairs that follow the picture's forms. */
     private fun flow(name: String, params: RenderSettings) =
         Preset(name, params.copy(renderMode = RenderMode.FlowAscii), PresetStore.CATEGORY_GLYPH)
+
+    /** An oscilloscope preset: the picture as traces on a tube. */
+    private fun scope(name: String, params: RenderSettings) =
+        Preset(name, params.copy(renderMode = RenderMode.Oscilloscope), PresetStore.CATEGORY_GEOMETRY)
 
     /** A Shape Shifter preset: tones drawn as vector shapes on a grid. */
     private fun shapes(name: String, category: String, params: RenderSettings) =
@@ -2389,6 +2395,27 @@ object PresetLibrary {
         // The render module, not the premise. Each of these demonstrates a different
         // glyph capability rather than a different look: the ramp, its length, a
         // non-Latin set, the edge pass, injection, and colour on characters.
+        scope(
+            "oscilloscope",
+            // The picture as a relief of green traces, nearer ones hiding the ones behind.
+            RenderSettings(contrast = 1.3f, oscilloscope = OscilloscopeParams()),
+        ),
+        scope(
+            "amber scope",
+            // An older tube: amber, the traces closer and lower, no grid on the glass.
+            RenderSettings(
+                contrast = 1.3f,
+                oscilloscope = OscilloscopeParams(phosphor = Phosphor.AMBER, spacing = 6, height = 22, graticule = false),
+            ),
+        ),
+        scope(
+            "pulsar",
+            // White lines on black with hardly any glow: a plot of a signal rather than a tube.
+            RenderSettings(
+                contrast = 1.4f,
+                oscilloscope = OscilloscopeParams(phosphor = Phosphor.WHITE, spacing = 10, height = 48, glow = 25, graticule = false),
+            ),
+        ),
         flow(
             "flow ascii",
             // Characters that lie along fingers, folds and faces, in the picture's own colours.
