@@ -107,7 +107,7 @@ object PresetLibrary {
      * mid blue after its first white, which is the horizon mirrored in polished metal.
      */
     private val CHROME = listOf(
-        0xFF02040C, 0xFF14245C, 0xFF3C6CC8, 0xFF8CB0E8, 0xFF5C7CB8, 0xFFB8CCE8, 0xFFFFFFFF,
+        0xFF02040C, 0xFF14245C, 0xFF3C6CC8, 0xFF5C7CB8, 0xFF8CB0E8, 0xFFF0F8FF, 0xFF4C6CB0, 0xFF9CB8E0, 0xFFFFFFFF,
     ).map { it.toInt() }
 
     /**
@@ -1552,10 +1552,11 @@ object PresetLibrary {
                 paletteId = "palette.oxide",
                 paletteOverride = CHROME,
                 contrast = 1.15f,
-                // No glow: the palette already ends in white, and any bloom on top washed hands
-                // and faces out to a single blank. The stars carry the shine alone.
+                // The bright band sits above the midtones, so only lit surfaces mirror and a face
+                // keeps its drawing. Glow stays faint: more than this washed hands out to a blank.
                 effects = EffectStack(
                     stars = DiffractionStarsParams(enabled = true, threshold = 86, rays = 4, length = 45, intensity = 450),
+                    glow = GlowParams(enabled = true, threshold = 92, radius = 14, intensity = 110),
                 ),
             ),
         ),
@@ -1570,10 +1571,10 @@ object PresetLibrary {
                 paletteId = "palette.oxide",
                 paletteOverride = BONBON,
                 saturation = 125,
-                highlights = 58,
+                // Glow kept small: the pale pinks are close to white already.
                 effects = EffectStack(
-                    stars = DiffractionStarsParams(enabled = true, threshold = 74, rays = 4, length = 34, intensity = 520),
-                    glow = GlowParams(enabled = true, threshold = 70, radius = 40, intensity = 300),
+                    stars = DiffractionStarsParams(enabled = true, threshold = 84, rays = 4, length = 34, intensity = 420),
+                    glow = GlowParams(enabled = true, threshold = 86, radius = 22, intensity = 110),
                 ),
             ),
         ),

@@ -286,12 +286,14 @@ class PresetLibraryTest {
      * - `mcbling`, `vaporwave` and `synthwave` joined, and `y2k chrome` lost its glow and the white
      *   band in the middle of its palette. Checked locally: without the six style presets since
      *   flow ASCII, the library still hashed to the digest before them.
+     * - `y2k chrome` got its mirror band back, above the midtones, with a faint glow; `mcbling`
+     *   glows less. Same local check as above.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "4909fb49572fcb6fdcf96a7830dd86ab5d137f087bc3544965dec1fa5e7766d6"
+    private val digest = "1ac409992dac977e34e8b45847b58d4c45cfb1af03a4df9c93777fae20464554"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
