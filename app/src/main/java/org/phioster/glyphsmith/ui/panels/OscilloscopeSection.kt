@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.render.OscilloscopeParams
 import org.phioster.glyphsmith.render.Phosphor
 import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.render.ScopeMotion
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.TerminalChip
 import org.phioster.glyphsmith.ui.TerminalSlider
@@ -64,6 +65,22 @@ internal fun OscilloscopeSection(params: RenderSettings, onChange: (RenderSettin
         onValueChange = { set(scope.copy(glow = it.toInt())) },
         valueText = "${scope.glow}%",
     )
+    Text(
+        "motion — plays in the ANIM tab, and a saved picture shows the start of the loop",
+        color = Term.InkFaint,
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
+    )
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        ScopeMotion.entries.forEach { motion ->
+            TerminalChip(
+                label = motion.label,
+                selected = scope.motion == motion,
+                onClick = { set(scope.copy(motion = motion)) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
     TerminalToggle("near traces hide far ones", scope.hidden, { set(scope.copy(hidden = it)) })
     TerminalToggle("measuring grid", scope.graticule, { set(scope.copy(graticule = it)) })
 }

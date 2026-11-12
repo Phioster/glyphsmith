@@ -115,6 +115,10 @@ class PresetLibraryTest {
         meltdown|GLITCH|PurePixel|NONE
         shredder|GLITCH|PurePixel|NONE
         drifting wave|MOTION|PurePixel|MOD_WAVE
+        holo tilt|MOTION|PurePixel|FLOYD_STEINBERG
+        dead channel|MOTION|PurePixel|FLOYD_STEINBERG
+        night watch|MOTION|PurePixel|FLOYD_STEINBERG
+        strip light hum|MOTION|PurePixel|FLOYD_STEINBERG
         bad signal|MOTION|PurePixel|NONE
         static storm|MOTION|PurePixel|NONE
         rolling glow|MOTION|PurePixel|NONE
@@ -170,6 +174,9 @@ class PresetLibraryTest {
         oscilloscope|GEOMETRY|Oscilloscope|NONE
         amber scope|GEOMETRY|Oscilloscope|NONE
         pulsar|GEOMETRY|Oscilloscope|NONE
+        scope sweep|GEOMETRY|Oscilloscope|NONE
+        scope drift|GEOMETRY|Oscilloscope|NONE
+        scope wave|GEOMETRY|Oscilloscope|NONE
         flow ascii|GLYPH|FlowAscii|NONE
         ascii fur|GLYPH|FlowAscii|NONE
         moonlit ascii|GLYPH|FlowAscii|NONE
@@ -322,12 +329,15 @@ class PresetLibraryTest {
      *   the previous digest.
      * - `weirdcore`, `found footage` and `poolrooms` joined. Checked locally: without them the
      *   library hashed to the previous digest.
+     * - The oscilloscope gained `"motion"`, written into every preset, and the moving presets
+     *   `scope sweep`, `scope drift`, `scope wave`, `holo tilt`, `dead channel`, `night watch`
+     *   and `strip light hum` joined. No older preset's look changed.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "9806e49266c5896ec7f60aed7e81abcc83f8c7da89358a7274feea9e0dc7d32a"
+    private val digest = "98fdb621936bd6f2e6829ba35fb89bff3cd6a4e092baceb21e7bae73417c509a"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -367,8 +377,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 141, presets.size)
-        assertEquals("curated presets", 135, curated.size)
+        assertEquals("built-in presets", 148, presets.size)
+        assertEquals("curated presets", 142, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 
@@ -429,9 +439,12 @@ class PresetLibraryTest {
             "$pixel of ${curated.size} presets are pixel dithers, which is not 80-92 %",
             pixel * 100 >= curated.size * 80 && pixel * 100 <= curated.size * 92,
         )
+        // Counted with flow ASCII since the library passed 140: both are the shelf of characters,
+        // and it is that shelf which has to stay a visible minority, not one of its two modes.
+        val characters = glyph + flow
         assertTrue(
-            "$glyph of ${curated.size} presets are glyph art, which is not 8-20 %",
-            glyph * 100 >= curated.size * 8 && glyph * 100 <= curated.size * 20,
+            "$characters of ${curated.size} presets are made of characters, which is not 8-20 %",
+            characters * 100 >= curated.size * 8 && characters * 100 <= curated.size * 20,
         )
     }
 

@@ -15,6 +15,20 @@ enum class Phosphor(val label: String, val rgb: Int) {
     WHITE("white", 0xE8F0FF),
 }
 
+/** How the tube moves over an animation. Every one of them closes its loop without a seam. */
+enum class ScopeMotion(val label: String) {
+    STILL("still"),
+
+    /** The beam writes the picture from left to right, and the phosphor fades behind it. */
+    SWEEP("sweep"),
+
+    /** The traces travel down the tube, each taking the place of the next. */
+    DRIFT("drift"),
+
+    /** A wave runs along the traces, as if the signal were unsteady. */
+    WAVE("wave"),
+}
+
 @Serializable
 data class OscilloscopeParams(
     /** 4..24 — the distance between two traces, in 768ths of the picture's longer side. */
@@ -28,6 +42,8 @@ data class OscilloscopeParams(
     val glow: Int = 100,
     /** The measuring grid etched on the glass. */
     val graticule: Boolean = true,
+    /** Moves with the animation clock; a still picture shows the start of the loop. */
+    val motion: ScopeMotion = ScopeMotion.STILL,
 )
 
 /** A finished tube face: opaque pixels. */
@@ -53,6 +69,12 @@ object Oscilloscope {
     private const val GRATICULE = 48f
     private const val FLOOR_LIGHT = 0.22f
     private const val SPEED_LOSS = 0.9f
+    private const val AFTERGLOW = 0.18f
+    private const val FADE = 3.5f
+    private const val WAVE_HEIGHT = 4f
+    private const val WAVE_LENGTH = 110f
+    private const val WAVE_STAGGER = 0.012f
+    private const val TURN = 6.2831855f
     private const val OPAQUE = 0xFF000000.toInt()
 
     /** The cell size that brings a source of this size down to the working picture. */
@@ -71,7 +93,8 @@ object Oscilloscope {
         // A beam cannot follow single cells; unsmoothed, every trace is a row of spikes.
         repeat(3) { boxBlur(tone, cols, rows, cells(SMOOTH, unit)) }
 
-        val core = traces(tone, cols, rows, width, height, scale, unit, scope)
+        val time = params.temporal.time - floor(params.temporal.time)
+        val core = traces(tone, cols, rows, width, height, scale, unit, scope, time)
         return ScopePicture(lit(core, cols, rows, width, height, scale, unit, scope), width, height)
     }
 
@@ -95,6 +118,7 @@ object Oscilloscope {
         scale: Float,
         unit: Float,
         scope: OscilloscopeParams,
+        time: Float,
     ): ByteArray {
         val core = ByteArray(width * height)
         val spacing = max(2f, scope.spacing.coerceIn(4, 24) * unit)
@@ -106,26 +130,39 @@ object Oscilloscope {
         val vs = FloatArray(width)
 
         // Nearest first, which on a tube face means from the bottom up.
-        var line = floor((rows - 1) / spacing) * spacing
-        while (line >= spacing) {
+        // Drifting moves every trace down by up to one spacing, where the next one stood.
+        val drift = if (scope.motion == ScopeMotion.DRIFT) time * spacing else 0f
+        val wave = if (scope.motion == ScopeMotion.WAVE) WAVE_HEIGHT * unit * scale else 0f
+        var line = floor((rows - 1 - drift) / spacing) * spacing + drift
+        while (line > 0.01f) {
             for (x in 0 until width) {
                 val at = ((x + 0.5f) / scale - 0.5f).coerceIn(0f, cols - 1f)
                 val v = toneAt(tone, cols, rows, at, line)
                 vs[x] = v
                 ys[x] = (line - v * rise) * scale
+                if (wave > 0f) {
+                    // One whole turn per loop; each trace a little behind the one below it.
+                    ys[x] += wave * kotlin.math.sin(TURN * (time + at / (WAVE_LENGTH * unit) + (line - drift) * WAVE_STAGGER / unit))
+                }
             }
             for (x in 0 until width) {
                 val next = ys[min(x + 1, width - 1)]
                 val top = min(ys[x], next) - half
                 val bottom = max(ys[x], next) + half
-                val beam = (FLOOR_LIGHT + (1f - FLOOR_LIGHT) * vs[x]) / (1f + SPEED_LOSS * abs(next - ys[x]))
+                var beam = (FLOOR_LIGHT + (1f - FLOOR_LIGHT) * vs[x]) / (1f + SPEED_LOSS * abs(next - ys[x]))
+                if (scope.motion == ScopeMotion.SWEEP) {
+                    // How long ago the beam passed here, in loops: just written is brightest.
+                    val since = time - x.toFloat() / width
+                    val age = since - floor(since)
+                    beam *= AFTERGLOW + (1f - AFTERGLOW) * exp(-FADE * age) * 1.5f
+                }
                 val limit = if (scope.hidden) horizon[x] else Float.MAX_VALUE
                 var y = max(0, floor(top).toInt())
                 val last = min(height - 1, floor(bottom).toInt())
                 while (y <= last) {
                     if (y < limit) {
                         val cover = (min(y + 1f, bottom) - max(y.toFloat(), top)).coerceIn(0f, 1f)
-                        val value = (beam * cover * 255f).toInt()
+                        val value = (beam * cover * 255f).toInt().coerceAtMost(255)
                         val i = y * width + x
                         if (value > (core[i].toInt() and 0xFF)) core[i] = value.toByte()
                     }
