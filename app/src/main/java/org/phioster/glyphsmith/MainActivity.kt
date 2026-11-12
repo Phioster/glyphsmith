@@ -25,6 +25,9 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val EXTRA_BASE = "org.phioster.glyphsmith.extra.BASE"
+
+        /** The frames of a loop, when the picture shared is light that moves. */
+        const val EXTRA_FRAMES = "org.phioster.glyphsmith.extra.FRAMES"
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -38,7 +41,8 @@ class MainActivity : ComponentActivity() {
         val uri = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java) ?: return
         // A sender that knows Glyphsmith may name the picture its layer belongs on.
         val base = IntentCompat.getParcelableExtra(intent, EXTRA_BASE, Uri::class.java)
-        model.receiveShared(uri, base)
+        val frames = IntentCompat.getParcelableArrayListExtra(intent, EXTRA_FRAMES, Uri::class.java).orEmpty()
+        model.receiveShared(uri, base, frames)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

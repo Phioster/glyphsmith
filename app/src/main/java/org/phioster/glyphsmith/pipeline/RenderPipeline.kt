@@ -56,7 +56,8 @@ object RenderPipeline {
 
     /** A layer's own picture through the layer's settings, cut back to its silhouette. */
     private fun renderPicture(layer: Layer, frameWidth: Int, frameHeight: Int, modules: RenderModuleSet): Bitmap? {
-        val picture = LayerImages[layer.image] ?: return null
+        // A loop of frames shows the one this moment of the animation falls on.
+        val picture = LayerImages.at(layer.image, layer.params.temporal.time) ?: return null
         val side = LayerImages.sideInside(picture.width, picture.height, frameWidth, frameHeight)
         if (layer.asIs) return asItIs(picture, side)
         val rendered = renderFlat(picture.pixels, picture.width, picture.height, layer.params, side, modules)

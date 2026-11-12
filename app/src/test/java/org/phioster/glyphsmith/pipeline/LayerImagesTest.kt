@@ -49,4 +49,41 @@ class LayerImagesTest {
         assertEquals(0x80, rendered[0] ushr 24)
         assertEquals(0x40, rendered[1] ushr 24)
     }
+
+    @Test
+    fun `a loop shows the frame its moment falls on, and wraps`() {
+        assertEquals(0, LayerImages.frameAt(0f, 24))
+        assertEquals(12, LayerImages.frameAt(0.5f, 24))
+        assertEquals(23, LayerImages.frameAt(0.999f, 24))
+        assertEquals(0, LayerImages.frameAt(1f, 24))
+        assertEquals(6, LayerImages.frameAt(1.25f, 24))
+        assertEquals(0, LayerImages.frameAt(0.7f, 1))
+        assertEquals(0, LayerImages.frameAt(Float.NaN, 24))
+    }
+
+    @Test
+    fun `a loop's frames are fetched as needed, and a still stays what it was`() {
+        val asked = mutableListOf<Int>()
+        LayerImages.put("loop", LayerImages.Picture(IntArray(1) { -1 }, 1, 1))
+        LayerImages.put("still", LayerImages.Picture(IntArray(1) { 7 }, 1, 1))
+        LayerImages.setLoop("loop", 4)
+        LayerImages.frameLoader = { _, index ->
+            asked += index
+            LayerImages.Picture(IntArray(1) { index }, 1, 1)
+        }
+        assertEquals(4, LayerImages.frames("loop"))
+        assertEquals(1, LayerImages.frames("still"))
+        assertEquals(2, LayerImages.at("loop", 0.5f)?.pixels?.get(0))
+        assertEquals(2, LayerImages.at("loop", 0.6f)?.pixels?.get(0))
+        assertEquals(listOf(2), asked)
+        assertEquals(7, LayerImages.at("still", 0.5f)?.pixels?.get(0))
+
+        // A frame that cannot be fetched leaves the still in its place.
+        LayerImages.frameLoader = { _, _ -> null }
+        assertEquals(-1, LayerImages.at("loop", 0f)?.pixels?.get(0))
+
+        LayerImages.keepOnly(listOf("still"))
+        assertEquals(1, LayerImages.frames("loop"))
+        LayerImages.frameLoader = null
+    }
 }

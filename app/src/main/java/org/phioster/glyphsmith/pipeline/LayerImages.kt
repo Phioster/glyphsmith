@@ -1,6 +1,7 @@
 package org.phioster.glyphsmith.pipeline
 
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -20,6 +21,48 @@ object LayerImages {
 
     operator fun get(id: String): Picture? = held[id]
 
+    /**
+     * Pictures that are a loop of frames — light handed over moving — and how many each has.
+     * The frames stay on file and are fetched as they are needed: an animation asks for them
+     * in order, so a few at hand are enough, and a whole loop held would be most of the heap.
+     */
+    private val loops = ConcurrentHashMap<String, Int>()
+    private val recent = LinkedHashMap<String, Picture>()
+
+    /** Fetches frame [Int] of the loop named; set by whoever keeps the files. */
+    @Volatile
+    var frameLoader: ((String, Int) -> Picture?)? = null
+
+    fun setLoop(id: String, frames: Int) {
+        if (frames > 1) loops[id] = frames else loops.remove(id)
+        synchronized(recent) { recent.keys.removeAll { it.startsWith("$id/") } }
+    }
+
+    /** How many frames the picture [id] has; 1 for a still. */
+    fun frames(id: String): Int = loops[id] ?: 1
+
+    /** Which of [count] frames shows at [time] of a loop; the loop runs once over 0..1 and wraps. */
+    fun frameAt(time: Float, count: Int): Int {
+        if (count <= 1 || time.isNaN()) return 0
+        return ((time - floor(time)) * count).toInt().coerceIn(0, count - 1)
+    }
+
+    /** The picture [id] as it stands at [time] of the loop: its frame, or the still it also is. */
+    fun at(id: String, time: Float): Picture? {
+        val count = loops[id] ?: return held[id]
+        val index = frameAt(time, count)
+        val key = "$id/$index"
+        synchronized(recent) { recent[key] }?.let { return it }
+        val loaded = frameLoader?.invoke(id, index) ?: return held[id]
+        synchronized(recent) {
+            recent[key] = loaded
+            while (recent.size > RECENT_FRAMES) recent.remove(recent.keys.first())
+        }
+        return loaded
+    }
+
+    private const val RECENT_FRAMES = 3
+
     fun put(id: String, picture: Picture) {
         held[id] = picture
     }
@@ -29,6 +72,7 @@ object LayerImages {
     /** Forgets every picture not named in [ids], so a removed layer stops costing memory. */
     fun keepOnly(ids: Collection<String>) {
         held.keys.retainAll(ids.toSet())
+        loops.keys.retainAll(ids.toSet())
     }
 
     /** The longest side a [width]×[height] picture may be rendered at to fit inside the frame. */
