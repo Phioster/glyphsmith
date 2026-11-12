@@ -110,6 +110,18 @@ object Layers {
     const val HANDED_LIGHT = "light"
 
     /**
+     * [animation] set to play a loop of [frames] lasting [loopMs] as it was made: as long, and a
+     * frame of the one for a frame of the other. Only where nothing is animated here yet — a
+     * picture with its own animation keeps its timing, and the loop is fitted into that.
+     */
+    fun timedFor(animation: AnimationParams, frames: Int, loopMs: Int): AnimationParams {
+        if (frames <= 1 || loopMs <= 0 || animation.enabled) return animation
+        val count = frames.coerceIn(AnimationParams.FRAME_RANGE.first, AnimationParams.FRAME_RANGE.last)
+        val fps = Math.round(count * 1000f / loopMs).coerceIn(AnimationParams.FPS_RANGE.first, AnimationParams.FPS_RANGE.last)
+        return animation.copy(frames = count, fps = fps)
+    }
+
+    /**
      * [layers] with [light] on top, in place of any light handed over before. Told apart by name
      * and by having a picture of its own, so nothing new has to be stored in a look.
      */

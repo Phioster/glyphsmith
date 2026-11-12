@@ -336,15 +336,17 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
      * A picture shared from another app: a layer over the open picture. With nothing open, the
      * sender's [base] is loaded first if it gave one; otherwise the shared picture is the picture.
      */
-    fun receiveShared(uri: Uri, base: Uri?, frames: List<Uri> = emptyList()) {
+    fun receiveShared(uri: Uri, base: Uri?, frames: List<Uri> = emptyList(), loopMs: Int = 0) {
         when {
             // Only a sender that names a base is handing over light for it, and a second
             // handover is meant to replace the first, not to pile up on it.
-            _state.value.hasImage -> runExport("layer picture") { addPictureLayer(uri, light = base != null, frames = frames) }
+            _state.value.hasImage -> runExport("layer picture") {
+                addPictureLayer(uri, light = base != null, frames = frames, loopMs = loopMs)
+            }
             base == null -> loadImage(uri)
             else -> viewModelScope.launch {
                 if (!loadStill(base)) return@launch
-                val message = runCatching { addPictureLayer(uri, light = true, frames = frames) }
+                val message = runCatching { addPictureLayer(uri, light = true, frames = frames, loopMs = loopMs) }
                     .getOrElse { "layer picture failed: ${it.message}" }
                 _state.value = _state.value.copy(status = message)
             }
@@ -353,7 +355,12 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     fun addLayerPicture(uri: Uri) = runExport("layer picture") { addPictureLayer(uri) }
 
-    private suspend fun addPictureLayer(uri: Uri, light: Boolean = false, frames: List<Uri> = emptyList()): String {
+    private suspend fun addPictureLayer(
+        uri: Uri,
+        light: Boolean = false,
+        frames: List<Uri> = emptyList(),
+        loopMs: Int = 0,
+    ): String {
         val id = withContext(Dispatchers.IO) { layerImages.adopt(uri) }
             ?: return "could not read that picture"
         // Light that moves comes as the frames of its loop; the animation here plays them.
@@ -369,7 +376,8 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             // Light arrives looking as it did in Flaresmith; a preset chosen on it dresses it.
             asIs = light,
         )
-        updateParams(params.copy(layers = if (light) Layers.withHandedLight(params.layers, layer) else params.layers + layer))
+        val layered = params.copy(layers = if (light) Layers.withHandedLight(params.layers, layer) else params.layers + layer)
+        updateParams(layered.copy(animation = Layers.timedFor(layered.animation, loop, loopMs)))
         return when {
             loop > 1 -> "moving light received · $loop frames · play it under anim"
             light -> "light received"

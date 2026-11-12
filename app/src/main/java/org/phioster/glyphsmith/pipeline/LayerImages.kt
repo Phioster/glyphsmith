@@ -47,19 +47,64 @@ object LayerImages {
         return ((time - floor(time)) * count).toInt().coerceIn(0, count - 1)
     }
 
-    /** The picture [id] as it stands at [time] of the loop: its frame, or the still it also is. */
+    /**
+     * The picture [id] as it stands at [time] of the loop, or the still it also is. A moment
+     * between two frames is the two mixed: an animation here seldom has as many frames as the
+     * loop, and the nearest frame alone held one twice and the next once, which stuttered.
+     */
     fun at(id: String, time: Float): Picture? {
         val count = loops[id] ?: return held[id]
-        val index = frameAt(time, count)
+        if (time.isNaN()) return frame(id, 0) ?: held[id]
+        val exact = (time - floor(time)) * count
+        val index = exact.toInt().coerceIn(0, count - 1)
+        val first = frame(id, index) ?: return held[id]
+        val share = exact - index
+        if (share < NEAR_ENOUGH) return first
+        val second = frame(id, (index + 1) % count) ?: return first
+        return mixed(first, second, share)
+    }
+
+    private fun frame(id: String, index: Int): Picture? {
         val key = "$id/$index"
         synchronized(recent) { recent[key] }?.let { return it }
-        val loaded = frameLoader?.invoke(id, index) ?: return held[id]
+        val loaded = frameLoader?.invoke(id, index) ?: return null
         synchronized(recent) {
             recent[key] = loaded
             while (recent.size > RECENT_FRAMES) recent.remove(recent.keys.first())
         }
         return loaded
     }
+
+    /**
+     * [a] with [share] (0..1) of [b] in it. Colour is weighed by how solid each pixel is, so
+     * light fading in does not drag the black of an empty pixel along with it.
+     */
+    fun mixed(a: Picture, b: Picture, share: Float): Picture {
+        if (a.width != b.width || a.height != b.height) return a
+        val t = share.coerceIn(0f, 1f)
+        val out = IntArray(a.pixels.size)
+        for (i in out.indices) {
+            val p = a.pixels[i]
+            val q = b.pixels[i]
+            if (p == q) {
+                out[i] = p
+                continue
+            }
+            val pa = (p ushr 24) * (1f - t)
+            val qa = (q ushr 24) * t
+            val alpha = pa + qa
+            if (alpha < 0.5f) continue
+            val r = ((p shr 16 and 0xFF) * pa + (q shr 16 and 0xFF) * qa) / alpha
+            val g = ((p shr 8 and 0xFF) * pa + (q shr 8 and 0xFF) * qa) / alpha
+            val bl = ((p and 0xFF) * pa + (q and 0xFF) * qa) / alpha
+            out[i] = ((alpha + 0.5f).toInt().coerceAtMost(OPAQUE) shl 24) or
+                ((r + 0.5f).toInt() shl 16) or ((g + 0.5f).toInt() shl 8) or (bl + 0.5f).toInt()
+        }
+        return Picture(out, a.width, a.height)
+    }
+
+    /** So close to a frame that it is shown as it is. */
+    private const val NEAR_ENOUGH = 0.04f
 
     private const val RECENT_FRAMES = 3
 
