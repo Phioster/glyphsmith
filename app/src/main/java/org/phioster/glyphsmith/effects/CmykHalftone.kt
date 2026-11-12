@@ -8,6 +8,7 @@ import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
+import org.phioster.glyphsmith.core.pipeline.RowParallel
 import org.phioster.glyphsmith.core.image.Pixels
 
 /**
@@ -79,9 +80,11 @@ object CmykHalftone {
             sines[ink] = sin(radians).toFloat()
         }
 
+        // Each pixel is worked out from itself and where it sits, so the rows can be shared out;
+        // the scratch for the four inks is each worker's own.
+        RowParallel.rows(source.height) { band ->
         val coverage = FloatArray(4)
-
-        for (y in 0 until source.height) {
+        for (y in band) {
             for (x in 0 until source.width) {
                 val index = y * source.width + x
                 val pixel = source.data[index]
@@ -115,6 +118,7 @@ object CmykHalftone {
                     (b * 255f).toInt().coerceIn(0, 255),
                 )
             }
+        }
         }
         return source
     }
