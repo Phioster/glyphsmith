@@ -1,6 +1,10 @@
 package org.phioster.glyphsmith
 
 import org.phioster.glyphsmith.render.Layers
+import org.phioster.glyphsmith.render.FlowAscii
+import org.phioster.glyphsmith.render.FlowVector
+import org.phioster.glyphsmith.render.Oscilloscope
+import org.phioster.glyphsmith.render.ScopeVector
 import org.phioster.glyphsmith.render.PixelDitherRenderer
 import org.phioster.glyphsmith.render.QuantisePass
 import org.phioster.glyphsmith.render.CellSampler
@@ -719,6 +723,17 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val params = _state.value.params
         val pair = withContext(Dispatchers.Default) {
             val pixels = current.pixelsAt(0f)
+            // The two modes that are not set on a grid lay their picture out on a working
+            // picture of their own size, and the vector has to come from that same one.
+            if (params.renderMode == RenderMode.Oscilloscope) {
+                val side = Oscilloscope.cellFor(current.width, current.height)
+                return@withContext ScopeVector.svg(CellSampler.sample(pixels, current.width, current.height, params, side, side), params)
+            }
+            if (params.renderMode == RenderMode.FlowAscii) {
+                val side = FlowAscii.cellFor(current.width, current.height)
+                val marks = FlowAscii.marks(CellSampler.sample(pixels, current.width, current.height, params, side, side), params)
+                return@withContext FlowVector.svg(marks, params)
+            }
             val cell = params.cellSize.coerceAtLeast(1)
             val grid = CellSampler.sample(
                 pixels, current.width, current.height, params, cell, cell,

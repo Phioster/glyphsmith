@@ -173,12 +173,15 @@ fun OutputPanel(
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             // In shape shifter the same export writes the shapes themselves, as true outlines.
-            val shapes = state.params.renderMode == RenderMode.ShapeShifter
-            // Flow ASCII has no cells to write a block for.
-            TerminalButton(
-                if (shapes) "svg shapes" else "svg blocks", onExportPixelSvg, Modifier.weight(1f),
-                enabled && state.params.renderMode.onGrid,
-            )
+            // Off the grid there are no blocks: the oscilloscope writes its traces as lines, and
+            // flow ASCII its characters and hairs as text and strokes.
+            val label = when (state.params.renderMode) {
+                RenderMode.ShapeShifter -> "svg shapes"
+                RenderMode.Oscilloscope -> "svg traces"
+                RenderMode.FlowAscii -> "svg marks"
+                else -> "svg blocks"
+            }
+            TerminalButton(label, onExportPixelSvg, Modifier.weight(1f), enabled)
             TerminalButton(
                 "svg text", { onExportSvg(SvgMode.TEXT) }, Modifier.weight(1f), textEnabled,
             )
