@@ -136,6 +136,8 @@ class PresetLibraryTest {
         cyberpunk rain|COLOR|PurePixel|BAYER_4
         ps1 horror|COLOR|PurePixel|BAYER_4
         backrooms|COLOR|PurePixel|FLOYD_STEINBERG
+        game boy camera|COLOR|PurePixel|BAYER_4
+        akahana|COLOR|PurePixel|BAYER_4
         synthwave|COLOR|PurePixel|FLOYD_STEINBERG
         vhs night|GLITCH|PurePixel|FLOYD_STEINBERG
         frutiger aero|COLOR|PurePixel|FLOYD_STEINBERG
@@ -304,12 +306,14 @@ class PresetLibraryTest {
      * - Layers gained `asIs`, off by default, and the encoding writes defaults: every preset with
      *   layers now carries the field. No preset's look changed; the library source is untouched.
      * - `backrooms` joined. Checked locally: without it the library hashed to the previous digest.
+     * - `game boy camera` and `akahana` joined. Checked locally: without them the library hashed
+     *   to the previous digest.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "e0dd2f1f89b9f6099ddab9d0f1e3f076b044831b463a8ad7a6c270affcff378e"
+    private val digest = "11088f6f473bf0790d787396c908367d99405e9e5d85059bf9f706697ef694a5"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -349,8 +353,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 131, presets.size)
-        assertEquals("curated presets", 125, curated.size)
+        assertEquals("built-in presets", 133, presets.size)
+        assertEquals("curated presets", 127, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 

@@ -161,6 +161,15 @@ object PresetLibrary {
         0xFF080702, 0xFF1E1A0A, 0xFF3A3414, 0xFF5A5222, 0xFF7E7230, 0xFFA8943E, 0xFFCCB656, 0xFFE8D67E, 0xFFFAF2BC,
     ).map { it.toInt() }
 
+    /**
+     * Akahana's own colours, taken from the game: the field's greys, the poppies' reds, dry grass,
+     * and the amber of its lanterns.
+     */
+    private val AKAHANA = listOf(
+        0xFF1A1618, 0xFF2E2829, 0xFF575052, 0xFF8E888A, 0xFFC3BFBA, 0xFFE8E4DC, 0xFF5E1418, 0xFF93282D,
+        0xFFD8363C, 0xFFE8504A, 0xFF3D3424, 0xFF5A4A30, 0xFF7C6844, 0xFF9C875B, 0xFFF0A050, 0xFFFFD8A0,
+    ).map { it.toInt() }
+
     /** What a 1998 console had for a foggy town: grey-greens, browns, rust, and nothing bright. */
     private val MURK = listOf(
         0xFF050605, 0xFF12140F, 0xFF1E221C, 0xFF2C302A, 0xFF3C423C, 0xFF50564E, 0xFF686E64, 0xFF848A7E,
@@ -1773,6 +1782,39 @@ object PresetLibrary {
                     glow = GlowParams(enabled = true, threshold = 72, radius = 70, intensity = 200),
                     blurSharpen = BlurSharpenParams(enabled = true, amount = 20, radius = 2),
                     interlace = InterlaceParams(enabled = true, shift = 1, density = 12, tearColor = 20),
+                ),
+            ),
+        ),
+        pixel(
+            "game boy camera",
+            PresetStore.CATEGORY_COLOR,
+            // The camera cartridge rather than the console: smaller pixels than `gameboy`, hard
+            // contrast, the four greens in an ordered screen, and sensor noise.
+            RenderSettings(
+                cellSize = 5,
+                ditherMode = DitherMode.BAYER_4,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.gameboy",
+                contrast = 1.35f,
+                backgroundColor = 0xFF0F380F.toInt(),
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(enabled = true, grain = 16),
+                ),
+            ),
+        ),
+        pixel(
+            "akahana",
+            PresetStore.CATEGORY_COLOR,
+            // The game's colours in the game's 4x4 raster, with its warm lantern glow.
+            RenderSettings(
+                cellSize = 3,
+                ditherMode = DitherMode.BAYER_4,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = AKAHANA,
+                effects = EffectStack(
+                    tint = TintParams(enabled = true, color = 0xFFFF9E4D.toInt(), amount = 8),
+                    glow = GlowParams(enabled = true, threshold = 70, radius = 80, intensity = 220),
                 ),
             ),
         ),
