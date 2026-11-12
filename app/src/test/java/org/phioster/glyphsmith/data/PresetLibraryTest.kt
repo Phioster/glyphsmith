@@ -332,12 +332,13 @@ class PresetLibraryTest {
      * - The oscilloscope gained `"motion"`, written into every preset, and the moving presets
      *   `scope sweep`, `scope drift`, `scope wave`, `holo tilt`, `dead channel`, `night watch`
      *   and `strip light hum` joined. No older preset's look changed.
+     * - `strip light hum` flickers at uneven moments instead of in time. Only that preset changed.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "98fdb621936bd6f2e6829ba35fb89bff3cd6a4e092baceb21e7bae73417c509a"
+    private val digest = "35856f0856e9c59b6591955a23b039d901ecdc22544a2f312144f7eeee0ddd45"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -704,9 +705,10 @@ class PresetLibraryTest {
         assertTrue("there are no motion presets", motion.isNotEmpty())
         motion.forEach { preset ->
             assertTrue("${preset.name} is not animated", preset.params.animation.enabled)
+            // A track or a segment: either is what the animator itself counts as moving.
             assertTrue(
-                "${preset.name} has no track aimed at anything",
-                preset.params.animation.tracks.any { it.enabled },
+                "${preset.name} has no track or segment aimed at anything",
+                preset.params.animation.tracks.any { it.enabled } || preset.params.animation.segments.isNotEmpty(),
             )
         }
     }
