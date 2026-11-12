@@ -36,7 +36,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
 - **Character sets: 48** across 11 categories (Glyph Art only).
 - **Themes: 7** — Matrix, Amber CRT, Ice, Handheld and Rose are dark; Parchment and Medieval
   are light.
-- **Built-in presets: 136** — 130 curated (105 Pixel Dither, 11 Glyph Art, 7 Shape Shifter, 4 Flow ASCII, 3 Oscilloscope) plus 6 Algorithm Lab
+- **Built-in presets: 138** — 132 curated (107 Pixel Dither, 11 Glyph Art, 7 Shape Shifter, 4 Flow ASCII, 3 Oscilloscope) plus 6 Algorithm Lab
   presets, which are counted separately.
 - **Tests: 684 test methods across 69 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and
