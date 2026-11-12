@@ -137,11 +137,26 @@ object PresetLibrary {
 
     /**
      * Foil on a trading card: under the shadows, the pastel rainbow runs through twice, so a
-     * small change in brightness is a change of colour and a surface shimmers as it turns.
+     * small change in brightness is a change of colour and a surface shimmers as it turns. It
+     * ends in pale pink, not white: white left skin as a blank. Same number of stops as before,
+     * because the stops are spread evenly and one more would have moved every colour.
      */
     private val HOLO = listOf(
         0xFF0A0A1E, 0xFF3A2A6A, 0xFFE87AC8, 0xFFF8D878, 0xFF7CE8B0, 0xFF6CC8F8,
-        0xFFB894F8, 0xFFF8A0D0, 0xFFF8F0B0, 0xFFB8F8E8, 0xFFFFFFFF,
+        0xFFB894F8, 0xFFF8A0D0, 0xFFF8F0B0, 0xFF8CE0F8, 0xFFFFB0E0,
+    ).map { it.toInt() }
+
+    /** A wet street at night: a row of dull blues and violets, and a few signs' worth of neon. */
+    private val NEON_DUSK = listOf(
+        0xFF05060C, 0xFF0E1424, 0xFF16263A, 0xFF1E3A52, 0xFF2A2440, 0xFF3A1E4A, 0xFF4A5A6A, 0xFF6E7E8E,
+        0xFF12A8D8, 0xFF4CE0FF, 0xFFE0218A, 0xFFFF6FC0, 0xFF7A3AD8, 0xFFFFD84A, 0xFFB8D8F0, 0xFFFFFFFF,
+    ).map { it.toInt() }
+
+    /** What a 1998 console had for a foggy town: grey-greens, browns, rust, and nothing bright. */
+    private val MURK = listOf(
+        0xFF050605, 0xFF12140F, 0xFF1E221C, 0xFF2C302A, 0xFF3C423C, 0xFF50564E, 0xFF686E64, 0xFF848A7E,
+        0xFFA0A498, 0xFFBEC0B4, 0xFFDCDCD0, 0xFF2A1A12, 0xFF4A2A1A, 0xFF6E3E24, 0xFF8E5A3A, 0xFFB08862,
+        0xFFD0B08C, 0xFF5A1410, 0xFF8E2018, 0xFFB83A28, 0xFF1E2E3A, 0xFF34485A, 0xFF2A3A22, 0xFF4A5A34,
     ).map { it.toInt() }
 
     /** A sunset behind a grid: night violet through magenta and orange to pale yellow. */
@@ -1669,6 +1684,63 @@ object PresetLibrary {
                 paletteOverride = HOLO,
                 effects = EffectStack(
                     stars = DiffractionStarsParams(enabled = true, threshold = 88, rays = 4, length = 26, intensity = 380),
+                ),
+            ),
+        ),
+        pixel(
+            "analog film",
+            PresetStore.CATEGORY_COLOR,
+            // A print from a roll of film: grain, warm and a little soft, dark in the corners. The
+            // red halo round the lights comes from Flaresmith's look of the same name.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = PAINT_BOX,
+                saturation = 110,
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(enabled = true, grain = 28, grainKind = GrainKind.FILM, vignette = 28),
+                    tint = TintParams(enabled = true, color = 0xFFFFB070.toInt(), amount = 10),
+                    glow = GlowParams(enabled = true, threshold = 78, radius = 60, intensity = 220),
+                    blurSharpen = BlurSharpenParams(enabled = true, amount = 15, radius = 2),
+                ),
+            ),
+        ),
+        pixel(
+            "cyberpunk rain",
+            PresetStore.CATEGORY_COLOR,
+            // Dull blues in an ordered screen with the neon left bright, and every light pulled
+            // sideways into the streak of a cinema lens.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.BAYER_4,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = NEON_DUSK,
+                contrast = 1.15f,
+                effects = EffectStack(
+                    tint = TintParams(enabled = true, color = 0xFF2060FF.toInt(), amount = 12),
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = 2),
+                    glow = GlowParams(enabled = true, threshold = 70, radius = 110, intensity = 380, aspectRatio = 400),
+                ),
+            ),
+        ),
+        pixel(
+            "ps1 horror",
+            PresetStore.CATEGORY_COLOR,
+            // Coarse pixels in the console's 4x4 screen, few and murky colours, and fog over all
+            // of it: the town you should not have driven into.
+            RenderSettings(
+                cellSize = 4,
+                ditherMode = DitherMode.BAYER_4,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = MURK,
+                saturation = 75,
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(enabled = true, grain = 12, vignette = 45),
+                    tint = TintParams(enabled = true, color = 0xFF8A9088.toInt(), amount = 22),
                 ),
             ),
         ),
