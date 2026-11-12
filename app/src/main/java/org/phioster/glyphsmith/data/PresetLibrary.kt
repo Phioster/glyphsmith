@@ -177,6 +177,26 @@ object PresetLibrary {
         0xFF000000, 0xFF120003, 0xFF3A0508, 0xFF7A0A10, 0xFFC8181C, 0xFFFF6A50, 0xFFFFE8D8,
     ).map { it.toInt() }
 
+    /**
+     * A child's paint set and nothing else: the pure colours, black, white and two greys. No dark
+     * red: with one in the box, every shadow of a warm picture turned into it.
+     */
+    private val PRIMARY = listOf(
+        0xFF000000, 0xFFFFFFFF, 0xFFFF0000, 0xFF0000FF, 0xFFFFFF00, 0xFF00C000, 0xFFFF00FF, 0xFF00FFFF,
+        0xFF808080, 0xFFC0C0C0, 0xFF000080, 0xFFFF8000, 0xFF80C0FF,
+    ).map { it.toInt() }
+
+    /** A camcorder's night shot, as a ramp: black through tube green to a pale, overlit green. */
+    private val NIGHT_SHOT = listOf(
+        0xFF000200, 0xFF041A06, 0xFF0E4A14, 0xFF2A9A2A, 0xFF8CEB6A, 0xFFE8FFD8,
+    ).map { it.toInt() }
+
+    /** Tiles and water under skylights: whites, turquoise in every depth, and a little warm light. */
+    private val POOL = listOf(
+        0xFF021018, 0xFF0A3040, 0xFF0E6A80, 0xFF1E98B0, 0xFF38C0D0, 0xFF78DCE0, 0xFFB0F0F0, 0xFFE8FFFF,
+        0xFFFFFFFF, 0xFFF8F0C8, 0xFFC8E8D0, 0xFF6AA8A0, 0xFF2A5860, 0xFF9AD0E8, 0xFF4A88B0, 0xFF183848,
+    ).map { it.toInt() }
+
     /** What a 1998 console had for a foggy town: grey-greens, browns, rust, and nothing bright. */
     private val MURK = listOf(
         0xFF050605, 0xFF12140F, 0xFF1E221C, 0xFF2C302A, 0xFF3C423C, 0xFF50564E, 0xFF686E64, 0xFF848A7E,
@@ -1872,6 +1892,64 @@ object PresetLibrary {
                         shadowColor = 0xFF06105A.toInt(), highlightColor = 0xFFFF3848.toInt(), amount = 72,
                     ),
                     glow = GlowParams(enabled = true, threshold = 65, radius = 70, intensity = 220),
+                ),
+            ),
+        ),
+        pixel(
+            "weirdcore",
+            PresetStore.CATEGORY_GLITCH,
+            // A picture saved too often, from a place that feels wrong: only the pure colours
+            // left, in coarse pixels, with the blocks of a worn-out JPEG.
+            RenderSettings(
+                cellSize = 3,
+                ditherMode = DitherMode.BAYER_4,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = PRIMARY,
+                saturation = 180,
+                contrast = 1.2f,
+                effects = EffectStack(
+                    jpegGlitch = JpegGlitchParams(enabled = true, quality = 12, corruption = 0),
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = 2),
+                ),
+            ),
+        ),
+        pixel(
+            "found footage",
+            PresetStore.CATEGORY_GLITCH,
+            // The night shot of a camcorder: everything green, noisy, soft, the lights blooming,
+            // and dark towards the edge of the lens.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.oxide",
+                paletteOverride = NIGHT_SHOT,
+                contrast = 1.3f,
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(enabled = true, grain = 34, vignette = 70, scanlines = 16, scanlineSpacing = 3),
+                    glow = GlowParams(enabled = true, threshold = 62, radius = 60, intensity = 240),
+                    blurSharpen = BlurSharpenParams(enabled = true, amount = 20, radius = 2),
+                    interlace = InterlaceParams(enabled = true, shift = 1, density = 10, tearColor = 15),
+                    crtWarp = CrtWarpParams(enabled = true, warpCurvature = 18, vignetteIntensity = 55),
+                ),
+            ),
+        ),
+        pixel(
+            "poolrooms",
+            PresetStore.CATEGORY_COLOR,
+            // Empty halls of tile and still water: everything in whites and turquoise, clean, in
+            // an even screen, with daylight blooming off the surfaces.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.BAYER_4,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = POOL,
+                brightness = 0.06f,
+                effects = EffectStack(
+                    tint = TintParams(enabled = true, color = 0xFF40D0E0.toInt(), amount = 14),
+                    glow = GlowParams(enabled = true, threshold = 74, radius = 60, intensity = 200),
                 ),
             ),
         ),
