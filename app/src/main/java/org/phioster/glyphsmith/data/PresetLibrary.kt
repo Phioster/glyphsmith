@@ -13,6 +13,7 @@ import org.phioster.glyphsmith.render.LayerBlend
 import org.phioster.glyphsmith.render.OscilloscopeParams
 import org.phioster.glyphsmith.render.Phosphor
 import org.phioster.glyphsmith.render.RenderMode
+import org.phioster.glyphsmith.render.ScopeMotion
 import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
 import org.phioster.glyphsmith.effects.ChromaticParams
@@ -216,6 +217,13 @@ object PresetLibrary {
     /** An oscilloscope preset: the picture as traces on a tube. */
     private fun scope(name: String, params: RenderSettings) =
         Preset(name, params.copy(renderMode = RenderMode.Oscilloscope), PresetStore.CATEGORY_GEOMETRY)
+
+    /**
+     * An oscilloscope preset that moves. The tube runs off the animation clock, so the animation
+     * is switched on with no track of its own.
+     */
+    private fun movingScope(name: String, scope: OscilloscopeParams, contrast: Float = 1.3f) =
+        scope(name, RenderSettings(contrast = contrast, oscilloscope = scope, animation = animation(frames = 36, fps = 15)))
 
     /** A Shape Shifter preset: tones drawn as vector shapes on a grid. */
     private fun shapes(name: String, category: String, params: RenderSettings) =
@@ -1378,6 +1386,106 @@ object PresetLibrary {
                 // A sawtooth over a whole period is what makes the pattern travel rather
                 // than rock back and forth.
                 animation = animation(sweep(AnimTarget.MOD_PHASE, 0, 100, AnimCurve.SAWTOOTH)),
+            ),
+        ),
+        pixel(
+            "holo tilt",
+            PresetStore.CATEGORY_MOTION,
+            // `holo foil` being turned in the hand: brightness sways, and because the foil's
+            // colour is its brightness, the rainbow runs across the card and back. Coarser than
+            // the still preset, so the bands of colour are wide enough to follow.
+            RenderSettings(
+                cellSize = 3,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.oxide",
+                paletteOverride = HOLO,
+                effects = EffectStack(
+                    stars = DiffractionStarsParams(enabled = true, threshold = 86, rays = 6, length = 30, intensity = 380),
+                ),
+                animation = animation(
+                    sweep(AnimTarget.SOURCE_BRIGHTNESS, -22, 22, AnimCurve.SINE),
+                    sweep(AnimTarget.STARS_ANGLE, 0, 359, AnimCurve.SAWTOOTH),
+                    frames = 36,
+                ),
+            ),
+        ),
+        pixel(
+            "dead channel",
+            PresetStore.CATEGORY_MOTION,
+            // `analog horror` with the tape running: the picture tears somewhere else in every
+            // frame, the fields slip, and a dark bar rolls through.
+            RenderSettings(
+                cellSize = 3,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.oxide",
+                paletteOverride = BLOOD,
+                contrast = 1.45f,
+                temporal = TemporalParams(enabled = true, pattern = TemporalPattern.SCANLINE_ROLL, scale = 6, amount = 30),
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(
+                        enabled = true, grain = 28, grainKind = GrainKind.FILM, vignette = 50,
+                        scanlines = 32, scanlineSpacing = 3,
+                    ),
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = 3),
+                    sliceShift = SliceShiftParams(enabled = true, slices = 22, maxOffset = 7, density = 18),
+                    interlace = InterlaceParams(enabled = true, shift = 2, density = 20, tearColor = 30),
+                ),
+                animation = animation(
+                    sweep(AnimTarget.SLICE_OFFSET, 0, 14, AnimCurve.RANDOM),
+                    sweep(AnimTarget.INTERLACE_SHIFT, 0, 6, AnimCurve.RANDOM),
+                    sweep(AnimTarget.CHROMATIC_OFFSET, 1, 6, AnimCurve.RANDOM),
+                ),
+            ),
+        ),
+        pixel(
+            "night watch",
+            PresetStore.CATEGORY_MOTION,
+            // `found footage` while it records: the sensor noise crawls and the lamp is not
+            // quite steady.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.oxide",
+                paletteOverride = NIGHT_SHOT,
+                contrast = 1.3f,
+                temporal = TemporalParams(enabled = true, pattern = TemporalPattern.WHITE_NOISE, scale = 2, amount = 28),
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(enabled = true, vignette = 70, scanlines = 16, scanlineSpacing = 3),
+                    glow = GlowParams(enabled = true, threshold = 62, radius = 60, intensity = 240),
+                    interlace = InterlaceParams(enabled = true, shift = 1, density = 10, tearColor = 15),
+                    crtWarp = CrtWarpParams(enabled = true, warpCurvature = 18, vignetteIntensity = 55),
+                ),
+                animation = animation(
+                    sweep(AnimTarget.SOURCE_BRIGHTNESS, -5, 5, AnimCurve.RANDOM),
+                    sweep(AnimTarget.INTERLACE_SHIFT, 0, 3, AnimCurve.RANDOM),
+                ),
+            ),
+        ),
+        pixel(
+            "strip light hum",
+            PresetStore.CATEGORY_MOTION,
+            // `backrooms` with the lights on: they flicker now and then, and the tape rolls.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.PALETTE,
+                paletteId = "palette.oxide",
+                paletteOverride = STALE,
+                temporal = TemporalParams(enabled = true, pattern = TemporalPattern.SCANLINE_ROLL, scale = 8, amount = 16),
+                effects = EffectStack(
+                    postProcessing = PostProcessingParams(
+                        enabled = true, grain = 18, grainKind = GrainKind.FILM, vignette = 38,
+                        scanlines = 14, scanlineSpacing = 3,
+                    ),
+                    chromatic = ChromaticParams(enabled = true, maxDisplace = 2),
+                    glow = GlowParams(enabled = true, threshold = 72, radius = 70, intensity = 200),
+                    interlace = InterlaceParams(enabled = true, shift = 1, density = 12, tearColor = 20),
+                ),
+                // A pulse is steady light with a short dip in it: a tube that is about to go.
+                animation = animation(sweep(AnimTarget.SOURCE_BRIGHTNESS, 0, -14, AnimCurve.PULSE, cycles = 2)),
             ),
         ),
         pixel(
@@ -2545,6 +2653,16 @@ object PresetLibrary {
                 oscilloscope = OscilloscopeParams(phosphor = Phosphor.WHITE, spacing = 10, height = 48, glow = 25, graticule = false),
             ),
         ),
+        // The beam writing the picture, over and over, with the phosphor fading behind it.
+        movingScope("scope sweep", OscilloscopeParams(motion = ScopeMotion.SWEEP)),
+        // The traces travel down the tube like a landscape passing under a plane.
+        movingScope(
+            "scope drift",
+            OscilloscopeParams(phosphor = Phosphor.WHITE, spacing = 10, height = 48, glow = 25, graticule = false, motion = ScopeMotion.DRIFT),
+            contrast = 1.4f,
+        ),
+        // An unsteady signal: a wave runs along every trace.
+        movingScope("scope wave", OscilloscopeParams(phosphor = Phosphor.BLUE, spacing = 7, height = 26, motion = ScopeMotion.WAVE)),
         flow(
             "flow ascii",
             // Characters that lie along fingers, folds and faces, in the picture's own colours.

@@ -72,4 +72,24 @@ class OscilloscopeTest {
         assertTrue("most of the tube is dark", column.count { (it shr 16 and 0xFF) < 30 } > column.size / 2)
         assertTrue("every pixel is opaque", picture.pixels.all { it ushr 24 == 0xFF })
     }
+
+    private fun moving(motion: ScopeMotion, time: Float): ScopePicture {
+        val picture = grid(384, 200) { x, y -> ((x * 7 + y * 13) % 97) / 97f }
+        val params = settings(OscilloscopeParams(graticule = false, motion = motion))
+        return Oscilloscope.draw(picture, params.copy(temporal = params.temporal.copy(time = time)), 1f)
+    }
+
+    @Test
+    fun `every motion moves, and comes back to where it started`() {
+        for (motion in ScopeMotion.entries - ScopeMotion.STILL) {
+            val start = moving(motion, 0f)
+            assertTrue("$motion does not move", !start.pixels.contentEquals(moving(motion, 0.4f).pixels))
+            assertTrue("$motion does not close its loop", start.pixels.contentEquals(moving(motion, 1f).pixels))
+        }
+    }
+
+    @Test
+    fun `a still tube ignores the clock`() {
+        assertTrue(moving(ScopeMotion.STILL, 0f).pixels.contentEquals(moving(ScopeMotion.STILL, 0.4f).pixels))
+    }
 }
