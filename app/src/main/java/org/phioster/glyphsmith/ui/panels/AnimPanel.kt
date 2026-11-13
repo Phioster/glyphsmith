@@ -98,7 +98,9 @@ fun AnimPanel(
                 modifier = Modifier.padding(top = 6.dp),
             )
         }
-        if (!animation.enabled && !state.isVideo && !lightLoop) {
+        // And a signal fault: its bands crawl whenever the loop runs.
+        val fault = params.effects.analogError.enabled
+        if (!animation.enabled && !state.isVideo && !lightLoop && !fault) {
             Text(
                 "drives depth, offset, seeds and effect angles over time — no video needed, " +
                     "the still image stays still",
@@ -157,7 +159,7 @@ fun AnimPanel(
             (animation.enabled && (animation.activeCount > 0 || animation.segments.isNotEmpty())) ||
             params.temporal.enabled ||
             // Light handed over moving plays by itself, with nothing else set.
-            lightLoop
+            lightLoop || fault
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TerminalButton(
                 label = if (state.animPlaying) "playing" else "play loop",

@@ -114,6 +114,7 @@ class PresetLibraryTest {
         vhs dub|GLITCH|PurePixel|NONE
         meltdown|GLITCH|PurePixel|NONE
         shredder|GLITCH|PurePixel|NONE
+        analog error|GLITCH|PurePixel|NONE
         drifting wave|MOTION|PurePixel|MOD_WAVE
         holo tilt|MOTION|PurePixel|FLOYD_STEINBERG
         dead channel|MOTION|PurePixel|FLOYD_STEINBERG
@@ -251,6 +252,10 @@ class PresetLibraryTest {
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
      * - **Layer pictures** (2026-11-11): a layer gains `image`, empty in every shipped preset.
      *   Checked locally: with the key stripped, the library hashed to the previous digest exactly.
+     * - **Analog error** (2026-11-13): the effect and its preset `analog error`; every preset
+     *   gains a switched-off `"analogError"` block and the slot in its order. Checked locally:
+     *   without the preset, the block and the slot, the library hashed to the previous digest
+     *   exactly.
      * - **Stress relief** (2026-11-11): the effect and its preset `flaking fresco`; paint strokes
      *   gain brushGrowth and flattenBy. Checked locally: without the preset, the block, the two
      *   keys and the slot, the library hashed to the previous digest exactly.
@@ -338,7 +343,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "35856f0856e9c59b6591955a23b039d901ecdc22544a2f312144f7eeee0ddd45"
+    private val digest = "06a93b4a4810541aa3c05a496db2aa5b738b4ecbfc4b1562b74aba4417e52802"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -378,8 +383,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 148, presets.size)
-        assertEquals("curated presets", 142, curated.size)
+        assertEquals("built-in presets", 149, presets.size)
+        assertEquals("curated presets", 143, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 

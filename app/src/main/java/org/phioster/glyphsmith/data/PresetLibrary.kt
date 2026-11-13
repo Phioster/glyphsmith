@@ -22,6 +22,7 @@ import org.phioster.glyphsmith.effects.CmykHalftoneParams
 import org.phioster.glyphsmith.effects.DiffractionStarsParams
 import org.phioster.glyphsmith.effects.EffectId
 import org.phioster.glyphsmith.effects.PixelSortParams
+import org.phioster.glyphsmith.effects.AnalogErrorParams
 import org.phioster.glyphsmith.effects.SliceShiftParams
 import org.phioster.glyphsmith.effects.SortAxis
 import org.phioster.glyphsmith.effects.SubtextureParams
@@ -1360,6 +1361,21 @@ object PresetLibrary {
                         EffectId.SUBTEXTURE, EffectId.CMYK, EffectId.GLOW,
                     ),
                 ),
+            ),
+        ),
+
+        pixel(
+            "analog error",
+            PresetStore.CATEGORY_GLITCH,
+            // The photo itself, undithered, through a colour signal whose two ends have drifted
+            // apart. Played as a loop the fault ebbs away and comes back.
+            RenderSettings(
+                cellSize = 1,
+                depth = 32,
+                ditherMode = DitherMode.NONE,
+                colorMode = ColorMode.SOURCE,
+                effects = EffectStack(analogError = AnalogErrorParams(enabled = true, swell = 100)),
+                animation = AnimationParams(frames = 48, fps = 12),
             ),
         ),
 

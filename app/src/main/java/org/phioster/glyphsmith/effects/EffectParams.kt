@@ -194,6 +194,7 @@ enum class EffectId(val wireId: String, val label: String) {
     DEPTH("effect.color-depth", "colour depth"),
     DITHER("effect.blue-noise-dither", "blue noise"),
     GLOW("effect.glow", "glow"),
+    ANALOG("effect.analog-error", "analog error"),
     WARP("effect.crt-warp", "crt warp"),
     NEO_GLOW("effect.neo-glow", "neo glow"),
     PAINT("effect.paint-strokes", "paint strokes"),
@@ -234,6 +235,7 @@ data class EffectStack(
     val neoGlow: NeoGlowParams = NeoGlowParams(),
     val paintStrokes: PaintStrokesParams = PaintStrokesParams(),
     val stressRelief: StressReliefParams = StressReliefParams(),
+    val analogError: AnalogErrorParams = AnalogErrorParams(),
     val order: List<EffectId> = EffectId.entries.toList(),
 ) {
     /**

@@ -83,6 +83,9 @@ internal fun EffectControls(
 
         EffectId.GLOW -> GlowSection(fx.glow, move) { p -> update { copy(glow = p) } }
 
+        EffectId.ANALOG ->
+            AnalogErrorSection(fx.analogError, move) { p -> update { copy(analogError = p) } }
+
         EffectId.WARP -> CrtWarpSection(fx.crtWarp, move) { p -> update { copy(crtWarp = p) } }
 
         EffectId.NEO_GLOW -> NeoGlowSection(fx.neoGlow, move) { p -> update { copy(neoGlow = p) } }
