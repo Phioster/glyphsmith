@@ -35,7 +35,7 @@ class AppWalkthroughTest {
     val rule = createAndroidComposeRule<MainActivity>()
 
     /** Every tab the app offers, by the label the row draws. */
-    private val tabs = listOf("SET", "MAP", "COLOUR", "FX", "LYR", "ANIM", "OUT", "PRE")
+    private val tabs = listOf("SET", "MAP", "COLOUR", "FX", "LYR", "ANIM", "OUT", "PRE", "APP")
 
     /**
      * A picture written to the app's own cache and handed over as a `file://` Uri.

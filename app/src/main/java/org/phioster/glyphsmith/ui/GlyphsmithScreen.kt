@@ -63,6 +63,7 @@ import org.phioster.glyphsmith.data.PreviewQuality
 import org.phioster.glyphsmith.export.ImageFormat
 import org.phioster.glyphsmith.glyph.SvgMode
 import org.phioster.glyphsmith.ui.panels.AnimPanel
+import org.phioster.glyphsmith.ui.panels.AppPanel
 import org.phioster.glyphsmith.ui.panels.RenderPanel
 import org.phioster.glyphsmith.ui.panels.ColorPanel
 import org.phioster.glyphsmith.ui.panels.EffectsPanel
@@ -84,6 +85,7 @@ private enum class Tab(val label: String) {
     ANIM("ANIM"),
     OUTPUT("OUT"),
     PRESETS("PRE"),
+    APP("APP"),
 }
 
 @Composable
@@ -378,6 +380,9 @@ fun GlyphsmithScreen(
                     onToggleFavourite = onToggleFavourite,
                     onRandomise = onRandomise,
                     onResetPresets = onResetPresets,
+                )
+
+                Tab.APP -> AppPanel(
                     themeId = themeId,
                     onThemeChange = onThemeChange,
                     previewQuality = state.previewQuality,
@@ -591,16 +596,8 @@ private fun FullView(state: UiState, onClose: () -> Unit) {
     ) {
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             Preview(state, Modifier.fillMaxSize(), framed = false)
-            Text(
-                "[close]",
-                color = Color.White,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .background(Color.Black.copy(alpha = 0.6f))
-                    .clickable(onClick = onClose)
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-            )
+            // In the theme's colours, so the view still says which app and which look it is.
+            TerminalButton("close", onClose, Modifier.align(Alignment.TopEnd).padding(10.dp))
         }
     }
 }
