@@ -98,8 +98,9 @@ fun AnimPanel(
                 modifier = Modifier.padding(top = 6.dp),
             )
         }
-        // And a signal fault: its bands crawl whenever the loop runs.
-        val fault = params.effects.analogError.enabled
+        // And the effects that run on the clock alone: a signal fault, travelling contour lines.
+        val fault = params.effects.analogError.enabled ||
+            (params.effects.contourLines.enabled && params.effects.contourLines.flow != 0)
         if (!animation.enabled && !state.isVideo && !lightLoop && !fault) {
             Text(
                 "drives depth, offset, seeds and effect angles over time — no video needed, " +

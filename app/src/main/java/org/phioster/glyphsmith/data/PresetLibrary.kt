@@ -23,6 +23,7 @@ import org.phioster.glyphsmith.effects.DiffractionStarsParams
 import org.phioster.glyphsmith.effects.EffectId
 import org.phioster.glyphsmith.effects.PixelSortParams
 import org.phioster.glyphsmith.effects.AnalogErrorParams
+import org.phioster.glyphsmith.effects.ContourLinesParams
 import org.phioster.glyphsmith.effects.SliceShiftParams
 import org.phioster.glyphsmith.effects.SortAxis
 import org.phioster.glyphsmith.effects.SubtextureParams
@@ -1114,6 +1115,25 @@ object PresetLibrary {
                 ),
             ),
         ),
+        shapes(
+            "heart glow",
+            PresetStore.CATEGORY_GEOMETRY,
+            // Hearts from violet to pink that light up: the glow takes only the bright shapes,
+            // and a slow ripple lets them swap places when the loop plays.
+            RenderSettings(
+                cellSize = 12,
+                backgroundColor = 0xFF000000.toInt(),
+                shapeShifter = ShapeShifterParams(
+                    bands = ShapeSets.named("glowing hearts"),
+                    perBandColor = true,
+                    feather = 70,
+                ),
+                temporal = TemporalParams(enabled = true, pattern = TemporalPattern.RIPPLE, scale = 10, amount = 12),
+                effects = EffectStack(
+                    glow = GlowParams(enabled = true, threshold = 30, radius = 90, intensity = 620),
+                ),
+            ),
+        ),
 
         // --- colour --------------------------------------------------------------
         // Palette work: a fixed set of inks, and the dither doing the mixing. In pixel
@@ -1376,6 +1396,20 @@ object PresetLibrary {
                 colorMode = ColorMode.SOURCE,
                 effects = EffectStack(analogError = AnalogErrorParams(enabled = true, swell = 100)),
                 animation = AnimationParams(frames = 48, fps = 12),
+            ),
+        ),
+        pixel(
+            "neon contours",
+            PresetStore.CATEGORY_GLITCH,
+            // The photo cut into neon tones, with height lines running around whatever is
+            // bright. Played as a loop the lines travel outwards.
+            RenderSettings(
+                cellSize = 1,
+                depth = 32,
+                ditherMode = DitherMode.NONE,
+                colorMode = ColorMode.SOURCE,
+                effects = EffectStack(contourLines = ContourLinesParams(enabled = true)),
+                animation = AnimationParams(frames = 36, fps = 12),
             ),
         ),
 

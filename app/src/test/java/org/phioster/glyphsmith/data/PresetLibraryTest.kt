@@ -101,6 +101,7 @@ class PresetLibraryTest {
         turning stars|GEOMETRY|ShapeShifter|NONE
         custom bayer|GEOMETRY|ShapeShifter|NONE
         red hearts|GEOMETRY|ShapeShifter|NONE
+        heart glow|GEOMETRY|ShapeShifter|NONE
         gameboy|COLOR|PurePixel|NONE
         c64 lores|COLOR|PurePixel|BAYER_4
         vapour wash|COLOR|PurePixel|FLOYD_STEINBERG
@@ -115,6 +116,7 @@ class PresetLibraryTest {
         meltdown|GLITCH|PurePixel|NONE
         shredder|GLITCH|PurePixel|NONE
         analog error|GLITCH|PurePixel|NONE
+        neon contours|GLITCH|PurePixel|NONE
         drifting wave|MOTION|PurePixel|MOD_WAVE
         holo tilt|MOTION|PurePixel|FLOYD_STEINBERG
         dead channel|MOTION|PurePixel|FLOYD_STEINBERG
@@ -252,6 +254,10 @@ class PresetLibraryTest {
      * - **`ash and mauve`** (2026-10-28), the look of a game. One new `"name"`, nothing deleted.
      * - **Layer pictures** (2026-11-11): a layer gains `image`, empty in every shipped preset.
      *   Checked locally: with the key stripped, the library hashed to the previous digest exactly.
+     * - **Contour lines and heart glow** (2026-11-13): the effect with its preset `neon contours`,
+     *   and the shape preset `heart glow`; every preset gains a switched-off `"contourLines"`
+     *   block and the slot in its order. Checked locally: without the two presets, the block and
+     *   the slot, the library hashed to the previous digest exactly.
      * - **Analog error** (2026-11-13): the effect and its preset `analog error`; every preset
      *   gains a switched-off `"analogError"` block and the slot in its order. Checked locally:
      *   without the preset, the block and the slot, the library hashed to the previous digest
@@ -343,7 +349,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "06a93b4a4810541aa3c05a496db2aa5b738b4ecbfc4b1562b74aba4417e52802"
+    private val digest = "ad237d598cfd97b90fe5543c84ee7ba3fc6fff14a357ddbdb90c4a5b0d41c485"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -383,8 +389,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 149, presets.size)
-        assertEquals("curated presets", 143, curated.size)
+        assertEquals("built-in presets", 151, presets.size)
+        assertEquals("curated presets", 145, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 

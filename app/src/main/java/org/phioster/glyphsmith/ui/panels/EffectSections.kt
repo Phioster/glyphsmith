@@ -37,6 +37,7 @@ import org.phioster.glyphsmith.ui.theme.Term
 import org.phioster.glyphsmith.core.color.ColorDistance
 import org.phioster.glyphsmith.effects.BlueNoiseDitherParams
 import org.phioster.glyphsmith.effects.ColorDepthParams
+import org.phioster.glyphsmith.effects.ContourLinesParams
 import org.phioster.glyphsmith.effects.CrtWarpParams
 import org.phioster.glyphsmith.effects.GrainKind
 import org.phioster.glyphsmith.effects.ModulationColorMode
@@ -713,6 +714,35 @@ internal fun ModulationLinesSection(
             color = params.backgroundColor,
             onColorChange = { onChange(params.copy(backgroundColor = it)) },
         )
+    }
+}
+
+@Composable
+internal fun ContourLinesSection(
+    params: ContourLinesParams,
+    move: MoveHandler,
+    onChange: (ContourLinesParams) -> Unit,
+) {
+    EffectSection("contour lines", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "height lines around whatever is bright, like on a map, over the picture cut into " +
+                "hard neon tones. The lines travel when the loop plays.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        @Composable
+        fun knob(label: String, value: Int, range: ClosedFloatingPointRange<Float> = 0f..100f, set: (Int) -> ContourLinesParams) =
+            TerminalSlider(label, value.toFloat(), range, { onChange(set(it.toInt())) }, valueText = "$value")
+        knob("lines", params.lines, 4f..80f) { params.copy(lines = it) }
+        knob("thickness", params.thickness) { params.copy(thickness = it) }
+        knob("reach", params.reach) { params.copy(reach = it) }
+        knob("subject from brightness", params.threshold) { params.copy(threshold = it) }
+        knob("sideways smear", params.smear) { params.copy(smear = it) }
+        knob("waviness", params.wave) { params.copy(wave = it) }
+        knob("neon tones", params.neon) { params.copy(neon = it) }
+        knob("line hue", params.hue, 0f..359f) { params.copy(hue = it) }
+        knob("travel per loop", params.flow, -4f..4f) { params.copy(flow = it) }
     }
 }
 

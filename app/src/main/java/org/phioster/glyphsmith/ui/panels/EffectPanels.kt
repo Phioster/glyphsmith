@@ -83,6 +83,9 @@ internal fun EffectControls(
 
         EffectId.GLOW -> GlowSection(fx.glow, move) { p -> update { copy(glow = p) } }
 
+        EffectId.CONTOUR ->
+            ContourLinesSection(fx.contourLines, move) { p -> update { copy(contourLines = p) } }
+
         EffectId.ANALOG ->
             AnalogErrorSection(fx.analogError, move) { p -> update { copy(analogError = p) } }
 

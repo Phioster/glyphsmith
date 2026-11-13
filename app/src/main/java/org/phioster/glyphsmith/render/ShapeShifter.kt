@@ -64,6 +64,10 @@ object ShapeSets {
     private const val RED = 0xFFE5262B.toInt()
     private const val GREY = 0xFF8A8A8A.toInt()
     private const val PALE = 0xFFE4E4E4.toInt()
+    private const val DEEP_VIOLET = 0xFF5A2DA8.toInt()
+    private const val VIOLET = 0xFF9B4DFF.toInt()
+    private const val ORCHID = 0xFFE05CFF.toInt()
+    private const val HOT_PINK = 0xFFFF4FA8.toInt()
 
     // The brightest band stops at or just under 100, so neighbours touch without merging and
     // the shapes stay readable; overlap is a choice made with the grid's shape size.
@@ -128,6 +132,17 @@ object ShapeSets {
                 ShapeBand(ShapeKind.CIRCLE, 70, color = PALE),
                 ShapeBand(ShapeKind.CIRCLE, 95, color = PALE),
                 ShapeBand(ShapeKind.PIXEL_HEART, 100, 25, RED),
+            ),
+        ),
+        // Dots, then slim stars, then hearts from violet to pink: made to be lit by a glow.
+        ShapeSet(
+            "glowing hearts",
+            listOf(
+                ShapeBand(ShapeKind.EMPTY, width = 35),
+                ShapeBand(ShapeKind.CIRCLE, 30, 30, DEEP_VIOLET),
+                ShapeBand(ShapeKind.STAR4, 75, 40, VIOLET),
+                ShapeBand(ShapeKind.PIXEL_HEART, 95, 50, ORCHID),
+                ShapeBand(ShapeKind.PIXEL_HEART, 100, 60, HOT_PINK),
             ),
         ),
     )
