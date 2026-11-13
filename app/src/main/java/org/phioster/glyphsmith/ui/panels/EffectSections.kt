@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.phioster.glyphsmith.effects.AnalogErrorParams
 import org.phioster.glyphsmith.effects.BlendMode
 import org.phioster.glyphsmith.effects.BlurSharpenParams
 import org.phioster.glyphsmith.effects.ChromaticParams
@@ -712,6 +713,36 @@ internal fun ModulationLinesSection(
             color = params.backgroundColor,
             onColorChange = { onChange(params.copy(backgroundColor = it)) },
         )
+    }
+}
+
+@Composable
+internal fun AnalogErrorSection(
+    params: AnalogErrorParams,
+    move: MoveHandler,
+    onChange: (AnalogErrorParams) -> Unit,
+) {
+    EffectSection("analog error", params.enabled, move, { onChange(params.copy(enabled = it)) }) {
+        Text(
+            "the picture sent as an analogue colour signal and decoded by a receiver that has " +
+                "lost its lock: the rainbows are its own brightness read as colour. Moves by " +
+                "itself when the loop plays.",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 4.dp),
+        )
+        @Composable
+        fun knob(label: String, value: Int, set: (Int) -> AnalogErrorParams) = TerminalSlider(
+            label, value.toFloat(), 0f..100f, { onChange(set(it.toInt())) }, valueText = "$value/100",
+        )
+        knob("amount", params.amount) { params.copy(amount = it) }
+        knob("rainbow", params.rainbow) { params.copy(rainbow = it) }
+        knob("band fineness", params.detune) { params.copy(detune = it) }
+        knob("bend", params.bend) { params.copy(bend = it) }
+        knob("tearing", params.tear) { params.copy(tear = it) }
+        knob("colour smear", params.smear) { params.copy(smear = it) }
+        knob("swell over the loop", params.swell) { params.copy(swell = it) }
+        SeedRow(params.seed) { onChange(params.copy(seed = it)) }
     }
 }
 

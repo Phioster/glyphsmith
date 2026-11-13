@@ -51,6 +51,7 @@ internal object EffectPasses {
         EffectId.DEPTH -> ColorDepth.pass
         EffectId.DITHER -> BlueNoiseDither.pass
         EffectId.GLOW -> EpsilonGlow.pass
+        EffectId.ANALOG -> AnalogError.pass
         EffectId.WARP -> CrtWarp.pass
         EffectId.NEO_GLOW -> NeoGlow.pass
         EffectId.PAINT -> PaintStrokes.pass

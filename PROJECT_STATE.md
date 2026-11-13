@@ -36,7 +36,7 @@ optional Glyph Art support. There is no `ascii` package, and `LayeringTest` keep
 - **Character sets: 48** across 11 categories (Glyph Art only).
 - **Themes: 7** — Matrix, Amber CRT, Ice, Handheld and Rose are dark; Parchment and Medieval
   are light.
-- **Built-in presets: 148** — 142 curated (114 Pixel Dither, 11 Glyph Art, 7 Shape Shifter, 4 Flow ASCII, 6 Oscilloscope) plus 6 Algorithm Lab
+- **Built-in presets: 149** — 143 curated (115 Pixel Dither, 11 Glyph Art, 7 Shape Shifter, 4 Flow ASCII, 6 Oscilloscope) plus 6 Algorithm Lab
   presets, which are counted separately.
 - **Tests: 684 test methods across 69 JVM test classes**, three of which need Robolectric. Run
   by `gradle testDebugUnitTest`; CI additionally runs `detekt`, `lintDebug` and
@@ -74,7 +74,7 @@ The dither families, which are the shelves a picker groups styles under, are: er
 | `core/serial/` | `WireId` and its serialiser — the stable ids everything is stored as |
 | `render/` | Shared render infrastructure: `RenderSettings`, `RenderMode`, `CellSampler`, `QuantisePass`, `PixelDitherRenderer`, `Layers`, `RenderBudget`, the `RenderModule` / `ModuleRender` / `RenderModuleSet` seam, `RenderModules` |
 | `glyph/` | The Glyph Art module and its own outputs: `CharacterSets`, `GlyphEngine`, `GlyphRenderer`, `Fonts`, `TextExporters`, `SvgExporter` |
-| `effects/` | Effect execution: `EffectId`, `EffectPass`, `EffectNodes`, `EffectPipeline`, `EffectProviders` and the 17 passes |
+| `effects/` | Effect execution: `EffectId`, `EffectPass`, `EffectNodes`, `EffectPipeline`, `EffectProviders` and the passes |
 | `pipeline/` | `RenderPipeline`, `LayerCompositor`, `Providers` — runs whatever module it is handed |
 | `anim/` | Animation tracks and segments, `Temporal`, `GifEncoder`, `Mp4Encoder`, `ColorQuantizer` |
 | `data/` | `Source`, `ImageLoader`, `LiveCamera`, `CameraCapture`, `PresetLibrary`, `PresetStore`, `PresetSchema`, `PaletteFile`, `Import`, `Settings` |
