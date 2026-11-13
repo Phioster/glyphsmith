@@ -48,7 +48,7 @@ class ExerciseEverythingTest {
     @get:Rule
     val rule = createAndroidComposeRule<MainActivity>()
 
-    private val tabs = listOf("SET", "MAP", "COLOUR", "FX", "LYR", "ANIM", "OUT", "PRE")
+    private val tabs = listOf("SET", "MAP", "COLOUR", "FX", "LYR", "ANIM", "OUT", "PRE", "APP")
 
     /**
      * Controls that hand the screen to something outside the app, or that would spend the run

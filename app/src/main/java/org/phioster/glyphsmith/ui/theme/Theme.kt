@@ -45,6 +45,20 @@ object TermThemes {
         danger = Color(0xFFFF5555),
     )
 
+    /** Flaresmith's night sky, so the two apps can look like one. */
+    val MIDNIGHT = TermPalette(
+        id = "midnight",
+        name = "Midnight",
+        background = Color(0xFF07060C),
+        surface = Color(0xFF0E0C18),
+        surfaceHigh = Color(0xFF171427),
+        ink = Color(0xFFBFD4FF),
+        inkDim = Color(0xFF5E6FA8),
+        inkFaint = Color(0xFF2C3252),
+        amber = Color(0xFFFFB45A),
+        danger = Color(0xFFFF5577),
+    )
+
     val AMBER = TermPalette(
         id = "amber",
         name = "Amber CRT",
@@ -159,7 +173,7 @@ object TermThemes {
         light = true,
     )
 
-    val all = listOf(MATRIX, AMBER, ICE, HANDHELD, ROSE, PARCHMENT, MEDIEVAL)
+    val all = listOf(MATRIX, MIDNIGHT, AMBER, ICE, HANDHELD, ROSE, PARCHMENT, MEDIEVAL)
 
     fun byId(id: String): TermPalette = all.firstOrNull { it.id == id } ?: MATRIX
 }
