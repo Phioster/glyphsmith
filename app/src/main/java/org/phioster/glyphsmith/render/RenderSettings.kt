@@ -272,6 +272,9 @@ data class RenderSettings(
          */
         const val DEFAULT_BACKGROUND = 0xFF0A0A0A.toInt()
         val CELL_SIZE_RANGE = 2..48
+
+        /** A pixel block may be a single pixel, which a glyph cell cannot: 1 dithers at full resolution. */
+        val PIXEL_BLOCK_RANGE = 1..48
         val FONT_SIZE_RANGE = 6..48
         val CANVAS_SIZE_RANGE = 64..8192
         val DITHER_SCALE_RANGE = 25..400

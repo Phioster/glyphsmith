@@ -32,4 +32,12 @@ class RenderBudgetTest {
     fun `a grid already past the ceiling still gets one pixel a cell`() {
         assertEquals(1, RenderBudget.blockFor(fill, 4000, 4000, RenderBudget.MAX_OUTPUT_SIDE))
     }
+
+    @Test
+    fun `a pixel block may be one pixel where the picture fits the budget`() {
+        assertEquals(1, RenderSettings.PIXEL_BLOCK_RANGE.first)
+        assertEquals(1, RenderBudget.cellFor(800, 600, RenderSettings.PIXEL_BLOCK_RANGE.first, 1024))
+        // A picture larger than the budget still gets the coarser block it needs.
+        assertEquals(2, RenderBudget.cellFor(2000, 600, 1, 1024))
+    }
 }

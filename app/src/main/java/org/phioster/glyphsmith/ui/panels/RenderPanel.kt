@@ -446,8 +446,8 @@ private fun PixelModeControls(params: RenderSettings, onChange: (RenderSettings)
     TerminalSlider(
         label = "block size",
         value = params.cellSize.toFloat(),
-        range = RenderSettings.CELL_SIZE_RANGE.first.toFloat()..RenderSettings.CELL_SIZE_RANGE.last.toFloat(),
-        steps = RenderSettings.CELL_SIZE_RANGE.count() - 2,
+        range = RenderSettings.PIXEL_BLOCK_RANGE.first.toFloat()..RenderSettings.PIXEL_BLOCK_RANGE.last.toFloat(),
+        steps = RenderSettings.PIXEL_BLOCK_RANGE.count() - 2,
         valueText = "${params.cellSize}px",
         onValueChange = { onChange(params.copy(cellSize = it.toInt())) },
     )
