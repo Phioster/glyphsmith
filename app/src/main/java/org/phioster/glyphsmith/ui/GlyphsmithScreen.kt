@@ -34,6 +34,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -76,16 +77,17 @@ import org.phioster.glyphsmith.data.PresetStore
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.foundation.text.BasicTextField
 
-private enum class Tab(val label: String) {
-    ASCII("SET"),
-    MAPPING("MAP"),
+/**
+ * Six things one does to a picture, looks first, as in Flaresmith. Where two of the old tabs
+ * were halves of one job they share a tab now and are told apart by a second, smaller row.
+ */
+private enum class Tab(val label: String, val parts: List<String> = emptyList()) {
+    LOOK("LOOK"),
+    RENDER("RENDER", listOf("module", "mapping")),
     COLOR("COLOUR"),
-    EFFECTS("FX"),
-    LAYERS("LYR"),
-    ANIM("ANIM"),
-    OUTPUT("OUT"),
-    PRESETS("PRE"),
-    APP("APP"),
+    EFFECTS("FX", listOf("effects", "layers")),
+    MOVE("MOVE"),
+    OUTPUT("OUT", listOf("export", "app")),
 }
 
 @Composable
@@ -146,7 +148,10 @@ fun GlyphsmithScreen(
     onCompactPreviewChange: (Boolean) -> Unit,
     onScrubbing: (Boolean) -> Unit,
 ) {
-    var tab by remember { mutableStateOf(Tab.ASCII) }
+    var tab by remember { mutableStateOf(Tab.LOOK) }
+    // Which half of a two-part tab is open, remembered for each of them.
+    val parts = remember { mutableStateMapOf<Tab, Int>() }
+    val part = parts[tab] ?: 0
     var fullView by remember { mutableStateOf(false) }
     val compact = state.compactPreview
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -287,11 +292,18 @@ fun GlyphsmithScreen(
         if (layers.isNotEmpty()) EditTargetRow(layers.map { it.name }, editing, onEditLayer)
 
         TabRow(tab) { tab = it }
+        if (tab.parts.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                tab.parts.forEachIndexed { index, label ->
+                    TerminalChip(label, selected = index == part, onClick = { parts[tab] = index }, modifier = Modifier.weight(1f))
+                }
+            }
+        }
 
         // Every tab opens at its top: one scroll position shared by all of them dropped a
         // short panel's visitor somewhere in the middle of a long one.
         val panelScroll = rememberScrollState()
-        LaunchedEffect(tab) { panelScroll.scrollTo(0) }
+        LaunchedEffect(tab, part) { panelScroll.scrollTo(0) }
         Column(
             Modifier
                 .weight(1.15f)
@@ -299,7 +311,21 @@ fun GlyphsmithScreen(
                 .padding(bottom = 16.dp),
         ) {
             when (tab) {
-                Tab.ASCII -> RenderPanel(
+                Tab.LOOK -> PresetPanel(
+                    presets = state.presets,
+                    // On a layer, a preset dresses that layer and leaves the rest alone.
+                    onApply = { preset -> if (editing >= 0) changeShown(preset.params) else onApplyPreset(preset) },
+                    onSave = onSavePreset,
+                    onDelete = onDeletePreset,
+                    onExport = onExportPresets,
+                    onImport = onImportPresets,
+                    thumbs = state.presetThumbs,
+                    onToggleFavourite = onToggleFavourite,
+                    onRandomise = onRandomise,
+                    onResetPresets = onResetPresets,
+                )
+
+                Tab.RENDER -> if (part == 0) RenderPanel(
                     params = shown,
                     onChange = changeShown,
                     fontLabel = state.fontLabel,
@@ -309,7 +335,7 @@ fun GlyphsmithScreen(
                     onExportShapeSet = onExportShapeSet,
                     onImportShapeSet = onImportShapeSet,
                 )
-                Tab.MAPPING -> MappingPanel(
+                else MappingPanel(
                     params = shown,
                     onChange = changeShown,
                     favourites = state.favouriteStyles,
@@ -328,9 +354,8 @@ fun GlyphsmithScreen(
                     favourites = state.favouritePalettes,
                     onToggleFavourite = onToggleFavouritePalette,
                 )
-                Tab.EFFECTS -> EffectsPanel(shown, changeShown)
-                Tab.LAYERS -> LayerPanel(state.params, onParamsChange, onAddLayerPicture)
-                Tab.ANIM -> AnimPanel(
+                Tab.EFFECTS -> if (part == 0) EffectsPanel(shown, changeShown) else LayerPanel(state.params, onParamsChange, onAddLayerPicture)
+                Tab.MOVE -> AnimPanel(
                     // On a layer: the picture's clock with the layer's own tracks.
                     state = if (editing >= 0) {
                         state.copy(params = shown.copy(animation = state.params.animationShown(editing)))
@@ -349,7 +374,7 @@ fun GlyphsmithScreen(
                     onPreviewPosition = onPreviewPosition,
                 )
 
-                Tab.OUTPUT -> OutputPanel(
+                Tab.OUTPUT -> if (part == 0) OutputPanel(
                     state = state,
                     onChange = onParamsChange,
                     // Canvas and export belong to the whole picture; the glyph size is a look.
@@ -368,21 +393,7 @@ fun GlyphsmithScreen(
                     onShareText = onShareText,
                 )
 
-                Tab.PRESETS -> PresetPanel(
-                    presets = state.presets,
-                    // On a layer, a preset dresses that layer and leaves the rest alone.
-                    onApply = { preset -> if (editing >= 0) changeShown(preset.params) else onApplyPreset(preset) },
-                    onSave = onSavePreset,
-                    onDelete = onDeletePreset,
-                    onExport = onExportPresets,
-                    onImport = onImportPresets,
-                    thumbs = state.presetThumbs,
-                    onToggleFavourite = onToggleFavourite,
-                    onRandomise = onRandomise,
-                    onResetPresets = onResetPresets,
-                )
-
-                Tab.APP -> AppPanel(
+                else AppPanel(
                     themeId = themeId,
                     onThemeChange = onThemeChange,
                     previewQuality = state.previewQuality,
@@ -623,25 +634,11 @@ private fun EditTargetRow(names: List<String>, editing: Int, onSelect: (Int) -> 
 
 @Composable
 private fun TabRow(selected: Tab, onSelect: (Tab) -> Unit) {
-    // Every tab is offered in every mode. MAP used to be hidden outside glyph art, on the
-    // reading that the whole panel was about how luminance becomes a *character* — but most of
-    // it is about how luminance becomes a *level*, which is the pixel mode's own question. The
-    // panel hides its glyph half instead; see MappingSections.
-    val tabs = Tab.entries
-
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(bottom = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        tabs.forEach { tab ->
-            TerminalChip(
-                label = tab.label,
-                selected = tab == selected,
-                onClick = { onSelect(tab) },
-            )
+    // All six fit the width, so none is hidden off to the side and nothing has to be scrolled.
+    Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Tab.entries.forEach { tab ->
+            // Wider for a longer word, so the short ones do not waste what the long ones lack.
+            TerminalChip(label = tab.label, selected = tab == selected, onClick = { onSelect(tab) }, modifier = Modifier.weight(tab.label.length + 2f))
         }
     }
 }

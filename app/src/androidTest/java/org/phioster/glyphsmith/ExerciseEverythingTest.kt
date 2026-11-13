@@ -48,7 +48,7 @@ class ExerciseEverythingTest {
     @get:Rule
     val rule = createAndroidComposeRule<MainActivity>()
 
-    private val tabs = listOf("SET", "MAP", "COLOUR", "FX", "LYR", "ANIM", "OUT", "PRE", "APP")
+    private val tabs = listOf("LOOK", "RENDER", "COLOUR", "FX", "MOVE", "OUT")
 
     /**
      * Controls that hand the screen to something outside the app, or that would spend the run
@@ -305,7 +305,7 @@ class ExerciseEverythingTest {
         shot("00-start")
 
         tabs.forEachIndexed { i, tab ->
-            rule.onNodeWithText(tab).performScrollTo().performClick()
+            rule.onNodeWithText(tab).performClick()
             rule.waitForIdle()
             shot("%02d-%s-opened".format(i + 1, tab.lowercase()))
 
@@ -339,7 +339,7 @@ class ExerciseEverythingTest {
         File(shots, "notes.txt").writeText(notes.toString())
 
         // Still alive after all of that, which is the thing the walk itself asserts.
-        rule.onNodeWithText("SET").assertExists()
+        rule.onNodeWithText("RENDER").assertExists()
 
         // And the pictures actually landed. Checked at the end rather than at each capture so a
         // run that loses one frame still leaves the other twenty-four to look at.

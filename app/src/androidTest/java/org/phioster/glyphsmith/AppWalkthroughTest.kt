@@ -35,7 +35,7 @@ class AppWalkthroughTest {
     val rule = createAndroidComposeRule<MainActivity>()
 
     /** Every tab the app offers, by the label the row draws. */
-    private val tabs = listOf("SET", "MAP", "COLOUR", "FX", "LYR", "ANIM", "OUT", "PRE", "APP")
+    private val tabs = listOf("LOOK", "RENDER", "COLOUR", "FX", "MOVE", "OUT")
 
     /**
      * A picture written to the app's own cache and handed over as a `file://` Uri.
@@ -83,7 +83,7 @@ class AppWalkthroughTest {
      */
     private fun walkTheTabs() {
         tabs.forEach { label ->
-            rule.onNodeWithText(label).performScrollTo().performClick()
+            rule.onNodeWithText(label).performClick()
             rule.waitForIdle()
             rule.onNodeWithText(label).assertExists()
         }
@@ -110,12 +110,12 @@ class AppWalkthroughTest {
     fun applyingAPresetRendersWithoutFalling() {
         loadAnImage()
 
-        rule.onNodeWithText("PRE").performScrollTo().performClick()
+        rule.onNodeWithText("LOOK").performClick()
         rule.waitForIdle()
         rule.onNodeWithText("one bit").performScrollTo().performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithText("PRE").assertExists()
+        rule.onNodeWithText("LOOK").assertExists()
 
         // Waited for rather than assumed. A render is debounced and then runs off the main
         // thread, so `waitForIdle` says the *interface* has settled, not that a picture exists —
