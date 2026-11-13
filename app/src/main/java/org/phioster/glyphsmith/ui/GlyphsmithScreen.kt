@@ -460,7 +460,8 @@ private fun Preview(state: UiState, modifier: Modifier = Modifier, framed: Boole
     }
 
     val frame = if (framed) {
-        Modifier.heightIn(min = 180.dp).border(1.dp, Term.InkFaint, RectangleShape).background(Term.Surface)
+        // Black behind the picture in every theme, as in Flaresmith: the frame is not part of it.
+        Modifier.heightIn(min = 180.dp).border(1.dp, Term.InkFaint, RectangleShape).background(Color.Black)
     } else {
         Modifier
     }
@@ -471,7 +472,7 @@ private fun Preview(state: UiState, modifier: Modifier = Modifier, framed: Boole
         val preview = state.preview
         if (preview == null) {
             Text(
-                if (state.hasImage) "rendering…" else "no image — press [LOAD IMAGE]",
+                if (state.hasImage) "rendering…" else "no image — press [img]",
                 color = Term.InkDim,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -509,7 +510,7 @@ private fun CompactPreview(state: UiState, onFullView: () -> Unit, onGrow: () ->
                 .width(COMPACT_WIDTH.dp)
                 .height(COMPACT_HEIGHT.dp)
                 .border(1.dp, Term.InkFaint, RectangleShape)
-                .background(Term.Surface)
+                .background(Color.Black)
                 .clickable(enabled = state.preview != null, onClick = onFullView),
             contentAlignment = Alignment.Center,
         ) {
