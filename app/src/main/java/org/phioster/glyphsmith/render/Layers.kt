@@ -136,6 +136,18 @@ object Layers {
      */
     const val HANDED_PICTURE = "picture as sent"
 
+    /**
+     * The layer showing picture [image] as it was sent. It covers: screened like a light it
+     * would only brighten the rendering under it, and the two would show through each other.
+     */
+    fun pictureAsSent(params: RenderSettings, image: String): Layer = Layer(
+        name = HANDED_PICTURE,
+        params = params.copy(layers = emptyList()),
+        blend = LayerBlend.NORMAL,
+        image = image,
+        asIs = true,
+    )
+
     /** [layers] without the picture as it was sent. */
     fun rendered(layers: List<Layer>): List<Layer> =
         layers.filterNot { it.name == HANDED_PICTURE && it.image.isNotEmpty() }

@@ -152,4 +152,14 @@ class LayersTest {
 
         assertEquals(listOf(own, light), Layers.rendered(handed))
     }
+
+    @Test
+    fun `the picture as sent covers what is under it and is shown as it is`() {
+        val sent = Layers.pictureAsSent(RenderSettings(layers = listOf(Layer(name = "x"))), "b")
+        assertEquals(LayerBlend.NORMAL, sent.blend)
+        assertTrue(sent.asIs)
+        assertEquals("b", sent.image)
+        assertEquals(Layers.HANDED_PICTURE, sent.name)
+        assertTrue(sent.params.layers.isEmpty())
+    }
 }
