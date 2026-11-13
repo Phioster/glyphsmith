@@ -328,30 +328,22 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Adds a picture as a layer of its own, on top, drawn with the settings in force. Normal
-     * blend rather than the usual screen: a cut-out is meant to cover what is under it.
-     */
-    /** A picture shared from another app: a layer over the open picture, or the picture itself. */
-    /**
-     * A picture shared from another app: a layer over the open picture. With nothing open, the
-     * sender's [base] is loaded first if it gave one; otherwise the shared picture is the picture.
+     * A picture shared from another app. A sender that names the [base] its light was made on
+     * gets that picture loaded, whatever was open: the light belongs on it and on nothing else.
+     * Without one, the shared picture is a layer over the open picture, or the picture itself.
      */
     fun receiveShared(uri: Uri, base: Uri?, frames: List<Uri> = emptyList(), loopMs: Int = 0, asSent: Boolean = false) {
         // A sender that has coloured the picture itself wants it seen that way first.
         val sent = base.takeIf { asSent }
         when {
-            // Only a sender that names a base is handing over light for it, and a second
-            // handover is meant to replace the first, not to pile up on it.
-            _state.value.hasImage -> runExport("layer picture") {
-                addPictureLayer(uri, light = base != null, frames = frames, loopMs = loopMs, asSent = sent)
-            }
-            base == null -> loadImage(uri)
-            else -> viewModelScope.launch {
+            base != null -> viewModelScope.launch {
                 if (!loadStill(base)) return@launch
                 val message = runCatching { addPictureLayer(uri, light = true, frames = frames, loopMs = loopMs, asSent = sent) }
                     .getOrElse { "layer picture failed: ${it.message}" }
                 _state.value = _state.value.copy(status = message)
             }
+            _state.value.hasImage -> runExport("layer picture") { addPictureLayer(uri) }
+            else -> loadImage(uri)
         }
     }
 
@@ -386,7 +378,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         val layered = params.copy(layers = if (light) Layers.withHandedLight(params.layers, layer, sent) else params.layers + layer)
         updateParams(layered.copy(animation = Layers.timedFor(layered.animation, loop, loopMs)))
         return when {
-            loop > 1 -> "moving light received · $loop frames · play it under anim"
+            loop > 1 -> "moving light received · $loop frames · play it under move"
             sent != null -> "light received, on the picture as it was sent · a preset renders it"
             light -> "light received"
             else -> "picture added as a layer"
