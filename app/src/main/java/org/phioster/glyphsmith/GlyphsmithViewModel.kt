@@ -381,7 +381,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             asIs = light,
         )
         val sent = sentId?.let {
-            Layer(name = Layers.HANDED_PICTURE, params = params.copy(layers = emptyList()), image = it, asIs = true)
+            Layers.pictureAsSent(params, it)
         }
         val layered = params.copy(layers = if (light) Layers.withHandedLight(params.layers, layer, sent) else params.layers + layer)
         updateParams(layered.copy(animation = Layers.timedFor(layered.animation, loop, loopMs)))
