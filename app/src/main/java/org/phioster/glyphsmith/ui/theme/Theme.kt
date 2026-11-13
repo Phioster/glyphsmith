@@ -59,6 +59,48 @@ object TermThemes {
         danger = Color(0xFFFF5577),
     )
 
+    /** Built like Midnight, on a deep teal. */
+    val TEAL = TermPalette(
+        id = "teal",
+        name = "Deep Teal",
+        background = Color(0xFF05090A),
+        surface = Color(0xFF0B1719),
+        surfaceHigh = Color(0xFF142B30),
+        ink = Color(0xFFB4EEF5),
+        inkDim = Color(0xFF4F97A3),
+        inkFaint = Color(0xFF234A52),
+        amber = Color(0xFFFFB45A),
+        danger = Color(0xFFFF5577),
+    )
+
+    /** Built like Midnight, on a dark wine red. */
+    val WINE = TermPalette(
+        id = "wine",
+        name = "Wine",
+        background = Color(0xFF0A0507),
+        surface = Color(0xFF1A0C11),
+        surfaceHigh = Color(0xFF30151F),
+        ink = Color(0xFFF5C4D6),
+        inkDim = Color(0xFFA35F78),
+        inkFaint = Color(0xFF52283A),
+        amber = Color(0xFFFFB45A),
+        danger = Color(0xFFFF5A3C),
+    )
+
+    /** Built like Midnight, on a dark moss green. */
+    val MOSS = TermPalette(
+        id = "moss",
+        name = "Moss",
+        background = Color(0xFF050806),
+        surface = Color(0xFF0D150F),
+        surfaceHigh = Color(0xFF19271D),
+        ink = Color(0xFFC6F0D0),
+        inkDim = Color(0xFF62A070),
+        inkFaint = Color(0xFF2B4A33),
+        amber = Color(0xFFFFB45A),
+        danger = Color(0xFFFF5577),
+    )
+
     val AMBER = TermPalette(
         id = "amber",
         name = "Amber CRT",
@@ -173,7 +215,7 @@ object TermThemes {
         light = true,
     )
 
-    val all = listOf(MATRIX, MIDNIGHT, AMBER, ICE, HANDHELD, ROSE, PARCHMENT, MEDIEVAL)
+    val all = listOf(MATRIX, MIDNIGHT, TEAL, WINE, MOSS, AMBER, ICE, HANDHELD, ROSE, PARCHMENT, MEDIEVAL)
 
     fun byId(id: String): TermPalette = all.firstOrNull { it.id == id } ?: MATRIX
 }
