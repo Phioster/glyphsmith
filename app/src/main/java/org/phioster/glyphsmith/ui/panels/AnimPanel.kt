@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.pipeline.LayerImages
 import org.phioster.glyphsmith.UiState
+import org.phioster.glyphsmith.anim.QuickMotions
 import org.phioster.glyphsmith.anim.AnimCurve
 import org.phioster.glyphsmith.anim.AnimTarget
 import org.phioster.glyphsmith.anim.AnimSegment
@@ -29,6 +30,7 @@ import org.phioster.glyphsmith.render.RenderSettings
 import org.phioster.glyphsmith.render.ScopeMotion
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
+import org.phioster.glyphsmith.ui.TerminalChip
 import org.phioster.glyphsmith.ui.TerminalButton
 import org.phioster.glyphsmith.ui.TerminalSlider
 import org.phioster.glyphsmith.ui.TerminalToggle
@@ -77,6 +79,29 @@ fun AnimPanel(
                 modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
             )
         }
+
+        SectionHeader("quick motion")
+
+        // Whole movements by name; what one sets shows in the tracks below and can be changed there.
+        val worn = QuickMotions.all.firstOrNull { it.wornBy(params) }
+        QuickMotions.all.chunked(QUICK_ACROSS).forEach { row ->
+            Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                row.forEach { motion ->
+                    TerminalChip(
+                        label = motion.label,
+                        selected = motion === worn,
+                        onClick = { onChange(motion.applyTo(params)) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+        Text(
+            worn?.about ?: "a movement of your own — the tracks below say what moves",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 6.dp),
+        )
 
         SectionHeader("animation")
 
@@ -490,3 +515,5 @@ private fun TrackSection(track: AnimTrack, onChange: (AnimTrack) -> Unit) {
         )
     }
 }
+
+private const val QUICK_ACROSS = 4
