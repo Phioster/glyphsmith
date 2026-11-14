@@ -67,6 +67,7 @@ import org.phioster.glyphsmith.render.LayerBlend
 import org.phioster.glyphsmith.render.edited
 import org.phioster.glyphsmith.render.withEdited
 import org.phioster.glyphsmith.data.ShapeSetFile
+import org.phioster.glyphsmith.data.ShapeSetStore
 import org.phioster.glyphsmith.render.ShapeSets
 import org.phioster.glyphsmith.data.Preset
 import org.phioster.glyphsmith.data.PlaybackQuality
@@ -128,6 +129,8 @@ data class UiState(
     val favouritePalettes: Set<String> = emptySet(),
     /** Palettes the user imported and kept. Named rather than identified — see [PaletteStore]. */
     val importedPalettes: List<PaletteFile> = emptyList(),
+    /** Shape sets the user kept, by name. See [ShapeSetStore]. */
+    val keptShapeSets: List<ShapeSetFile> = emptyList(),
     val favouriteStyles: Set<String> = emptySet(),
     /** The live camera is running and the preview is showing what it sees. */
     val liveCamera: Boolean = false,
@@ -145,6 +148,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
     private val presets = PresetController(app)
     private val settings = Settings(app)
     private val palettes = PaletteStore(app)
+    private val shapeSets = ShapeSetStore(app)
     private val layerImages = LayerImageStore(app)
     private val exports = ExportCoordinator(AndroidExports(app))
 
@@ -159,6 +163,7 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
             favouritePalettes = settings.favouritePalettes,
             favouriteStyles = settings.favouriteStyles,
             importedPalettes = palettes.load(),
+            keptShapeSets = shapeSets.load(),
         ),
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
@@ -401,10 +406,28 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
                 context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
             }.getOrNull()
         } ?: return@runExport "could not read that file"
-        val bands = ShapeSetFile.decode(text) ?: return@runExport "that file isn't a shape set"
+        val set = ShapeSetFile.read(text) ?: return@runExport "that file isn't a shape set"
+        val bands = ShapeSetFile.bandsOf(set) ?: return@runExport "that file isn't a shape set"
+        // Kept as well as shown, like a palette: the file need not be found a second time.
+        val kept = withContext(Dispatchers.IO) { shapeSets.add(set) }
+        _state.value = _state.value.copy(keptShapeSets = kept)
         val params = edited()
         updateEdited(params.copy(shapeShifter = params.shapeShifter.copy(bands = bands)))
-        "loaded ${bands.size} bands"
+        "kept ${set.name} · ${bands.size} bands"
+    }
+
+    /** Puts the bands in use on the shelf under a name of its own. */
+    fun keepShapeSet() = runExport("shape set") {
+        val bands = edited().shapeShifter.bands.ifEmpty { ShapeSets.default.bands }
+        val name = ShapeSetFile.freeName(_state.value.keptShapeSets)
+        val kept = withContext(Dispatchers.IO) { shapeSets.add(ShapeSetFile.of(name, bands)) }
+        _state.value = _state.value.copy(keptShapeSets = kept)
+        "kept as $name"
+    }
+
+    /** Takes one off the shelf. The bands on screen stay: they are the look, not a link to it. */
+    fun forgetShapeSet(name: String) {
+        _state.value = _state.value.copy(keptShapeSets = shapeSets.remove(name))
     }
 
     /** Writes the palette in use to its own file, so colours can be shared without a look. */
