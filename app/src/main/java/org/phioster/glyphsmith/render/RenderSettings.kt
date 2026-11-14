@@ -200,6 +200,8 @@ data class RenderSettings(
     val flowAscii: FlowAsciiParams = FlowAsciiParams(),
     /** Traces, height and phosphor of [RenderMode.Oscilloscope]; ignored by the other modes. */
     val oscilloscope: OscilloscopeParams = OscilloscopeParams(),
+    /** The photo coming back through the finished look — see [Reveal]. Nothing at its default. */
+    val reveal: RevealParams = RevealParams(),
     /**
      * Extra renderings stacked over this one. Empty by default, so nothing changes for
      * anything that has never touched them.

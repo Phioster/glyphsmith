@@ -66,6 +66,9 @@ object QuickMotions {
                 track(AnimTarget.SLICE_OFFSET, 0, 40, AnimCurve.TRIANGLE),
             )
         },
+        QuickMotion("reveal", "the look gives way block by block until the photo is there; once through, not a loop") {
+            moving(it, track(AnimTarget.REVEAL, 0, 100, AnimCurve.EASE_IN_OUT))
+        },
         QuickMotion("melt", "sorted streaks eat into the picture and let go") {
             moving(
                 it.copy(effects = it.effects.copy(pixelSort = it.effects.pixelSort.copy(enabled = true))),
