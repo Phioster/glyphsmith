@@ -80,7 +80,10 @@ fun RenderPanel(
     }
     // A preset can select a set from outside the current filter; fall back to the full list
     // so the dropdown still shows what is actually in use.
-    val sets = if (filtered.any { it.id == params.charSetId }) filtered else CharacterSets.all
+    val inFilter = filtered.any { it.id == params.charSetId }
+    val sets = if (inFilter) filtered else CharacterSets.all
+    // And the category shown is then "All" too: naming a category the set is not in would be a lie.
+    val shownCategory = if (inFilter) category else CATEGORY_ALL
     val setIndex = sets.indexOfFirst { it.id == params.charSetId }.coerceAtLeast(0)
 
     val glyphMode = RenderModules.of(params.renderMode).producesGlyphs
@@ -148,7 +151,7 @@ fun RenderPanel(
         StepperDropdown(
             label = "character category",
             items = categories,
-            selectedIndex = categories.indexOf(category).coerceAtLeast(0),
+            selectedIndex = categories.indexOf(shownCategory).coerceAtLeast(0),
             onSelect = { index ->
                 category = categories[index]
                 val first = if (categories[index] == CATEGORY_ALL) {
