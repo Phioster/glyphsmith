@@ -103,6 +103,30 @@ fun AnimPanel(
             modifier = Modifier.padding(top = 6.dp),
         )
 
+        SectionHeader("reveal")
+
+        TerminalSlider(
+            label = "photo coming through",
+            value = params.reveal.amount.toFloat(),
+            range = 0f..100f,
+            valueText = "${params.reveal.amount}%",
+            onValueChange = { v -> onChange(params.copy(reveal = params.reveal.copy(amount = v.toInt()))) },
+        )
+        TerminalSlider(
+            label = "block size",
+            value = params.reveal.block.toFloat(),
+            range = 2f..80f,
+            valueText = "${params.reveal.block}",
+            onValueChange = { v -> onChange(params.copy(reveal = params.reveal.copy(block = v.toInt()))) },
+        )
+        Text(
+            "the photo shows through the look in blocks. the quick motion reveal runs this from " +
+                "none to all, so the picture arrives as its look and resolves into itself",
+            color = Term.InkFaint,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+
         SectionHeader("animation")
 
         TerminalToggle(

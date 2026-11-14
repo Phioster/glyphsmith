@@ -7,6 +7,7 @@ import org.phioster.glyphsmith.render.Layer
 import org.phioster.glyphsmith.render.RenderModuleOutput
 import org.phioster.glyphsmith.render.RenderModuleSet
 import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.render.Reveal
 import org.phioster.glyphsmith.render.unmoved
 import kotlin.math.max
 
@@ -129,6 +130,18 @@ object RenderPipeline {
         return Placing(params.unmoved(), base, rendered)
     }
 
+    /** [finished] with the photo let through it, when the settings ask for any. */
+    private fun revealed(finished: Bitmap, pixels: IntArray, sourceWidth: Int, sourceHeight: Int, params: RenderSettings): Bitmap {
+        if (params.reveal.amount <= 0) return finished
+        val width = finished.width
+        val height = finished.height
+        val out = IntArray(width * height)
+        finished.getPixels(out, 0, width, 0, 0, width, height)
+        finished.recycle()
+        Reveal.apply(out, width, height, pixels, sourceWidth, sourceHeight, params.reveal)
+        return Bitmap.createBitmap(out, width, height, Bitmap.Config.ARGB_8888)
+    }
+
     @Suppress("LongParameterList")
     fun run(
         pixels: IntArray,
@@ -152,7 +165,7 @@ object RenderPipeline {
         // Once, here, rather than at the end of each module: three copies of this line are three
         // chances for the effect chain to run somewhere else in the order.
         val base = Result(
-            bitmap = EffectPipeline.apply(rendered.bitmap, params.effects, ctx),
+            bitmap = revealed(EffectPipeline.apply(rendered.bitmap, params.effects, ctx), pixels, sourceWidth, sourceHeight, params),
             cols = rendered.cols,
             rows = rendered.rows,
             outputWidth = rendered.outputWidth,

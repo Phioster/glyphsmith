@@ -131,6 +131,7 @@ object AnimTargets {
         AnimTargetProvider(AnimTarget.SHAPE_SIZE, 24) { p, v ->
             p.copy(shapeShifter = p.shapeShifter.copy(shapeSize = v.coerceIn(10, 200)))
         },
+        AnimTargetProvider(AnimTarget.REVEAL, 25) { p, v -> p.copy(reveal = p.reveal.copy(amount = v.coerceIn(0, 100))) },
     )
 
     /**

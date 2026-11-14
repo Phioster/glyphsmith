@@ -344,12 +344,15 @@ class PresetLibraryTest {
      *   `scope sweep`, `scope drift`, `scope wave`, `holo tilt`, `dead channel`, `night watch`
      *   and `strip light hum` joined. No older preset's look changed.
      * - `strip light hum` flickers at uneven moments instead of in time. Only that preset changed.
+     * - **Reveal** (2026-11-14): every preset gains a `"reveal"` block at its defaults and one
+     *   more disabled track. Checked locally: with both stripped the library hashed to the
+     *   previous digest exactly.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "73dbe8b8069018d71e1ea0cfbf101fc52624825e6a922974232af6e6f2790920"
+    private val digest = "04d43f1fcc024ec3c8b155b653887ac70514bc6f1842fa8fb1a28010ca2bb34b"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {

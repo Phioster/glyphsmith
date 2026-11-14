@@ -125,6 +125,9 @@ enum class AnimTarget(
     /** Every shape of the shape shifter turning; a full turn closes on itself. */
     SHAPE_ROTATION("anim.shape-rotation", "Shape Rotation", 0, 359, cyclic = true),
     SHAPE_SIZE("anim.shape-size", "Shape Size", 10, 200),
+
+    /** How much of the photo has come back through the look; run up once, the picture resolves. */
+    REVEAL("anim.reveal", "Reveal", 0, 100),
 }
 
 /**

@@ -58,6 +58,7 @@ class AnimTargetsTest {
             AnimTarget.NEO_GLOW_OFFSET to 22,
             AnimTarget.SHAPE_ROTATION to 23,
             AnimTarget.SHAPE_SIZE to 24,
+            AnimTarget.REVEAL to 25,
         )
 
         expected.forEach { (target, salt) ->
