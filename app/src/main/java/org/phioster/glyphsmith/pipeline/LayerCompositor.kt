@@ -22,9 +22,9 @@ object LayerCompositor {
     fun composite(
         base: Bitmap,
         layers: List<Layer>,
-        renderLayer: (Layer) -> Bitmap?,
         // True leaves [base] and what [renderLayer] returns alive, for a caller that lays them again.
         keep: Boolean = false,
+        renderLayer: (Layer) -> Bitmap?,
     ): Bitmap {
         val active = layers.filter { it.enabled && it.opacity > 0 }
         if (active.isEmpty()) return base

@@ -93,9 +93,9 @@ object RenderPipeline {
         fun fits(params: RenderSettings): Boolean = params.unmoved() == key
 
         fun compose(params: RenderSettings): Bitmap {
-            val out = LayerCompositor.composite(
-                base, params.layers, { layer -> layers.getOrNull(params.layers.indexOf(layer)) }, keep = true,
-            )
+            val out = LayerCompositor.composite(base, params.layers, keep = true) { layer ->
+                layers.getOrNull(params.layers.indexOf(layer))
+            }
             // Never the held bitmap itself: it is recycled when the move ends.
             return if (out === base) base.copy(Bitmap.Config.ARGB_8888, false) else out
         }
