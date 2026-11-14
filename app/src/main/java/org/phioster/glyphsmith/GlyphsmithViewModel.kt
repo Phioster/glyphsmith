@@ -65,6 +65,7 @@ import org.phioster.glyphsmith.pipeline.LayerImages
 import org.phioster.glyphsmith.render.Layer
 import org.phioster.glyphsmith.render.LayerBlend
 import org.phioster.glyphsmith.render.edited
+import org.phioster.glyphsmith.render.movedTo
 import org.phioster.glyphsmith.render.withEdited
 import org.phioster.glyphsmith.data.ShapeSetFile
 import org.phioster.glyphsmith.data.ShapeSetStore
