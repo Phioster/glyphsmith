@@ -30,6 +30,7 @@ import org.phioster.glyphsmith.render.ColorMode
 import org.phioster.glyphsmith.ui.HexColorField
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
+import org.phioster.glyphsmith.ui.NameRow
 import org.phioster.glyphsmith.ui.TerminalButton
 import org.phioster.glyphsmith.ui.TerminalChip
 import org.phioster.glyphsmith.ui.TerminalSlider
@@ -57,6 +58,7 @@ fun ColorPanel(
     onExtractPalette: (Int, QuantizeMethod) -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
+    onKeepPalette: (String) -> Unit,
     imported: List<PaletteFile>,
     onApplyPalette: (PaletteFile) -> Unit,
     onForgetPalette: (String) -> Unit,
@@ -109,6 +111,7 @@ fun ColorPanel(
                 onExtractPalette = onExtractPalette,
                 onExportPalette = onExportPalette,
                 onImportPalette = onImportPalette,
+                onKeepPalette = onKeepPalette,
                 imported = imported,
                 onApplyPalette = onApplyPalette,
                 onForgetPalette = onForgetPalette,
@@ -189,6 +192,7 @@ private fun PaletteSection(
     onExtractPalette: (Int, QuantizeMethod) -> Unit,
     onExportPalette: () -> Unit,
     onImportPalette: (android.net.Uri) -> Unit,
+    onKeepPalette: (String) -> Unit,
     imported: List<PaletteFile>,
     onApplyPalette: (PaletteFile) -> Unit,
     onForgetPalette: (String) -> Unit,
@@ -420,10 +424,23 @@ private fun PaletteSection(
                 modifier = Modifier.weight(1f),
             )
         }
+        // The colours in use, kept under a name: extracted or edited ones had no way onto the shelf.
+        var naming by remember { mutableStateOf(false) }
+        TerminalButton(
+            label = if (naming) "keep in app ▾" else "keep in app ▸",
+            onClick = { naming = !naming },
+            modifier = Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 6.dp),
+        )
+        if (naming) {
+            NameRow("name of the palette", "keep") {
+                onKeepPalette(it)
+                naming = false
+            }
+        }
         Text(
             "a palette file is just a name and a list of hex colours — editable by hand, " +
                 "and re-sorted by luminance on the way back in. One file or a pack of them; " +
-                "what you open is kept below",
+                "what you open or keep stays below",
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 4.dp),
@@ -470,7 +487,7 @@ private fun ImportedPalettes(
     if (imported.isEmpty()) return
 
     Text(
-        "IMPORTED",
+        "KEPT",
         color = Term.InkDim,
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(top = 10.dp),

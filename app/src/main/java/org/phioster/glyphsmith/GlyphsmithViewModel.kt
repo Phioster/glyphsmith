@@ -416,13 +416,22 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         "kept ${set.name} · ${bands.size} bands"
     }
 
-    /** Puts the bands in use on the shelf under a name of its own. */
-    fun keepShapeSet() = runExport("shape set") {
+    /** Puts the colours in use on the shelf under [name]; one of that name is replaced. */
+    fun keepPalette(name: String) = runExport("palette") {
+        val colors = edited().activePalette().colors
+        if (name.isBlank() || colors.isEmpty()) return@runExport "nothing to keep"
+        val kept = withContext(Dispatchers.IO) { palettes.add(listOf(PaletteFile.of(name.trim(), colors))) }
+        _state.value = _state.value.copy(importedPalettes = kept)
+        "kept as ${name.trim()}"
+    }
+
+    /** Puts the bands in use on the shelf under [name]; one of that name is replaced. */
+    fun keepShapeSet(name: String) = runExport("shape set") {
         val bands = edited().shapeShifter.bands.ifEmpty { ShapeSets.default.bands }
-        val name = ShapeSetFile.freeName(_state.value.keptShapeSets)
-        val kept = withContext(Dispatchers.IO) { shapeSets.add(ShapeSetFile.of(name, bands)) }
+        val label = name.trim().ifEmpty { ShapeSetFile.freeName(_state.value.keptShapeSets) }
+        val kept = withContext(Dispatchers.IO) { shapeSets.add(ShapeSetFile.of(label, bands)) }
         _state.value = _state.value.copy(keptShapeSets = kept)
-        "kept as $name"
+        "kept as $label"
     }
 
     /** Takes one off the shelf. The bands on screen stay: they are the look, not a link to it. */

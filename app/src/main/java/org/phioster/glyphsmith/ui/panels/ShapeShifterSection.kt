@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,6 +43,7 @@ import org.phioster.glyphsmith.render.Shapes
 import org.phioster.glyphsmith.ui.HexColorField
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
+import org.phioster.glyphsmith.ui.NameRow
 import org.phioster.glyphsmith.ui.TerminalButton
 import org.phioster.glyphsmith.ui.TerminalChip
 import org.phioster.glyphsmith.ui.TerminalSlider
@@ -60,7 +62,7 @@ internal fun ShapeShifterSection(
     onExport: () -> Unit,
     onImport: (android.net.Uri) -> Unit,
     kept: List<ShapeSetFile>,
-    onKeep: () -> Unit,
+    onKeep: (String) -> Unit,
     onForget: (String) -> Unit,
 ) {
     val shifter = params.shapeShifter
@@ -100,12 +102,19 @@ internal fun ShapeShifterSection(
     }
     // Kept sets stay in the list above; save and load are for files to pass on.
     val keptName = own.firstOrNull { it.bands == bands }?.name
+    var naming by remember { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        TerminalButton("keep in app", onKeep, Modifier.weight(1f), known < 0)
+        TerminalButton(if (naming) "keep in app ▾" else "keep in app ▸", { naming = !naming }, Modifier.weight(1f), known < 0)
         TerminalButton("forget", { keptName?.let(onForget) }, Modifier.weight(1f), keptName != null)
+    }
+    if (naming && known < 0) {
+        NameRow("name of the set", "keep") {
+            onKeep(it)
+            naming = false
+        }
     }
 
     BandStrip(bands, selected) { open = it }

@@ -105,4 +105,12 @@ class PaletteFileTest {
         assertTrue("expected the two readable colours, got $colors", colors.size == 2)
         assertTrue("alpha should be forced opaque", colors.all { it ushr 24 == 0xFF })
     }
+
+    @Test
+    fun `colours kept under a name come back as they were`() {
+        val colors = listOf(0xFF101010.toInt(), 0xFF8040C0.toInt(), 0xFFF0F0F0.toInt())
+        val kept = PaletteFile.of("mine", colors)
+        assertEquals("mine", kept.name)
+        assertEquals(colors, PaletteFile.colorsOf(PaletteFile.decodeAll(PaletteFile.encodeAll(listOf(kept))).single()))
+    }
 }

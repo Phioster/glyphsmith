@@ -66,7 +66,7 @@ fun RenderPanel(
     onExportShapeSet: () -> Unit,
     onImportShapeSet: (android.net.Uri) -> Unit,
     keptShapeSets: List<org.phioster.glyphsmith.data.ShapeSetFile>,
-    onKeepShapeSet: () -> Unit,
+    onKeepShapeSet: (String) -> Unit,
     onForgetShapeSet: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
