@@ -203,8 +203,18 @@ private fun PaletteSection(
     onCategoryChange: (String) -> Unit,
     palettes: List<org.phioster.glyphsmith.core.color.Palette>,
 ) {
-    val selected = palettes.indexOfFirst { it.id == params.paletteId }.coerceAtLeast(0)
     val stops = params.activePalette().colors
+    // Colours of one's own lie over a named palette whose name is no longer true of them: the
+    // list then leads with what is really in use, under the name it was kept by.
+    val own = if (params.paletteOverride.isEmpty()) {
+        null
+    } else {
+        val name = imported.lastOrNull { PaletteFile.colorsOf(it) == params.paletteOverride }?.name ?: "custom"
+        org.phioster.glyphsmith.core.color.Palette("", name, category, stops)
+    }
+    val listed = listOfNotNull(own) + palettes
+    val named = Palettes.byId(params.paletteId).id
+    val selected = if (own != null) 0 else listed.indexOfFirst { it.id == named }.coerceAtLeast(0)
 
     /** Locks are stored per index, so dropping a stop has to drop its lock with it. */
     fun locksFor(size: Int) = List(size) { params.isStopLocked(it) }
@@ -243,16 +253,19 @@ private fun PaletteSection(
         }
         StepperDropdown(
             label = "palette",
-            items = palettes,
+            items = listed,
             selectedIndex = selected,
             onSelect = {
-                onChange(
-                    params.copy(
-                        paletteId = PaletteProvider.wireIdOf(palettes[it].id),
-                        paletteOverride = emptyList(),
-                        paletteLocks = emptyList(),
-                    ),
-                )
+                // The entry for one's own colours is where one already is.
+                if (listed[it] !== own) {
+                    onChange(
+                        params.copy(
+                            paletteId = PaletteProvider.wireIdOf(listed[it].id),
+                            paletteOverride = emptyList(),
+                            paletteLocks = emptyList(),
+                        ),
+                    )
+                }
             },
             itemLabel = { if (it.id in favourites) "★ ${it.name}" else it.name },
         )
