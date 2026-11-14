@@ -1879,12 +1879,13 @@ object PresetLibrary {
                 // pushed twice because the tint takes colour out again.
                 effects = EffectStack(
                     postProcessing = PostProcessingParams(
-                        enabled = true, exposure = 22, contrast = 88, saturation = 150, grain = 10, grainKind = GrainKind.FILM,
+                        enabled = true, exposure = 8, contrast = 88, saturation = 150, grain = 10, grainKind = GrainKind.FILM,
                         scanlines = 10, scanlineSpacing = 3,
                     ),
                     tint = TintParams(enabled = true, color = 0xFFF0D0FF.toInt(), amount = 17),
                     chromatic = ChromaticParams(enabled = true, maxDisplace = 2),
-                    glow = GlowParams(enabled = true, threshold = 55, radius = 160, intensity = 170),
+                    // Gentle, and only from what is bright: stronger, a flash-lit hand burnt out to white.
+                    glow = GlowParams(enabled = true, threshold = 70, radius = 160, intensity = 90),
                     blurSharpen = BlurSharpenParams(enabled = true, amount = 35, radius = 2),
                 ),
             ),
@@ -1900,7 +1901,8 @@ object PresetLibrary {
                 paletteId = "palette.oxide",
                 paletteOverride = HOLO,
                 effects = EffectStack(
-                    stars = DiffractionStarsParams(enabled = true, threshold = 88, rays = 4, length = 26, intensity = 380),
+                    // Only the very brightest points: lower, and whole bright surfaces turned white.
+                    stars = DiffractionStarsParams(enabled = true, threshold = 96, rays = 4, length = 26, intensity = 200),
                 ),
             ),
         ),

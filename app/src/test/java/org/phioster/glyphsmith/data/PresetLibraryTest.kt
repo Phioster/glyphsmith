@@ -349,7 +349,7 @@ class PresetLibraryTest {
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "ad237d598cfd97b90fe5543c84ee7ba3fc6fff14a357ddbdb90c4a5b0d41c485"
+    private val digest = "73dbe8b8069018d71e1ea0cfbf101fc52624825e6a922974232af6e6f2790920"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
