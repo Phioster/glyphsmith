@@ -509,6 +509,7 @@ private fun Preview(
                 style = MaterialTheme.typography.bodyMedium,
             )
         } else {
+            val picture by rememberUpdatedState(preview)
             Image(
                 bitmap = preview.asImageBitmap(),
                 contentDescription = "render preview",
@@ -521,7 +522,9 @@ private fun Preview(
                             Modifier.transformable(transform)
                         } else {
                             // One finger moves the layer; two zoom and pan the view, as without one.
-                            Modifier.pointerInput(preview.width, preview.height) {
+                            // Keyed on nothing that changes mid-drag: the picture is smaller while a
+                            // layer is moved, and a new key would cut the gesture off at its first step.
+                            Modifier.pointerInput(Unit) {
                                 awaitEachGesture {
                                     awaitFirstDown(requireUnconsumed = false)
                                     var x = layer?.offsetX?.toFloat() ?: 0f
@@ -535,9 +538,9 @@ private fun Preview(
                                             offsetY += pan.y
                                         } else {
                                             // The picture is fitted into the box, so its side is the smaller fit.
-                                            val fit = minOf(shown.width.toFloat() / preview.width, shown.height.toFloat() / preview.height)
-                                            x += pan.x / (preview.width * fit * scale).coerceAtLeast(1f) * 100f
-                                            y += pan.y / (preview.height * fit * scale).coerceAtLeast(1f) * 100f
+                                            val fit = minOf(shown.width.toFloat() / picture.width, shown.height.toFloat() / picture.height)
+                                            x += pan.x / (picture.width * fit * scale).coerceAtLeast(1f) * 100f
+                                            y += pan.y / (picture.height * fit * scale).coerceAtLeast(1f) * 100f
                                             move(x, y)
                                         }
                                         event.changes.forEach { if (it.positionChanged()) it.consume() }
