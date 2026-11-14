@@ -73,6 +73,9 @@ fun Layer.movedTo(x: Float, y: Float): Layer = copy(
     offsetY = y.roundToInt().coerceIn(Layer.OFFSET_RANGE),
 )
 
+/** These settings with every layer back in the middle: what stays the same while one is moved. */
+fun RenderSettings.unmoved(): RenderSettings = copy(layers = layers.map { it.copy(offsetX = 0, offsetY = 0) })
+
 /** The settings the panels edit: layer [index]'s own, or these when there is no such layer. */
 fun RenderSettings.edited(index: Int): RenderSettings = layers.getOrNull(index)?.params ?: this
 

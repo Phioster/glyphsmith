@@ -7,6 +7,7 @@ import org.phioster.glyphsmith.render.Layer
 import org.phioster.glyphsmith.render.RenderModuleOutput
 import org.phioster.glyphsmith.render.RenderModuleSet
 import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.render.unmoved
 import kotlin.math.max
 
 /**
@@ -77,6 +78,55 @@ object RenderPipeline {
         val fitted = Bitmap.createScaledBitmap(whole, max(1, (picture.width * fit).toInt()), max(1, (picture.height * fit).toInt()), true)
         if (fitted !== whole) whole.recycle()
         return fitted
+    }
+
+    /**
+     * A picture and its layers rendered once and held, so that moving a layer is only laying
+     * them over each other again. Rendering is what takes the time; a finger does not wait for it.
+     */
+    class Placing internal constructor(
+        private val key: RenderSettings,
+        private val base: Bitmap,
+        private val layers: List<Bitmap?>,
+    ) {
+        /** True while [params] differ from what was rendered only in where the layers sit. */
+        fun fits(params: RenderSettings): Boolean = params.unmoved() == key
+
+        fun compose(params: RenderSettings): Bitmap {
+            val out = LayerCompositor.composite(
+                base, params.layers, { layer -> layers.getOrNull(params.layers.indexOf(layer)) }, keep = true,
+            )
+            // Never the held bitmap itself: it is recycled when the move ends.
+            return if (out === base) base.copy(Bitmap.Config.ARGB_8888, false) else out
+        }
+
+        fun release() {
+            base.recycle()
+            layers.forEach { it?.recycle() }
+        }
+    }
+
+    @Suppress("LongParameterList")
+    fun placing(
+        pixels: IntArray,
+        sourceWidth: Int,
+        sourceHeight: Int,
+        params: RenderSettings,
+        maxSide: Int,
+        modules: RenderModuleSet,
+    ): Placing {
+        val base = renderFlat(pixels, sourceWidth, sourceHeight, params, maxSide, modules)
+        val rendered = params.layers.map { layer ->
+            if (!layer.enabled || layer.opacity <= 0) return@map null
+            runCatching {
+                if (layer.image.isEmpty()) {
+                    renderFlat(pixels, sourceWidth, sourceHeight, layer.params, maxSide, modules)
+                } else {
+                    renderPicture(layer, base.width, base.height, modules)
+                }
+            }.getOrNull()
+        }
+        return Placing(params.unmoved(), base, rendered)
     }
 
     @Suppress("LongParameterList")

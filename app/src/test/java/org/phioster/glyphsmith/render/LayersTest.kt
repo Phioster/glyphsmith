@@ -169,4 +169,15 @@ class LayersTest {
         assertEquals(layer.copy(offsetX = 12, offsetY = -8), layer.movedTo(12.4f, -7.6f))
         assertEquals(layer.copy(offsetX = 100, offsetY = -100), layer.movedTo(340f, -101f))
     }
+
+    @Test
+    fun `moving a layer leaves what was rendered the same, and anything else does not`() {
+        val params = RenderSettings(layers = listOf(Layer(name = "a", offsetX = 3), Layer(name = "b", opacity = 60)))
+        val moved = params.copy(layers = listOf(params.layers[0].movedTo(40f, -12f), params.layers[1]))
+        assertEquals(params.unmoved(), moved.unmoved())
+
+        val dimmed = params.copy(layers = listOf(params.layers[0], params.layers[1].copy(opacity = 50)))
+        assertTrue(params.unmoved() != dimmed.unmoved())
+        assertTrue(params.unmoved() != params.copy(cellSize = params.cellSize + 1).unmoved())
+    }
 }

@@ -267,6 +267,59 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(editLayer = index)
     }
 
+    private var placing: RenderPipeline.Placing? = null
+    private var placeJob: Job? = null
+    private var placeWanted: RenderSettings? = null
+
+    /**
+     * The layer chosen for editing follows a finger to [x] and [y] percent off the middle.
+     *
+     * Not through [paramsFlow]: that waits for the finger to rest and renders everything again,
+     * so the layer stood still and then jumped. Here the picture and its layers are rendered once
+     * and only laid over each other for each step, one at a time, the newest position winning.
+     * [endMoveLayer] hands the result to the usual road for history and a render at full size.
+     */
+    fun moveLayer(x: Float, y: Float) {
+        val state = _state.value
+        val layer = state.params.layers.getOrNull(state.editLayer) ?: return
+        val moved = layer.movedTo(x, y)
+        if (moved == layer) return
+        val params = state.params.copy(layers = state.params.layers.mapIndexed { i, l -> if (i == state.editLayer) moved else l })
+        _state.value = state.copy(params = params)
+        placeWanted = params
+        if (placeJob?.isActive == true) return
+        placeJob = viewModelScope.launch {
+            while (true) {
+                val next = placeWanted ?: break
+                placeWanted = null
+                val frame = sources.frame() ?: break
+                val bitmap = withContext(Dispatchers.Default) {
+                    runCatching {
+                        val held = placing?.takeIf { it.fits(next) } ?: RenderPipeline.placing(
+                            frame.pixels, frame.width, frame.height, next, MOVE_MAX_SIDE, AppRenderModules,
+                        ).also {
+                            placing?.release()
+                            placing = it
+                        }
+                        held.compose(next)
+                    }.getOrNull()
+                } ?: break
+                _state.value = _state.value.copy(preview = bitmap)
+            }
+        }
+    }
+
+    /** The finger is up: the new place goes into history and is rendered at full size. */
+    fun endMoveLayer() {
+        val running = placeJob
+        viewModelScope.launch {
+            running?.join()
+            placing?.release()
+            placing = null
+            paramsFlow.value = _state.value.params
+        }
+    }
+
     /** What the panels are showing: the chosen layer's settings, or the picture's. */
     private fun edited(): RenderSettings = _state.value.params.edited(_state.value.editLayer)
 
@@ -1238,6 +1291,9 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
          * for the same reason: it is the size at which a full chain still keeps up with input.
          */
         const val SCRUB_MAX_SIDE = 480
+
+        /** While a layer is dragged: sharp enough to place it by, small enough to follow a finger. */
+        const val MOVE_MAX_SIDE = 640
         const val THUMB_MAX_SIDE = 220
         const val ANIM_EXPORT_MAX_SIDE = 1080
 

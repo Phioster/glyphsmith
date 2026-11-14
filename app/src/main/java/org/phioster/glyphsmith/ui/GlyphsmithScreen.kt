@@ -48,7 +48,6 @@ import androidx.compose.ui.Modifier
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
 import org.phioster.glyphsmith.render.Layer
-import org.phioster.glyphsmith.render.movedTo
 import org.phioster.glyphsmith.render.edited
 import org.phioster.glyphsmith.render.withEdited
 import org.phioster.glyphsmith.render.animationShown
@@ -148,6 +147,8 @@ fun GlyphsmithScreen(
     onImportShapeSet: (android.net.Uri) -> Unit,
     onKeepShapeSet: (String) -> Unit,
     onKeepPalette: (String) -> Unit,
+    onMoveLayer: (Float, Float) -> Unit,
+    onMoveLayerEnd: () -> Unit,
     onForgetShapeSet: (String) -> Unit,
     onApplyPalette: (org.phioster.glyphsmith.data.PaletteFile) -> Unit,
     onForgetPalette: (String) -> Unit,
@@ -170,11 +171,6 @@ fun GlyphsmithScreen(
     val compact = state.compactPreview
     // The layer chosen in the edit row follows a finger in the picture.
     val moving = state.params.layers.getOrNull(state.editLayer)
-    val onMoveLayer: (Float, Float) -> Unit = { x, y ->
-        onParamsChange(
-            state.params.copy(layers = state.params.layers.mapIndexed { i, l -> if (i == state.editLayer) l.movedTo(x, y) else l }),
-        )
-    }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(onPickImage)
     }
@@ -243,7 +239,7 @@ fun GlyphsmithScreen(
             .padding(horizontal = 12.dp),
     ) {
     if (wide) {
-        Preview(state, Modifier.weight(1f).fillMaxHeight().padding(top = 12.dp, bottom = 12.dp, end = 10.dp), moving = moving, onMove = onMoveLayer)
+        Preview(state, Modifier.weight(1f).fillMaxHeight().padding(top = 12.dp, bottom = 12.dp, end = 10.dp), moving = moving, onMove = onMoveLayer, onMoveEnd = onMoveLayerEnd)
     }
     Column(Modifier.weight(if (wide) WIDE_CONTROLS else 1f).fillMaxHeight()) {
         Header(
@@ -299,7 +295,7 @@ fun GlyphsmithScreen(
         } else if (compact) {
             CompactPreview(state, onFullView = { fullView = true }, onGrow = { onCompactPreviewChange(false) })
         } else {
-            Preview(state, Modifier.weight(1f), moving = moving, onMove = onMoveLayer)
+            Preview(state, Modifier.weight(1f), moving = moving, onMove = onMoveLayer, onMoveEnd = onMoveLayerEnd)
             StatusLine(state, onShrink = { onCompactPreviewChange(true) }) { fullView = true }
         }
 
@@ -480,6 +476,7 @@ private fun Preview(
     framed: Boolean = true,
     moving: Layer? = null,
     onMove: (Float, Float) -> Unit = { _, _ -> },
+    onMoveEnd: () -> Unit = {},
 ) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
@@ -492,6 +489,7 @@ private fun Preview(
     var shown by remember { mutableStateOf(IntSize.Zero) }
     val layer by rememberUpdatedState(moving)
     val move by rememberUpdatedState(onMove)
+    val moveEnd by rememberUpdatedState(onMoveEnd)
 
     val frame = if (framed) {
         // Black behind the picture in every theme, as in Flaresmith: the frame is not part of it.
@@ -544,6 +542,7 @@ private fun Preview(
                                         }
                                         event.changes.forEach { if (it.positionChanged()) it.consume() }
                                     } while (event.changes.any { it.pressed })
+                                    moveEnd()
                                 }
                             }
                         },

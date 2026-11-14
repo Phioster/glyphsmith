@@ -133,7 +133,7 @@ internal fun ShapeShifterSection(
             Modifier.weight(1f), bands.size > 1,
         )
         TerminalButton("even", { update(shifter.copy(bands = ShapeBands.distribute(bands))) }, Modifier.weight(1f))
-        TerminalButton("reverse", { update(shifter.copy(bands = ShapeBands.reverse(bands))) }, Modifier.weight(1f))
+        TerminalButton("flip", { update(shifter.copy(bands = ShapeBands.reverse(bands))) }, Modifier.weight(1f))
     }
 
     TerminalToggle(

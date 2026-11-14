@@ -119,6 +119,8 @@ class MainActivity : ComponentActivity() {
                         onImportShapeSet = viewModel::importShapeSet,
                         onKeepShapeSet = { viewModel.keepShapeSet(it) },
                         onKeepPalette = { viewModel.keepPalette(it) },
+                        onMoveLayer = viewModel::moveLayer,
+                        onMoveLayerEnd = viewModel::endMoveLayer,
                         onForgetShapeSet = viewModel::forgetShapeSet,
                         onApplyPalette = viewModel::applyPalette,
                         onForgetPalette = viewModel::forgetPalette,
