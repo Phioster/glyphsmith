@@ -44,7 +44,8 @@ object HoneycombScreen {
         val cell = (params.cell.coerceIn(4, 60) * w / 1000f).coerceAtLeast(2f)
         val grow = 0.75f + params.size.coerceIn(0, 100) / 100f * 0.7f
         val keep = params.colour.coerceIn(0, 100) / 100f
-        val from = source.data.copyOf()
+        // A cell takes the colour of its whole comb, not of the one pixel a dither left at its centre.
+        val from = PrintNoise.softened(source.data, w, h, (cell * 0.45f).toInt().coerceAtLeast(1))
         val data = source.data
         RowParallel.rows(h) { band ->
             for (y in band) {

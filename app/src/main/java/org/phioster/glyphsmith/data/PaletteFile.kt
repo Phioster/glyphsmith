@@ -44,6 +44,16 @@ data class PaletteFile(
             category = "KEPT",
         )
 
+        /**
+         * What the colours in use are called when they leave as a file. Colours of the user's
+         * own sit over a named palette whose name is no longer theirs: they take the name they
+         * were kept under, or "custom" when they were never kept.
+         */
+        fun exportName(palette: Palette, overridden: Boolean, kept: List<PaletteFile>): String {
+            if (!overridden) return palette.name
+            return kept.lastOrNull { colorsOf(it) == palette.colors }?.name ?: "custom"
+        }
+
         fun encode(palette: Palette): String = json.encodeToString(
             PaletteFile(
                 name = palette.name,

@@ -113,4 +113,14 @@ class PaletteFileTest {
         assertEquals("mine", kept.name)
         assertEquals(colors, PaletteFile.colorsOf(PaletteFile.decodeAll(PaletteFile.encodeAll(listOf(kept))).single()))
     }
+
+    @Test
+    fun `colours of one's own leave under the name they were kept by`() {
+        val grey = org.phioster.glyphsmith.core.color.Palette("palette.grayscale", "grayscale", "MONO", listOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt()))
+        val mine = listOf(0xFF101010.toInt(), 0xFF8040C0.toInt(), 0xFFF0F0F0.toInt())
+        val kept = listOf(PaletteFile.of("club night", mine))
+        assertEquals("grayscale", PaletteFile.exportName(grey, overridden = false, kept = kept))
+        assertEquals("club night", PaletteFile.exportName(grey.copy(colors = mine), overridden = true, kept = kept))
+        assertEquals("custom", PaletteFile.exportName(grey.copy(colors = mine.reversed()), overridden = true, kept = kept))
+    }
 }

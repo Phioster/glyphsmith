@@ -495,7 +495,12 @@ class GlyphsmithViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Writes the palette in use to its own file, so colours can be shared without a look. */
     fun exportPalette() = runExport("palette") {
-        val text = PaletteFile.encode(edited().activePalette())
+        val now = edited()
+        val palette = now.activePalette()
+        // Named as it was kept: under the name of the palette it was built over, a palette of
+        // one's own arrived elsewhere as "grayscale".
+        val name = PaletteFile.exportName(palette, now.paletteOverride.isNotEmpty(), _state.value.importedPalettes)
+        val text = PaletteFile.encode(palette.copy(name = name))
         withContext(Dispatchers.IO) { exports.palette(text) }
     }
 
