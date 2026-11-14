@@ -65,6 +65,9 @@ fun RenderPanel(
     onAutoOrder: () -> Unit,
     onExportShapeSet: () -> Unit,
     onImportShapeSet: (android.net.Uri) -> Unit,
+    keptShapeSets: List<org.phioster.glyphsmith.data.ShapeSetFile>,
+    onKeepShapeSet: () -> Unit,
+    onForgetShapeSet: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val categories = remember { listOf(CATEGORY_ALL) + CharacterSets.categories }
@@ -121,7 +124,7 @@ fun RenderPanel(
             PixelModeControls(params, onChange)
         }
         if (params.renderMode == RenderMode.ShapeShifter) {
-            ShapeShifterSection(params, onChange, onExportShapeSet, onImportShapeSet)
+            ShapeShifterSection(params, onChange, onExportShapeSet, onImportShapeSet, keptShapeSets, onKeepShapeSet, onForgetShapeSet)
         }
         if (params.renderMode == RenderMode.FlowAscii) {
             FlowAsciiSection(params, onChange)

@@ -6,6 +6,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,11 +41,14 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
+import org.phioster.glyphsmith.render.Layer
+import org.phioster.glyphsmith.render.movedTo
 import org.phioster.glyphsmith.render.edited
 import org.phioster.glyphsmith.render.withEdited
 import org.phioster.glyphsmith.render.animationShown
@@ -52,7 +59,11 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.phioster.glyphsmith.UiState
@@ -135,6 +146,8 @@ fun GlyphsmithScreen(
     onImportPalette: (android.net.Uri) -> Unit,
     onExportShapeSet: () -> Unit,
     onImportShapeSet: (android.net.Uri) -> Unit,
+    onKeepShapeSet: () -> Unit,
+    onForgetShapeSet: (String) -> Unit,
     onApplyPalette: (org.phioster.glyphsmith.data.PaletteFile) -> Unit,
     onForgetPalette: (String) -> Unit,
     onImportScreen: (android.net.Uri, Int) -> Unit,
@@ -154,6 +167,13 @@ fun GlyphsmithScreen(
     val part = parts[tab] ?: 0
     var fullView by remember { mutableStateOf(false) }
     val compact = state.compactPreview
+    // The layer chosen in the edit row follows a finger in the picture.
+    val moving = state.params.layers.getOrNull(state.editLayer)
+    val onMoveLayer: (Float, Float) -> Unit = { x, y ->
+        onParamsChange(
+            state.params.copy(layers = state.params.layers.mapIndexed { i, l -> if (i == state.editLayer) l.movedTo(x, y) else l }),
+        )
+    }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         uri?.let(onPickImage)
     }
@@ -222,7 +242,7 @@ fun GlyphsmithScreen(
             .padding(horizontal = 12.dp),
     ) {
     if (wide) {
-        Preview(state, Modifier.weight(1f).fillMaxHeight().padding(top = 12.dp, bottom = 12.dp, end = 10.dp))
+        Preview(state, Modifier.weight(1f).fillMaxHeight().padding(top = 12.dp, bottom = 12.dp, end = 10.dp), moving = moving, onMove = onMoveLayer)
     }
     Column(Modifier.weight(if (wide) WIDE_CONTROLS else 1f).fillMaxHeight()) {
         Header(
@@ -278,7 +298,7 @@ fun GlyphsmithScreen(
         } else if (compact) {
             CompactPreview(state, onFullView = { fullView = true }, onGrow = { onCompactPreviewChange(false) })
         } else {
-            Preview(state, Modifier.weight(1f))
+            Preview(state, Modifier.weight(1f), moving = moving, onMove = onMoveLayer)
             StatusLine(state, onShrink = { onCompactPreviewChange(true) }) { fullView = true }
         }
 
@@ -334,6 +354,9 @@ fun GlyphsmithScreen(
                     onAutoOrder = onAutoOrderRamp,
                     onExportShapeSet = onExportShapeSet,
                     onImportShapeSet = onImportShapeSet,
+                    keptShapeSets = state.keptShapeSets,
+                    onKeepShapeSet = onKeepShapeSet,
+                    onForgetShapeSet = onForgetShapeSet,
                 )
                 else MappingPanel(
                     params = shown,
@@ -449,7 +472,13 @@ private fun Header(
  * preview of a 200-column grid shows none of it.
  */
 @Composable
-private fun Preview(state: UiState, modifier: Modifier = Modifier, framed: Boolean = true) {
+private fun Preview(
+    state: UiState,
+    modifier: Modifier = Modifier,
+    framed: Boolean = true,
+    moving: Layer? = null,
+    onMove: (Float, Float) -> Unit = { _, _ -> },
+) {
     var scale by remember { mutableFloatStateOf(1f) }
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
@@ -458,6 +487,9 @@ private fun Preview(state: UiState, modifier: Modifier = Modifier, framed: Boole
         offsetX += panChange.x
         offsetY += panChange.y
     }
+    var shown by remember { mutableStateOf(IntSize.Zero) }
+    val layer by rememberUpdatedState(moving)
+    val move by rememberUpdatedState(onMove)
 
     val frame = if (framed) {
         // Black behind the picture in every theme, as in Flaresmith: the frame is not part of it.
@@ -483,7 +515,37 @@ private fun Preview(state: UiState, modifier: Modifier = Modifier, framed: Boole
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()
-                    .transformable(transform)
+                    .onSizeChanged { shown = it }
+                    .then(
+                        if (moving == null) {
+                            Modifier.transformable(transform)
+                        } else {
+                            // One finger moves the layer; two zoom and pan the view, as without one.
+                            Modifier.pointerInput(preview.width, preview.height) {
+                                awaitEachGesture {
+                                    awaitFirstDown(requireUnconsumed = false)
+                                    var x = layer?.offsetX?.toFloat() ?: 0f
+                                    var y = layer?.offsetY?.toFloat() ?: 0f
+                                    do {
+                                        val event = awaitPointerEvent()
+                                        val pan = event.calculatePan()
+                                        if (event.changes.count { it.pressed } > 1) {
+                                            scale = (scale * event.calculateZoom()).coerceIn(1f, 12f)
+                                            offsetX += pan.x
+                                            offsetY += pan.y
+                                        } else {
+                                            // The picture is fitted into the box, so its side is the smaller fit.
+                                            val fit = minOf(shown.width.toFloat() / preview.width, shown.height.toFloat() / preview.height)
+                                            x += pan.x / (preview.width * fit * scale).coerceAtLeast(1f) * 100f
+                                            y += pan.y / (preview.height * fit * scale).coerceAtLeast(1f) * 100f
+                                            move(x, y)
+                                        }
+                                        event.changes.forEach { if (it.positionChanged()) it.consume() }
+                                    } while (event.changes.any { it.pressed })
+                                }
+                            }
+                        },
+                    )
                     .graphicsLayer(
                         scaleX = scale,
                         scaleY = scale,

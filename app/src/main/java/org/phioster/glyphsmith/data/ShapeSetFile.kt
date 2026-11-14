@@ -34,19 +34,37 @@ data class ShapeSetFile(
             prettyPrint = true
         }
 
-        fun encode(name: String, bands: List<ShapeBand>): String = json.encodeToString(
-            ShapeSetFile(
-                name = name,
-                bands = bands.map { band ->
-                    Band(
-                        shape = band.shape.name.lowercase(Locale.US),
-                        size = band.size,
-                        width = band.width,
-                        color = if (band.color == -1) "" else String.format(Locale.US, "#%06X", band.color and 0xFFFFFF),
-                    )
-                },
-            ),
+        fun of(name: String, bands: List<ShapeBand>) = ShapeSetFile(
+            name = name,
+            bands = bands.map { band ->
+                Band(
+                    shape = band.shape.name.lowercase(Locale.US),
+                    size = band.size,
+                    width = band.width,
+                    color = if (band.color == -1) "" else String.format(Locale.US, "#%06X", band.color and 0xFFFFFF),
+                )
+            },
         )
+
+        fun encode(name: String, bands: List<ShapeBand>): String = json.encodeToString(of(name, bands))
+
+        /** The shelf of kept sets as one document, and back. Text that is not one reads as empty. */
+        fun encodeAll(sets: List<ShapeSetFile>): String = json.encodeToString(sets)
+
+        fun decodeAll(text: String): List<ShapeSetFile> =
+            runCatching { json.decodeFromString<List<ShapeSetFile>>(text) }.getOrDefault(emptyList())
+
+        /** One file as it was written, or null when the text is not a shape set with bands. */
+        fun read(text: String): ShapeSetFile? =
+            runCatching { json.decodeFromString<ShapeSetFile>(text) }.getOrNull()?.takeIf { bandsOf(it) != null }
+
+        /** [kept] with [set] on it; a set of the same name is replaced, and the new one goes last. */
+        fun keeping(kept: List<ShapeSetFile>, set: ShapeSetFile): List<ShapeSetFile> =
+            kept.filterNot { it.name.equals(set.name, ignoreCase = true) } + set
+
+        /** The first of "my set 1", "my set 2"… that is not on [kept] yet. */
+        fun freeName(kept: List<ShapeSetFile>): String =
+            generateSequence(1) { it + 1 }.map { "my set $it" }.first { name -> kept.none { it.name.equals(name, ignoreCase = true) } }
 
         /**
          * Reads a shape set back, or null when the text is not one. A band naming a shape this
@@ -55,6 +73,11 @@ data class ShapeSetFile(
          */
         fun decode(text: String): List<ShapeBand>? {
             val parsed = runCatching { json.decodeFromString<ShapeSetFile>(text) }.getOrNull() ?: return null
+            return bandsOf(parsed)
+        }
+
+        /** The bands [parsed] describes, by the rules of [decode]. */
+        fun bandsOf(parsed: ShapeSetFile): List<ShapeBand>? {
             val bands = parsed.bands.mapNotNull { band ->
                 val kind = ShapeKind.entries.firstOrNull { it.name.equals(band.shape.trim(), ignoreCase = true) }
                     ?: return@mapNotNull null

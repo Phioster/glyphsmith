@@ -83,7 +83,8 @@ fun LayerPanel(
         )
         Text(
             "a picture of its own on top — a cut-out PNG keeps its transparency. Pick it in the " +
-                "edit row above the tabs to give it its own style, effects or preset",
+                "edit row above the tabs to give it its own style, effects or preset, and to " +
+                "move it with a finger in the picture",
             color = Term.InkFaint,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(top = 6.dp),

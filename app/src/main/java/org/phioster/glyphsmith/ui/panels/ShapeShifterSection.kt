@@ -34,6 +34,7 @@ import org.phioster.glyphsmith.render.ShapeBand
 import org.phioster.glyphsmith.render.ShapeBands
 import org.phioster.glyphsmith.render.ShapeKind
 import org.phioster.glyphsmith.render.ShapeLayout
+import org.phioster.glyphsmith.data.ShapeSetFile
 import org.phioster.glyphsmith.render.ShapeSet
 import org.phioster.glyphsmith.render.ShapeSets
 import org.phioster.glyphsmith.render.ShapeShifterParams
@@ -58,6 +59,9 @@ internal fun ShapeShifterSection(
     onChange: (RenderSettings) -> Unit,
     onExport: () -> Unit,
     onImport: (android.net.Uri) -> Unit,
+    kept: List<ShapeSetFile>,
+    onKeep: () -> Unit,
+    onForget: (String) -> Unit,
 ) {
     val shifter = params.shapeShifter
     val bands = shifter.bands.ifEmpty { ShapeSets.default.bands }
@@ -69,8 +73,11 @@ internal fun ShapeShifterSection(
 
     // Edited bands match no built-in set, so they get an entry of their own rather than
     // letting the picker claim the first set is selected.
-    val known = ShapeSets.all.indexOfFirst { it.bands == bands }
-    val sets = if (known < 0) listOf(ShapeSet("custom", bands)) + ShapeSets.all else ShapeSets.all
+    // The user's own sets follow the built-in ones, so those keep their places in the list.
+    val own = kept.mapNotNull { file -> ShapeSetFile.bandsOf(file)?.let { ShapeSet(file.name, it) } }
+    val shelf = ShapeSets.all + own
+    val known = shelf.indexOfFirst { it.bands == bands }
+    val sets = if (known < 0) listOf(ShapeSet("custom", bands)) + shelf else shelf
     StepperDropdown(
         label = "shape set",
         items = sets,
@@ -90,6 +97,15 @@ internal fun ShapeShifterSection(
         TerminalButton(
             "load set", { importer.launch(arrayOf("application/json", "text/plain", "*/*")) }, Modifier.weight(1f),
         )
+    }
+    // Kept sets stay in the list above; save and load are for files to pass on.
+    val keptName = own.firstOrNull { it.bands == bands }?.name
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        TerminalButton("keep in app", onKeep, Modifier.weight(1f), known < 0)
+        TerminalButton("forget", { keptName?.let(onForget) }, Modifier.weight(1f), keptName != null)
     }
 
     BandStrip(bands, selected) { open = it }

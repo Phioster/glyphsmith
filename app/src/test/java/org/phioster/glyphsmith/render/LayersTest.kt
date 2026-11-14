@@ -162,4 +162,11 @@ class LayersTest {
         assertEquals(Layers.HANDED_PICTURE, sent.name)
         assertTrue(sent.params.layers.isEmpty())
     }
+
+    @Test
+    fun `a layer moved by a finger lands on whole percent and stays within what the sliders reach`() {
+        val layer = Layer(name = "x", offsetX = 5, scale = 150)
+        assertEquals(layer.copy(offsetX = 12, offsetY = -8), layer.movedTo(12.4f, -7.6f))
+        assertEquals(layer.copy(offsetX = 100, offsetY = -100), layer.movedTo(340f, -101f))
+    }
 }

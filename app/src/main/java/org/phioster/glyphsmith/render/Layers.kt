@@ -1,5 +1,6 @@
 package org.phioster.glyphsmith.render
 
+import kotlin.math.roundToInt
 import kotlinx.serialization.Serializable
 import org.phioster.glyphsmith.anim.AnimationParams
 
@@ -65,6 +66,12 @@ data class Layer(
         val OFFSET_RANGE = -100..100
     }
 }
+
+/** This layer with its centre at [x] and [y] percent off the middle, kept inside what the sliders reach. */
+fun Layer.movedTo(x: Float, y: Float): Layer = copy(
+    offsetX = x.roundToInt().coerceIn(Layer.OFFSET_RANGE),
+    offsetY = y.roundToInt().coerceIn(Layer.OFFSET_RANGE),
+)
 
 /** The settings the panels edit: layer [index]'s own, or these when there is no such layer. */
 fun RenderSettings.edited(index: Int): RenderSettings = layers.getOrNull(index)?.params ?: this

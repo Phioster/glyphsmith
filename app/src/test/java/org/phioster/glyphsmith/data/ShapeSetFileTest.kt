@@ -48,4 +48,35 @@ class ShapeSetFileTest {
         assertNull(ShapeSetFile.decode("""{"name":"empty","bands":[]}"""))
         assertNull(ShapeSetFile.decode("""{"name":"a palette","colors":["#112233"]}"""))
     }
+
+    @Test
+    fun `a kept set comes back from the shelf with its name and bands`() {
+        val bands = ShapeSets.all.first().bands
+        val shelf = ShapeSetFile.keeping(emptyList(), ShapeSetFile.of("mine", bands))
+        val back = ShapeSetFile.decodeAll(ShapeSetFile.encodeAll(shelf))
+        assertEquals(listOf("mine"), back.map { it.name })
+        assertEquals(bands, ShapeSetFile.bandsOf(back.single()))
+    }
+
+    @Test
+    fun `keeping a name again replaces it and puts it last`() {
+        val a = ShapeSetFile.of("a", ShapeSets.all[0].bands)
+        val b = ShapeSetFile.of("b", ShapeSets.all[1].bands)
+        val again = ShapeSetFile.of("A", ShapeSets.all[2].bands)
+        assertEquals(listOf(b, again), ShapeSetFile.keeping(listOf(a, b), again))
+    }
+
+    @Test
+    fun `a new set gets the first free name`() {
+        assertEquals("my set 1", ShapeSetFile.freeName(emptyList()))
+        val kept = listOf(ShapeSetFile(name = "My Set 1"), ShapeSetFile(name = "my set 3"))
+        assertEquals("my set 2", ShapeSetFile.freeName(kept))
+    }
+
+    @Test
+    fun `text that is not a shape set is not read as one`() {
+        assertEquals(null, ShapeSetFile.read("{\"name\":\"empty\"}"))
+        assertEquals(null, ShapeSetFile.read("not json"))
+        assertEquals(emptyList<ShapeSetFile>(), ShapeSetFile.decodeAll("not json"))
+    }
 }
