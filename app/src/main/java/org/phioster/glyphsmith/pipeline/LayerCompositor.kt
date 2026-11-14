@@ -22,6 +22,8 @@ object LayerCompositor {
     fun composite(
         base: Bitmap,
         layers: List<Layer>,
+        // True leaves [base] and what [renderLayer] returns alive, for a caller that lays them again.
+        keep: Boolean = false,
         renderLayer: (Layer) -> Bitmap?,
     ): Bitmap {
         val active = layers.filter { it.enabled && it.opacity > 0 }
@@ -31,8 +33,8 @@ object LayerCompositor {
         active.forEach { layer ->
             val rendered = renderLayer(layer) ?: return@forEach
             val placed = place(rendered, result.width, result.height, layer)
-            rendered.recycle()
-            result = blend(result, placed, layer)
+            if (!keep) rendered.recycle()
+            result = blend(result, placed, layer, recycleBottom = !keep || result !== base)
             placed.recycle()
         }
         return result
@@ -87,7 +89,7 @@ object LayerCompositor {
      * glyphs, or the frame it was moved out of — it must leave what is underneath alone,
      * whatever the blend mode would otherwise do with black.
      */
-    private fun blend(bottom: Bitmap, top: Bitmap, layer: Layer): Bitmap {
+    private fun blend(bottom: Bitmap, top: Bitmap, layer: Layer, recycleBottom: Boolean = true): Bitmap {
         val width = bottom.width
         val height = bottom.height
         val under = IntArray(width * height)
@@ -113,7 +115,7 @@ object LayerCompositor {
         // The old bottom is a private intermediate — Pipeline has not handed it to anyone
         // yet — so releasing it here is safe and keeps a tall stack from holding one full
         // bitmap per layer.
-        bottom.recycle()
+        if (recycleBottom) bottom.recycle()
         return Bitmap.createBitmap(under, width, height, Bitmap.Config.ARGB_8888)
     }
 

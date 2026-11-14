@@ -24,7 +24,9 @@ import org.phioster.glyphsmith.anim.AnimTrack
 import org.phioster.glyphsmith.anim.AnimationParams
 import org.phioster.glyphsmith.anim.TemporalParams
 import org.phioster.glyphsmith.anim.TemporalPattern
+import org.phioster.glyphsmith.render.RenderMode
 import org.phioster.glyphsmith.render.RenderSettings
+import org.phioster.glyphsmith.render.ScopeMotion
 import org.phioster.glyphsmith.ui.SectionHeader
 import org.phioster.glyphsmith.ui.StepperDropdown
 import org.phioster.glyphsmith.ui.TerminalButton
@@ -98,9 +100,10 @@ fun AnimPanel(
                 modifier = Modifier.padding(top = 6.dp),
             )
         }
-        // And the effects that run on the clock alone: a signal fault, travelling contour lines.
+        // And what runs on the clock alone: a signal fault, travelling contour lines, a moving scope.
         val fault = params.effects.analogError.enabled ||
-            (params.effects.contourLines.enabled && params.effects.contourLines.flow != 0)
+            (params.effects.contourLines.enabled && params.effects.contourLines.flow != 0) ||
+            (params.renderMode == RenderMode.Oscilloscope && params.oscilloscope.motion != ScopeMotion.STILL)
         if (!animation.enabled && !state.isVideo && !lightLoop && !fault) {
             Text(
                 "drives depth, offset, seeds and effect angles over time — no video needed, " +

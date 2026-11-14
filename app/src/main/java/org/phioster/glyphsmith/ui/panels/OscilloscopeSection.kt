@@ -66,7 +66,7 @@ internal fun OscilloscopeSection(params: RenderSettings, onChange: (RenderSettin
         valueText = "${scope.glow}%",
     )
     Text(
-        "motion — plays in the ANIM tab, and a saved picture shows the start of the loop",
+        "motion — plays in the MOVE tab, and a saved picture shows the start of the loop",
         color = Term.InkFaint,
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
