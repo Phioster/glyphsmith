@@ -26,6 +26,50 @@ internal object PrintNoise {
         return top * (1f - sy) + bottom * sy
     }
 
+    /**
+     * [pixels] with every pixel the mean of the square of side 2·[radius]+1 around it, as a new
+     * array; alpha is copied. An effect that reads edges or one colour per cell reads this: the
+     * picture reaches it dithered, and a dither is all edges and single pixels.
+     */
+    fun softened(pixels: IntArray, w: Int, h: Int, radius: Int): IntArray {
+        if (radius < 1) return pixels.copyOf()
+        val across = IntArray(pixels.size)
+        pass(pixels, across, w, h, radius, alongRows = true)
+        val out = IntArray(pixels.size)
+        pass(across, out, w, h, radius, alongRows = false)
+        return out
+    }
+
+    private fun pass(from: IntArray, to: IntArray, w: Int, h: Int, radius: Int, alongRows: Boolean) {
+        val lines = if (alongRows) h else w
+        val count = if (alongRows) w else h
+        val step = if (alongRows) 1 else w
+        val size = 2 * radius + 1
+        org.phioster.glyphsmith.core.pipeline.RowParallel.rows(lines) { band ->
+            for (line in band) {
+                val start = if (alongRows) line * w else line
+                var r = 0
+                var g = 0
+                var b = 0
+                for (i in -radius..radius) {
+                    val p = from[start + i.coerceIn(0, count - 1) * step]
+                    r += p shr 16 and 0xFF
+                    g += p shr 8 and 0xFF
+                    b += p and 0xFF
+                }
+                for (i in 0 until count) {
+                    val at = start + i * step
+                    to[at] = (from[at] and (0xFF shl 24)) or ((r / size) shl 16) or ((g / size) shl 8) or (b / size)
+                    val gone = from[start + (i - radius).coerceAtLeast(0) * step]
+                    val come = from[start + (i + radius + 1).coerceAtMost(count - 1) * step]
+                    r += (come shr 16 and 0xFF) - (gone shr 16 and 0xFF)
+                    g += (come shr 8 and 0xFF) - (gone shr 8 and 0xFF)
+                    b += (come and 0xFF) - (gone and 0xFF)
+                }
+            }
+        }
+    }
+
     /** The colour [t] of the way along [stops], 0..1, as packed RGB. */
     fun ramp(stops: IntArray, t: Float): Int {
         val at = t.coerceIn(0f, 1f) * (stops.size - 1)

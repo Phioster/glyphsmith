@@ -60,7 +60,9 @@ object Blueprint {
         val square = (w.toFloat() / SQUARES).coerceAtLeast(4f)
         val stroke = (w / 720f).coerceAtLeast(1f)
         val data = source.data
-        val lum = FloatArray(w * h) { PixelOps.luminance(data[it]) }
+        // Read soft: on the dither itself every pixel is an edge and the drawing drowns in them.
+        val soft = PrintNoise.softened(data, w, h, (w / 240f).roundToInt().coerceAtLeast(1))
+        val lum = FloatArray(w * h) { PixelOps.luminance(soft[it]) }
         RowParallel.rows(h) { band ->
             for (y in band) {
                 val up = (y - reach).coerceAtLeast(0) * w
