@@ -37,6 +37,13 @@ data class PaletteFile(
             prettyPrint = true
         }
 
+        /** [colors] under a name of the user's own, for the shelf. */
+        fun of(name: String, colors: List<Int>) = PaletteFile(
+            name = name,
+            colors = colors.map { String.format(Locale.US, "#%06X", it and 0xFFFFFF) },
+            category = "KEPT",
+        )
+
         fun encode(palette: Palette): String = json.encodeToString(
             PaletteFile(
                 name = palette.name,
