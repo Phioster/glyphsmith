@@ -3,6 +3,7 @@ package org.phioster.glyphsmith.ui.panels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -94,6 +95,7 @@ fun AnimPanel(
                         modifier = Modifier.weight(1f),
                     )
                 }
+                repeat(QUICK_ACROSS - row.size) { Box(Modifier.weight(1f)) }
             }
         }
         Text(
@@ -152,6 +154,7 @@ fun AnimPanel(
         // And what runs on the clock alone: a signal fault, travelling contour lines, a moving scope.
         val fault = params.effects.analogError.enabled ||
             (params.effects.contourLines.enabled && params.effects.contourLines.flow != 0) ||
+            (params.effects.petrolSheen.enabled && params.effects.petrolSheen.flow != 0) ||
             (params.renderMode == RenderMode.Oscilloscope && params.oscilloscope.motion != ScopeMotion.STILL)
         if (!animation.enabled && !state.isVideo && !lightLoop && !fault) {
             Text(

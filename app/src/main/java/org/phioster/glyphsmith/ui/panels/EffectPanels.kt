@@ -98,5 +98,12 @@ internal fun EffectControls(
 
         EffectId.STRESS ->
             StressReliefSection(fx.stressRelief, move) { p -> update { copy(stressRelief = p) } }
+
+        EffectId.CYANOTYPE -> CyanotypeSection(fx.cyanotype, move) { p -> update { copy(cyanotype = p) } }
+        EffectId.BLUEPRINT -> BlueprintSection(fx.blueprint, move) { p -> update { copy(blueprint = p) } }
+        EffectId.HONEYCOMB -> HoneycombSection(fx.honeycomb, move) { p -> update { copy(honeycomb = p) } }
+        EffectId.PETROL -> PetrolSheenSection(fx.petrolSheen, move) { p -> update { copy(petrolSheen = p) } }
+        EffectId.CRUMPLED ->
+            CrumpledPrintSection(fx.crumpledPrint, move) { p -> update { copy(crumpledPrint = p) } }
     }
 }

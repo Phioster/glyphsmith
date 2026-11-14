@@ -24,6 +24,11 @@ import org.phioster.glyphsmith.effects.EffectId
 import org.phioster.glyphsmith.effects.PixelSortParams
 import org.phioster.glyphsmith.effects.AnalogErrorParams
 import org.phioster.glyphsmith.effects.ContourLinesParams
+import org.phioster.glyphsmith.effects.CyanotypeParams
+import org.phioster.glyphsmith.effects.BlueprintParams
+import org.phioster.glyphsmith.effects.HoneycombScreenParams
+import org.phioster.glyphsmith.effects.CrumpledPrintParams
+import org.phioster.glyphsmith.effects.PetrolSheenParams
 import org.phioster.glyphsmith.effects.SliceShiftParams
 import org.phioster.glyphsmith.effects.SortAxis
 import org.phioster.glyphsmith.effects.SubtextureParams
@@ -1924,6 +1929,71 @@ object PresetLibrary {
                     glow = GlowParams(enabled = true, threshold = 78, radius = 60, intensity = 220),
                     blurSharpen = BlurSharpenParams(enabled = true, amount = 15, radius = 2),
                 ),
+            ),
+        ),
+        pixel(
+            "cyanotype",
+            PresetStore.CATEGORY_PRINT,
+            // A sun print in Prussian blue, the brushed edge of the coating left bare.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = PAINT_BOX,
+                effects = EffectStack(cyanotype = CyanotypeParams(enabled = true)),
+            ),
+        ),
+        pixel(
+            "technical drawing",
+            PresetStore.CATEGORY_PRINT,
+            // A technical drawing of the picture: its edges as pale lines on blue, over a grid.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = PAINT_BOX,
+                effects = EffectStack(blueprint = BlueprintParams(enabled = true)),
+            ),
+        ),
+        pixel(
+            "hex screen",
+            PresetStore.CATEGORY_PRINT,
+            // A screen of hexagons, each as large as the picture is bright there.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = PAINT_BOX,
+                effects = EffectStack(honeycomb = HoneycombScreenParams(enabled = true)),
+            ),
+        ),
+        pixel(
+            "crumpled flyer",
+            PresetStore.CATEGORY_PRINT,
+            // The print balled up and smoothed out again.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = PAINT_BOX,
+                effects = EffectStack(crumpledPrint = CrumpledPrintParams(enabled = true)),
+            ),
+        ),
+        pixel(
+            "oil slick",
+            PresetStore.CATEGORY_COLOR,
+            // Rainbow bands of oil over the dark parts; they run through when the loop plays.
+            RenderSettings(
+                cellSize = 2,
+                ditherMode = DitherMode.FLOYD_STEINBERG,
+                colorMode = ColorMode.SOURCE,
+                paletteId = "palette.oxide",
+                paletteOverride = PAINT_BOX,
+                effects = EffectStack(petrolSheen = PetrolSheenParams(enabled = true)),
             ),
         ),
         pixel(
