@@ -140,6 +140,11 @@ class PresetLibraryTest {
         dreamcore|COLOR|PurePixel|FLOYD_STEINBERG
         holo foil|COLOR|PurePixel|FLOYD_STEINBERG
         analog film|COLOR|PurePixel|FLOYD_STEINBERG
+        cyanotype|PRINT|PurePixel|FLOYD_STEINBERG
+        technical drawing|PRINT|PurePixel|FLOYD_STEINBERG
+        hex screen|PRINT|PurePixel|FLOYD_STEINBERG
+        crumpled flyer|PRINT|PurePixel|FLOYD_STEINBERG
+        oil slick|COLOR|PurePixel|FLOYD_STEINBERG
         cyberpunk rain|COLOR|PurePixel|BAYER_4
         ps1 horror|COLOR|PurePixel|BAYER_4
         backrooms|COLOR|PurePixel|FLOYD_STEINBERG
@@ -347,12 +352,19 @@ class PresetLibraryTest {
      * - **Reveal** (2026-11-14): every preset gains a `"reveal"` block at its defaults and one
      *   more disabled track. Checked locally: with both stripped the library hashed to the
      *   previous digest exactly.
+     * - **Print effects** (2026-11-14): cyanotype, blueprint, honeycomb screen, petrol sheen and
+     *   crumpled print. Every preset gains their five switched-off blocks and five more entries
+     *   in its order. Checked locally: with those stripped the library hashed to the previous
+     *   digest exactly.
+     * - `cyanotype`, `technical drawing`, `hex screen`, `crumpled flyer` and `oil slick` joined, one
+     *   for each print effect. Checked locally: without them the library hashed to the previous
+     *   digest.
      *
      * If this fails, do the diff. A hash pasted in from the failure message is a test that has
      * been switched off, and the thing it was switched off for is a preset that quietly renders
      * differently.
      */
-    private val digest = "04d43f1fcc024ec3c8b155b653887ac70514bc6f1842fa8fb1a28010ca2bb34b"
+    private val digest = "c1510f87449a2736bf470ca3a158c7a1642070b4b139f6d1ac1be3e8bad8a04d"
 
     @Test
     fun `the shipped library is exactly the library that shipped`() {
@@ -392,8 +404,8 @@ class PresetLibraryTest {
     /** Counted separately from the fingerprint so a miscount says so in one number. */
     @Test
     fun `the library is the size it was`() {
-        assertEquals("built-in presets", 151, presets.size)
-        assertEquals("curated presets", 145, curated.size)
+        assertEquals("built-in presets", 156, presets.size)
+        assertEquals("curated presets", 150, curated.size)
         assertEquals("bench presets", 6, lab.size)
     }
 

@@ -57,5 +57,10 @@ internal object EffectPasses {
         EffectId.NEO_GLOW -> NeoGlow.pass
         EffectId.PAINT -> PaintStrokes.pass
         EffectId.STRESS -> StressRelief.pass
+        EffectId.CYANOTYPE -> Cyanotype.pass
+        EffectId.BLUEPRINT -> Blueprint.pass
+        EffectId.HONEYCOMB -> HoneycombScreen.pass
+        EffectId.PETROL -> PetrolSheen.pass
+        EffectId.CRUMPLED -> CrumpledPrint.pass
     }
 }

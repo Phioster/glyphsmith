@@ -200,6 +200,13 @@ enum class EffectId(val wireId: String, val label: String) {
     NEO_GLOW("effect.neo-glow", "neo glow"),
     PAINT("effect.paint-strokes", "paint strokes"),
     STRESS("effect.stress-relief", "stress relief"),
+
+    // The print effects come last: they are what the finished picture is printed as or on.
+    CYANOTYPE("effect.cyanotype", "cyanotype"),
+    BLUEPRINT("effect.blueprint", "blueprint"),
+    HONEYCOMB("effect.honeycomb-screen", "honeycomb screen"),
+    PETROL("effect.petrol-sheen", "petrol sheen"),
+    CRUMPLED("effect.crumpled-print", "crumpled print"),
 }
 
 /**
@@ -238,6 +245,11 @@ data class EffectStack(
     val stressRelief: StressReliefParams = StressReliefParams(),
     val analogError: AnalogErrorParams = AnalogErrorParams(),
     val contourLines: ContourLinesParams = ContourLinesParams(),
+    val cyanotype: CyanotypeParams = CyanotypeParams(),
+    val blueprint: BlueprintParams = BlueprintParams(),
+    val honeycomb: HoneycombScreenParams = HoneycombScreenParams(),
+    val petrolSheen: PetrolSheenParams = PetrolSheenParams(),
+    val crumpledPrint: CrumpledPrintParams = CrumpledPrintParams(),
     val order: List<EffectId> = EffectId.entries.toList(),
 ) {
     /**
